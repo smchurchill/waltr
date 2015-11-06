@@ -20,7 +20,6 @@
 #include <boost/shared_ptr.hpp>
 #include <boost/chrono.hpp>
 
-#define DATAPATH "/home/schurchill/ASIO/twnn/Debug/data/"
 #define TIMEOUT 100
 #define BUFFER_LENGTH 8192
 
@@ -30,7 +29,7 @@
 
 class serial_read_session {
 public:
-	serial_read_session(boost::asio::io_service& io_service, std::string location) :
+	serial_read_session(boost::asio::io_service& io_service, std::string location, std::string DATAPATH) :
 			port_(io_service), timer_(io_service), name_(location) {
 		filename_ = DATAPATH + name_.substr(name_.find_last_of("/\\") + 1);
 		port_.open(location);
@@ -227,7 +226,12 @@ private:
 
 };
 
-//-----------------------------------------------------------------------------
+/*-----------------------------------------------------------------------------
+ * twnn accepts as arguments:
+ * argv[1] is the path to a logging folder i.e. /var/log/twnn
+ * argv[i] for i in [2,argc-1] are device names i.e. /dev/ttyS5
+ */
+
 
 int main(int argc, char* argv[]) {
 	try {
@@ -243,8 +247,8 @@ int main(int argc, char* argv[]) {
 		 */
 
 		std::vector<serial_read_session*> vec;
-		for (int i = 1; i < argc; ++i) {
-			serial_read_session* s = new serial_read_session(io_service, argv[i]);
+		for (int i = 2; i < argc; ++i) {
+			serial_read_session* s = new serial_read_session(io_service, argv[i], argv[1]);
 			vec.push_back(s);
 		}
 
