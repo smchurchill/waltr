@@ -19,7 +19,16 @@
 #include <boost/array.hpp>
 #include <boost/bind.hpp>
 #include <boost/shared_ptr.hpp>
+
+#include <boost/asio/high_resolution_timer.hpp>
+#include <boost/asio/system_timer.hpp>
+#include <boost/asio/steady_timer.hpp>
 #include <boost/chrono.hpp>
+#include <boost/chrono/time_point.hpp>
+#include <boost/chrono/duration.hpp>
+
+#include <boost/version.hpp>
+
 
 #define TIMEOUT 100
 #define BUFFER_LENGTH 2048
@@ -48,11 +57,16 @@ class serial_read_session {
 public:
 	serial_read_session(boost::asio::io_service& io_service,
 			std::string location, std::string DATAPATH) :
-			port_(io_service), name_(location), timer_(io_service) {
+			port_(io_service), name_(location), timeout_(TIMEOUT), timer_(io_service)
+	{
 		filename_ = DATAPATH + name_.substr(name_.find_last_of("/\\"));
 		port_.open(location);
 		name_.resize(11,' ');
-		start();
+		start_ = boost::chrono::steady_clock::now();
+		dead_ = start_ + timeout_;
+
+		start_read();
+		set_timer();
 	}
 
 	/* For now, this function begins the read/write loop with a call to
@@ -62,22 +76,12 @@ public:
 	 * Later, it will take care of making sure that buffer_, port_, and file_ are
 	 * sane.  Other specifications are tbd.
 	 */
-	void start() {
-    timer_.expires_from_now(boost::posix_time::milliseconds(TIMEOUT));
-
+	void start_read() {
 		std::vector<char>* buffer_ = new std::vector<char>;
 		buffer_->assign (BUFFER_LENGTH,0);
 		boost::asio::mutable_buffers_1 Buffer_ = boost::asio::buffer(*buffer_);
 		boost::asio::async_read(port_,Buffer_,
 				boost::bind(&serial_read_session::handle_read, this, _1, _2, buffer_));
-
-    timer_.async_wait(
-    		boost::bind(&serial_read_session::handle_timeout, this, _1));
-
-	}
-
-	void stop_read() {
-		port_.cancel();
 	}
 
 private:
@@ -100,7 +104,7 @@ private:
 		 * new buffer to pass to our next read operation and for our next handler
 		 * to read from.  That is all done in start().
 		 */
-		this->start();
+		this->start_read();
 
 		if (length > 0) {
 			file_ = fopen(filename_.c_str(), "a");
@@ -129,18 +133,25 @@ private:
    * either buffer_ is full or timer_ expires and invokes handle_timeout, which
    * cancels all current work operations in progress through port_.
    */
+	void set_timer() {
+	boost::chrono::time_point<boost::chrono::steady_clock> now_ =
+			boost::chrono::steady_clock::now();
+
+	while(dead_< now_)
+		dead_ = dead_ + timeout_;
+
+	timer_.expires_at(dead_);
+	timer_.async_wait(
+    	boost::bind(&serial_read_session::handle_timeout, this, _1));
+}
 
   void handle_timeout(boost::system::error_code ec) {
-    if (timer_.expires_from_now() < boost::posix_time::seconds(0)) {
-      timer_.expires_from_now(boost::posix_time::milliseconds(TIMEOUT));
-      timer_.async_wait(bind(&serial_read_session::handle_timeout, this, _1));
-      port_.cancel();
-    } else {
-      timer_.async_wait(
-          boost::bind(&serial_read_session::handle_timeout, this, _1));
-    }
 
-  }
+  	if(!ec)
+  		port_.cancel();
+
+  	set_timer();
+}
 
 
 
@@ -151,8 +162,30 @@ private:
 	FILE* file_;
 
 	/* Timer specific members */
-  boost::asio::deadline_timer timer_;
+	boost::chrono::milliseconds timeout_;
 
+	/* November 13, 2015
+	 *
+	 * Using:
+	 * 	boost::asio::basic_waitable_timer<boost::chrono::steady_clock>
+	 * 	boost::chrono::time_point<boost::chrono::steady_clock>
+	 *
+	 * over:
+	 * 	boost::asio::steady_timer
+	 * 	boost::asio::steady_timer::time_point
+	 *
+	 * because the latter does not work.  The typedefs of the asio library should
+	 * make them act the same, but they don't.  The latter doesn't even compile.
+	 *
+	 * May be related to the issue located at:
+	 *	www.boost.org/doc/libs/1_59_0/doc/html/boost_asio/overview/cpp2011/chrono.html
+	 *
+	 *
+	 */
+
+  boost::asio::basic_waitable_timer<boost::chrono::steady_clock> timer_;
+  boost::chrono::time_point<boost::chrono::steady_clock> start_;
+  boost::chrono::time_point<boost::chrono::steady_clock> dead_;
 };
 
 /*-----------------------------------------------------------------------------
@@ -291,6 +324,8 @@ private:
 
 
 int main(int argc, char* argv[]) {
+	static_assert(BOOST_VERSION >= 104900, "asio waitable timer only supported in boost versions at least 1.49");
+
 	try {
 
 		/*
