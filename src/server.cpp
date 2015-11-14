@@ -76,6 +76,8 @@ public:
 	 * Later, it will take care of making sure that buffer_, port_, and file_ are
 	 * sane.  Other specifications are tbd.
 	 */
+
+private:
 	void start_read() {
 		std::vector<char>* buffer_ = new std::vector<char>;
 		buffer_->assign (BUFFER_LENGTH,0);
@@ -84,7 +86,6 @@ public:
 				boost::bind(&serial_read_session::handle_read, this, _1, _2, buffer_));
 	}
 
-private:
 	/* This handler first gives more work to the io_service.  The io_service will
 	 * terminate if it is ever not executing work or handlers, so passing more
 	 * work to the service at the start of this handler will reduce the possible
@@ -111,7 +112,7 @@ private:
 			fwrite(buffer_->data(), sizeof(char), length, file_);
 			fclose(file_);
 		}
-
+		if(0)
 		std::cout << "[" << name_ << "]: " << length << " characters written" << std::endl;
 
 		delete buffer_;
@@ -139,7 +140,8 @@ private:
 
 	while(dead_< now_)
 		dead_ = dead_ + timeout_;
-
+	if(0)
+	std::cout << "[" << name_ << "]: deadline set to " << dead_ << '\n';
 	timer_.expires_at(dead_);
 	timer_.async_wait(
     	boost::bind(&serial_read_session::handle_timeout, this, _1));
@@ -244,24 +246,29 @@ private:
 };
 
 /*-----------------------------------------------------------------------------
- * November 10, 2015
- * class network_server
+ * November 13, 2015
+ * class network_acceptor
  *
- * The server is initialized with a port to bind to and an io_service to assign
- * work to.  It sits on an acceptor and a socket, waiting for someone to try to
- * connect.  When a connection is accepted it is assigned to socket_, and a new
- * shared_ptr to socket_ is created and passed to a new network_session which
- * will communicate through socket_. The server then continues to sit on socket_
- * and acceptor_ and waits for a new connection.
+ * The acceptor is initialized with a port to bind to and an io_service to ass-
+ * -ign work to.  It sits on an acceptor and a socket, waiting for someone to
+ * try to connect.  When a connection is accepted it is assigned to socket_,
+ * and a new shared_ptr to socket_ is created and passed to a new network_sess-
+ * -ion which will communicate through socket_. The server then continues to
+ * sit on socket_ and acceptor_ and waits for a new connection.
+ *
+ * The intent is to have an acceptor listening on port 50001 over each of the
+ * ip addresses on pang that are assigned to flopoint.  As of writing, those
+ * are 192.168.16.X for X in [0:8].
  *
  */
 
-class network_server {
+class network_acceptor {
 public:
-	network_server(boost::asio::io_service& io_service, int port) :
-			acceptor_(io_service,
-					boost::asio::ip::tcp::endpoint(boost::asio::ip::tcp::v4(), port)), socket_(
-					io_service) {
+	network_acceptor(boost::asio::io_service& io_service, int port,
+			boost::asio::ip::address_v4 address ) :
+			acceptor_(io_service,boost::asio::ip::tcp::endpoint(address, port)),
+					socket_(io_service) {
+		std::cout << "hello" << '\n';
 		do_accept();
 	}
 
@@ -332,6 +339,7 @@ int main(int argc, char* argv[]) {
 		 * Can use argv[1] to see if we have permission to modify the given path.
 		 * That would keep us from unsuccessfully logging things.
 		 */
+		if(0)
 		if (argc < 3) {
 			std::cerr << "No serial port names supplied\n";
 			return 1;
@@ -343,10 +351,27 @@ int main(int argc, char* argv[]) {
 		 * Instantiate the serial port sessions
 		 */
 
-		std::vector<serial_read_session*> vec;
+		std::vector<serial_read_session*> vec_srs;
 		for (int i = 2; i < argc; ++i) {
 			serial_read_session* s = new serial_read_session(io_service, argv[i], argv[1]);
-			vec.push_back(s);
+			vec_srs.push_back(s);
+		}
+
+		/* November 13, 2015
+		 * Instantiate the network acceptors.  As of writing, the ip addresses on
+		 * pang assigned to flopoint are 192.168.16.X, for X in [0:8].
+		 *
+		 * These values should later be part of startup discovery processes instead
+		 * of being explicitly stated.
+		 */
+		std::vector<network_acceptor*> vec_na;
+		for (int i=0; i < 9; ++i) {
+			boost::asio::ip::address_v4 ip;
+			std::string s = "192.168.16." + std::to_string(i);
+			std::cout << s << '\n';
+			ip.from_string(s);
+			network_acceptor* a = new network_acceptor(io_service, 50001, ip);
+			vec_na.push_back(a);
 		}
 
 		/*
