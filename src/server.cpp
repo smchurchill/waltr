@@ -29,7 +29,7 @@
 
 #include <boost/version.hpp>
 
-
+#define PORT_NUMBER 50001
 #define TIMEOUT 100
 #define BUFFER_LENGTH 2048
 
@@ -227,22 +227,78 @@ class network_session: public std::enable_shared_from_this<network_session> {
 public:
 	network_session(boost::asio::ip::tcp::socket sock) :
 			socket_(std::move(sock)) {
+		start_ = boost::chrono::steady_clock::now();
 	}
 
 	void start() {
-		socket_.async_read_some(boost::asio::buffer(buffer_, BUFFER_LENGTH),
-				boost::bind(&network_session::handle_read, this, _1));
-	}
+		do_read();
 
-	/* haven't decided what we want to do with what we've read yet */
-	void handle_read(boost::system::error_code ec) {
-
+		if(0){
+		std::cout << "hello" << '\n';
+		std::vector<char>* buffer_ = new std::vector<char>;
+		buffer_->assign (BUFFER_LENGTH,0);
+		boost::asio::mutable_buffers_1 Buffer_ = boost::asio::buffer(*buffer_);
+		socket_.async_read_some(Buffer_,
+				boost::bind(&network_session::handle_read, this, _1, _2, Buffer_));
+		}
 	}
 
 private:
 
-	char buffer_[BUFFER_LENGTH];
+	/*
+	 * November 16, 2015
+	 * Simple echoing protocol modeled on the tcp echo server example in boost
+	 * asio library.
+	 */
+	void do_read() {
+		auto self(shared_from_this());
+		socket_.async_read_some(boost::asio::buffer(data_),
+				[this,self](boost::system::error_code ec, std::size_t length)
+				{
+					if(!ec)
+						do_write(length);
+					else
+						std::cout << ec << '\n';
+				});
+	}
+
+	void do_write(std::size_t length)
+	{
+		auto self(shared_from_this());
+		std::cout << "[" << socket_.local_endpoint() << "] started at [ " <<
+				start_ << "]"	<< '\n';
+		for(std::size_t i = 0 ; i < length ; ++i)
+			std::cout << data_[i];
+		std::cout << '\n';
+		boost::asio::async_write(socket_,boost::asio::buffer(data_,length),
+				[this,self](boost::system::error_code ec, std::size_t)
+				{
+					do_read();
+				});
+	}
+
+
+
+
+
+
+
+
+
+	void handle_read(boost::system::error_code ec, std::size_t length,
+			boost::asio::mutable_buffers_1 Buffer_) {
+		boost::asio::async_write(socket_, Buffer_,
+				boost::bind(&network_session::handle_write, this, _1, _2));
+	}
+
+	void handle_write(boost::system::error_code ec, std::size_t length) {
+		start();
+	}
+
+	std::vector<char> data_ = std::vector<char>(BUFFER_LENGTH,0);
 	boost::asio::ip::tcp::socket socket_;
+
+  boost::chrono::time_point<boost::chrono::steady_clock> start_;
 };
 
 /*-----------------------------------------------------------------------------
@@ -264,11 +320,10 @@ private:
 
 class network_acceptor {
 public:
-	network_acceptor(boost::asio::io_service& io_service, int port,
-			boost::asio::ip::address_v4 address ) :
-			acceptor_(io_service,boost::asio::ip::tcp::endpoint(address, port)),
+	network_acceptor(boost::asio::io_service& io_service,
+			boost::asio::ip::tcp::endpoint ep ) :
+			acceptor_(io_service,ep,true),
 					socket_(io_service) {
-		std::cout << "hello" << '\n';
 		do_accept();
 	}
 
@@ -339,12 +394,6 @@ int main(int argc, char* argv[]) {
 		 * Can use argv[1] to see if we have permission to modify the given path.
 		 * That would keep us from unsuccessfully logging things.
 		 */
-		if(0)
-		if (argc < 3) {
-			std::cerr << "No serial port names supplied\n";
-			return 1;
-		}
-
 		boost::asio::io_service io_service;
 
 		/*
@@ -366,11 +415,11 @@ int main(int argc, char* argv[]) {
 		 */
 		std::vector<network_acceptor*> vec_na;
 		for (int i=0; i < 9; ++i) {
-			boost::asio::ip::address_v4 ip;
 			std::string s = "192.168.16." + std::to_string(i);
-			std::cout << s << '\n';
-			ip.from_string(s);
-			network_acceptor* a = new network_acceptor(io_service, 50001, ip);
+			boost::asio::ip::tcp::endpoint ep (
+					boost::asio::ip::address_v4::from_string(s), PORT_NUMBER);
+			std::cout << ep << '\n';
+			network_acceptor* a = new network_acceptor(io_service, ep);
 			vec_na.push_back(a);
 		}
 
