@@ -5,8 +5,8 @@
  *      Author: schurchill
  */
 
-#ifndef SRC_DEWD_CLASSES_HPP_
-#define SRC_DEWD_CLASSES_HPP_
+#ifndef OLDOLDSRC_DEWD_CLASSES_NOTHING_
+#define OLDOLDSRC_DEWD_CLASSES_NOTHING_
 
 /* For std::make_shared and std::enable_shared_from_this */
 #include <memory>
@@ -384,4 +384,4 @@ private:
 
 
 
-#endif /* SRC_DEWD_CLASSES_HPP_ */
+#endif /* OLDOLDSRC_DEWD_CLASSES_NOTHING_ */

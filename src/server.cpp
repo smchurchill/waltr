@@ -29,7 +29,7 @@
 
 #include <boost/version.hpp>
 
-#define PORT_NUMBER 50001
+#define PORT_NUMBER 2023
 #define TIMEOUT 100
 #define BUFFER_LENGTH 2048
 

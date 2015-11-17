@@ -1,5 +1,2 @@
-.settings/
-Debug/
+/Debug/
 /Release/
-.cproject
-.project
