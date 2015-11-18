@@ -1,12 +1,24 @@
 /*
- * dewd_classes.hpp
+ * serial_session.hpp
  *
- *  Created on: Nov 17, 2015
+ *  Created on: Nov 18, 2015
  *      Author: schurchill
  */
 
-#ifndef OLDOLDSRC_DEWD_CLASSES_NOTHING_
-#define OLDOLDSRC_DEWD_CLASSES_NOTHING_
+#ifndef SESSION_HPP_
+#define SESSION_HPP_
+
+#include <iostream>
+#include <fstream>
+#include <string>
+#include <vector>
+#include <cstdio>
+#include <boost/asio.hpp>
+#include <boost/bind.hpp>
+#include <boost/asio/steady_timer.hpp>
+#include <boost/chrono.hpp>
+#include <boost/chrono/time_point.hpp>
+#include <boost/chrono/duration.hpp>
 
 /* For std::make_shared and std::enable_shared_from_this */
 #include <memory>
@@ -14,23 +26,33 @@
 /* For std::move */
 #include <utility>
 
+/*-----------------------------------------------------------------------------
+ * November 18, 2015
+ *
+ * The initialization of the session classes in dewd.cpp requires that a class
+ * has a constructor with signature:
 
-#include <boost/bind.hpp>
-#include <boost/shared_ptr.hpp>
+		handler_wrapper(boost::asio::io_service& io_service,
+			initializer_definer def,
+			std::string logging_directory
+			)
 
-#include <boost/asio/steady_timer.hpp>
-#include <boost/chrono.hpp>
-#include <boost/chrono/time_point.hpp>
-#include <boost/chrono/duration.hpp>
+ *
+ * The function that initializes all sessions also calls the public class
+ * function
 
-#define PORT_NUMBER 50001
-#define TIMEOUT 100
-#define BUFFER_LENGTH 2048
+ 	 	 void start()
+
+ * which should cause the instance of handler_wrapper to make some work for the
+ * boost::asio::io_service object passed to it.
+ */
+
+
 
 /*-----------------------------------------------------------------------------
- * November 10, 2015
+ * November 18, 2015
  * class serial_read_session
- *  The read and write sessions of the twnn server are separated because we have
+ * The read and write sessions of the twnn server are separated because we have
  * a timeout implemented on reads.  We would like to rapidly create a trusted
  * communications log for our commands rather than fill our buffer each time.
  * The hope is that the integrity of the communications will be preserved by
@@ -45,23 +67,30 @@
  *
  */
 
-
-
 class serial_read_session {
 public:
 	serial_read_session(boost::asio::io_service& io_service,
-			std::string location, std::string DATAPATH) :
-			port_(io_service), name_(location), timeout_(TIMEOUT), timer_(io_service)
+			std::string device_name, std::string logging_directory) :
+			port_(io_service), name_(device_name), timer_(io_service)
 	{
-		filename_ = DATAPATH + name_.substr(name_.find_last_of("/\\"));
-		port_.open(location);
-		name_.resize(11,' ');
+		filename_ = logging_directory + name_.substr(name_.find_last_of("/\\"));
+		port_.open(device_name);
 		start_ = boost::chrono::steady_clock::now();
 		dead_ = start_ + timeout_;
+		std::cout << "Serial read session ready on port located at " << name_ << '\n';
+	}
 
+	void start() {
 		start_read();
 		set_timer();
 	}
+
+	~serial_read_session() {
+			std::cout << "Destructor called for serial_read_session instance at "
+					<< name_ << std::endl;
+	}
+
+private:
 
 	/* For now, this function begins the read/write loop with a call to
 	 * port_.async_read_some with handler handle_read.  It makes a new vector,
@@ -70,8 +99,6 @@ public:
 	 * Later, it will take care of making sure that buffer_, port_, and file_ are
 	 * sane.  Other specifications are tbd.
 	 */
-
-private:
 	void start_read() {
 		std::vector<char>* buffer_ = new std::vector<char>;
 		buffer_->assign (BUFFER_LENGTH,0);
@@ -102,14 +129,17 @@ private:
 		this->start_read();
 
 		if (length > 0) {
-			file_ = fopen(filename_.c_str(), "a");
-			fwrite(buffer_->data(), sizeof(char), length, file_);
+			FILE* file_ = fopen(filename_.c_str(), "a");
+			std::fwrite(buffer_->data(), sizeof(char), length, file_);
 			fclose(file_);
 		}
-		if(0)
-		std::cout << "[" << name_ << "]: " << length << " characters written" << std::endl;
 
 		delete buffer_;
+
+		/* The following is for debugging purposes only */
+		if(0) {
+			std::cout << "[" << name_ << "]: " << length << " characters written\n";
+		}
 	}
 
   /* This timeout handling is based on the blog post located at:
@@ -129,36 +159,46 @@ private:
    * cancels all current work operations in progress through port_.
    */
 	void set_timer() {
-	boost::chrono::time_point<boost::chrono::steady_clock> now_ =
+		boost::chrono::time_point<boost::chrono::steady_clock> now_ =
 			boost::chrono::steady_clock::now();
 
-	while(dead_< now_)
-		dead_ = dead_ + timeout_;
-	if(0)
-	std::cout << "[" << name_ << "]: deadline set to " << dead_ << '\n';
-	timer_.expires_at(dead_);
-	timer_.async_wait(
+		while(dead_< now_)
+			dead_ = dead_ + timeout_;
+
+		timer_.expires_at(dead_);
+		timer_.async_wait(
     	boost::bind(&serial_read_session::handle_timeout, this, _1));
-}
+
+		/* The following is for debugging purposes only */
+		if(0) {
+			std::cout << "[" << name_ << "]: deadline set to " << dead_ << '\n';
+		}
+	}
 
   void handle_timeout(boost::system::error_code ec) {
-
   	if(!ec)
   		port_.cancel();
 
   	set_timer();
-}
-
-
-
+  }
 
 	boost::asio::serial_port port_;
 	std::string name_;
 	std::string filename_;
-	FILE* file_;
+
+	/* November 18, 2015
+	 * AJS says that pang has a 4k kernel buffer.  We want our buffer to be
+	 * bigger than that, and we can be greedy with what "bigger" means.
+	 */
+	const long BUFFER_LENGTH = 8192;
 
 	/* Timer specific members */
-	boost::chrono::milliseconds timeout_;
+
+	/* November 18, 2015
+	 * This value gives us a polling rate of 10Hz.  This is the only place where
+	 * this polling rate is set.
+	 */
+	boost::chrono::milliseconds timeout_ = boost::chrono::milliseconds(100);
 
 	/* November 13, 2015
 	 *
@@ -185,7 +225,7 @@ private:
 };
 
 /*-----------------------------------------------------------------------------
- * November 10, 2015
+ * November 18, 2015
  * class serial_write_session
  *
  * We plan to write commands to the serial port that are dictated by commands
@@ -198,7 +238,14 @@ private:
 
 class serial_write_session {
 public:
-	serial_write_session();
+	serial_write_session(boost::asio::io_service& io_service,
+			std::string device_name, std::string logging_directory) :
+				port_(io_service), name_(device_name)
+		{
+			filename_ = logging_directory + name_.substr(name_.find_last_of("/\\"));
+			port_.open(device_name);
+			std::cout << "Serial write session ready on port located at " << name_ << '\n';
+		}
 
 	/*
 	 */
@@ -210,7 +257,15 @@ private:
 	 *
 	 */
 
+	boost::asio::serial_port port_;
+	std::string name_;
+	std::string filename_;
+
 };
+
+
+
+
 
 /*-----------------------------------------------------------------------------
  * November 10, 2015
@@ -226,15 +281,12 @@ public:
 
 	void start() {
 		do_read();
+	}
 
-		if(0){
-		std::cout << "hello" << '\n';
-		std::vector<char>* buffer_ = new std::vector<char>;
-		buffer_->assign (BUFFER_LENGTH,0);
-		boost::asio::mutable_buffers_1 Buffer_ = boost::asio::buffer(*buffer_);
-		socket_.async_read_some(Buffer_,
-				boost::bind(&network_session::handle_read, this, _1, _2, Buffer_));
-		}
+	~network_session() {
+		std::cout << "Destructor called for network_session instance with local "
+				"endpoint "	<< socket_.local_endpoint() << " and remote endpoint " <<
+				socket_.remote_endpoint() << std::endl;
 	}
 
 private:
@@ -252,18 +304,13 @@ private:
 					if(!ec)
 						do_write(length);
 					else
-						std::cout << ec << '\n';
+						std::cerr << ec << '\n';
 				});
 	}
 
 	void do_write(std::size_t length)
 	{
 		auto self(shared_from_this());
-		std::cout << "[" << socket_.local_endpoint() << "] started at [ " <<
-				start_ << "]"	<< '\n';
-		for(std::size_t i = 0 ; i < length ; ++i)
-			std::cout << data_[i];
-		std::cout << '\n';
 		boost::asio::async_write(socket_,boost::asio::buffer(data_,length),
 				[this,self](boost::system::error_code ec, std::size_t)
 				{
@@ -271,23 +318,10 @@ private:
 				});
 	}
 
-
-
-
-
-
-
-
-
-	void handle_read(boost::system::error_code ec, std::size_t length,
-			boost::asio::mutable_buffers_1 Buffer_) {
-		boost::asio::async_write(socket_, Buffer_,
-				boost::bind(&network_session::handle_write, this, _1, _2));
-	}
-
-	void handle_write(boost::system::error_code ec, std::size_t length) {
-		start();
-	}
+	/* November 18, 2015
+	 * The buffer for this class probably doesn't need to be this large.
+	 */
+	const long BUFFER_LENGTH = 8192;
 
 	std::vector<char> data_ = std::vector<char>(BUFFER_LENGTH,0);
 	boost::asio::ip::tcp::socket socket_;
@@ -315,10 +349,18 @@ private:
 class network_acceptor {
 public:
 	network_acceptor(boost::asio::io_service& io_service,
-			boost::asio::ip::tcp::endpoint ep ) :
-			acceptor_(io_service,ep,true),
-					socket_(io_service) {
+			boost::asio::ip::tcp::endpoint ep, std::string logging_directory ) :
+				acceptor_(io_service,ep),
+				socket_(io_service) {
+	}
+
+	void start() {
 		do_accept();
+	}
+
+	~network_acceptor() {
+		std::cout << "Destructor called for network_acceptor instance at endpoint "
+				<< acceptor_.local_endpoint() << std::endl;
 	}
 
 private:
@@ -328,7 +370,7 @@ private:
 			if(!ec) {
 				std::make_shared<network_session>(std::move(socket_))->start();
 			}
-			do_accept();
+			this->start();
 		});
 	}
 
@@ -370,18 +412,4 @@ private:
  */
 
 
-
-/*-----------------------------------------------------------------------------
- * November 10, 2015
- * twnn accepts as arguments:
- * argv[1] is the path to a logging folder i.e. /var/log/twnn
- * argv[i] for i in [2,argc-1] are device names i.e. /dev/ttyS5
- *
- * November 16, 2015
- * Beginning the switch over to boost program_options library to parse command
- * line arguments.
- */
-
-
-
-#endif /* OLDOLDSRC_DEWD_CLASSES_NOTHING_ */
+#endif /* SESSION_HPP_ */
