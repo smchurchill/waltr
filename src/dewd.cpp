@@ -24,6 +24,28 @@ namespace
 	const size_t ERROR_UNHANDLED_EXCEPTION = 2;
 } //namespace
 
+class serial_read_session;
+class serial_write_session;
+class fp_em_session;
+
+/* November 17, 2015
+ *
+ *
+ *
+ */
+
+template<typename handler_wrapper, typename initializer_list >
+std::vector<handler_wrapper> make_asio_work(boost::asio::io_service io_service,
+		initializer_list i ){
+
+	std::vector<handler_wrapper> v = new std::vector<handler_wrapper>;
+
+	for(initializer_list::iterator it = i.begin() ; it != i.end() ; ++it )
+		v->emplace_back(handler_wrapper(io_service, *it));
+
+	return v;
+}
+
 
 int main(int argc, char** argv) {
 	static_assert(BOOST_VERSION >= 104900,
@@ -40,8 +62,11 @@ int main(int argc, char** argv) {
 						"Specify the path to logging folder.  Default is /tmp/dewd/."
 						" Permissions are not checked before logging begins -- it is"
 						" assumed that dewd can write to the given directory.")
-				("serial-ports,p", po::value<std::vector<std::string>>(),
-						"Specify serial ports to communicate with. "
+				("read-from,r", po::value<std::vector<std::string>>(),
+						"Specify serial ports to read from. "
+						"Allows multiple entries. Ex. /dev/ttyS0 /dev/ttyS1")
+				("write-to,w", po::value<std::vector<std::string>>(),
+						"Specify serial ports to write to. "
 						"Allows multiple entries. Ex. /dev/ttyS0 /dev/ttyS1")
 				("network,n",po::value<std::vector<std::string>>(),
 						"Enable networking and specify local ip4 addresses to bind to." )
@@ -82,7 +107,8 @@ int main(int argc, char** argv) {
 		 *
 		 */
 
-		boost::asio::io_service io_service;
+		boost::shared_ptr<boost::asio::io_service> io_service(
+				new boost::asio::io_service);
 
 		/* If a log-directory was specified, we set it now.  Otherwise, we use the
 		 * default log-directory.
@@ -108,39 +134,52 @@ int main(int argc, char** argv) {
 		 * the future.
 		 */
 
-		std::vector<std::string> devs;
-		std::vector<std::string> ips;
+		std::vector<std::string> rdev;
+		std::vector<std::string> wdev;
+		std::vector<std::string> ip;
 
-		if(vmap.count("test")||(!vmap.count("serial-ports")&&!vmap.count("network")))
+		if(vmap.count("test")||(!vmap.count("read-from")&&!vmap.count("write-to")
+				&&!vmap.count("network")))
 		{
 			std::cout << "Starting in test mode.\n";
 			for(int i = 0; i < 13 ; ++i) {
 				if(i < 9)
-					ips.push_back("192.168.16." + std::to_string(i));
+					ip.push_back("192.168.16." + std::to_string(i));
 				if(i > 4)
-					devs.push_back("/dev/ttyS" + std::to_string(i));
+					rdev.push_back("/dev/ttyS" + std::to_string(i));
 			}
 		}
 		else {
-			devs = vmap["serial-ports"].as<std::vector<std::string> >();
-			ips = vmap["network"].as<std::vector<std::string> >();
+			rdev = vmap["read-from"].as<std::vector<std::string> >();
+			wdev = vmap["write-to"].as<std::vector<std::string> >();
+			ip = vmap["network"].as<std::vector<std::string> >();
 		}
 
-		std::cout << "Talking to ports:\n";
-		for(std::vector<std::string>::iterator it = devs.begin() ;
-				it != devs.end() ; ++it)
+		std::cout << "Reading from ports:\n";
+		for(std::vector<std::string>::iterator it = rdev.begin() ;
+				it != rdev.end() ; ++it)
+			std::cout << (*it) << '\n';
+
+		std::cout << "Writing to ports:\n";
+		for(std::vector<std::string>::iterator it = wdev.begin() ;
+				it != wdev.end() ; ++it)
 			std::cout << (*it) << '\n';
 
 		std::cout << "Binding to ips:\n";
-		for(std::vector<std::string>::iterator it = ips.begin() ;
-				it != ips.end() ; ++it)
+		for(std::vector<std::string>::iterator it = ip.begin() ;
+				it != ip.end() ; ++it)
 			std::cout << (*it) << '\n';
 
+		if(vmap.count("fp-em")){
+			make_asio_work<fp_em_session>(*io_service,fp_em_list);
+		}
+		else {
+			make_asio_work<serial_read_session>
+			make_asio_work<network_acceptor>
+		}
 
-		/*
-		 * Can use argv[1] to see if we have permission to modify the given path.
-		 * That would keep us from unsuccessfully logging things.
-		 */
+
+
 
 
 		/*
