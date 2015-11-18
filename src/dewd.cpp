@@ -1,4 +1,4 @@
-/* The twnn server
+/* The dewd server
  *
  *
  */
@@ -10,10 +10,12 @@
 #include <vector>
 
 #include <boost/version.hpp>
+#include <boost/asio.hpp>
 
 #include <boost/program_options.hpp>
 namespace po = boost::program_options;
 
+#define PORT_NUMBER 2023
 
 namespace
 {
@@ -43,7 +45,7 @@ int main(int argc, char** argv) {
 						"Allows multiple entries. Ex. /dev/ttyS0 /dev/ttyS1")
 				("network,n",po::value<std::vector<std::string>>(),
 						"Enable networking and specify local ip4 addresses to bind to." )
-				("fp-em, f", "Start dewd as a flo-point emulator rather than a"
+				("fp-em,f", "Start dewd as a flo-point emulator rather than a"
 						" communications server.  Not currently supported.")
 				;
 
@@ -135,7 +137,6 @@ int main(int argc, char** argv) {
 			std::cout << (*it) << '\n';
 
 
-
 		/*
 		 * Can use argv[1] to see if we have permission to modify the given path.
 		 * That would keep us from unsuccessfully logging things.
@@ -144,7 +145,7 @@ int main(int argc, char** argv) {
 
 		/*
 		 * Instantiate the serial port sessions
-		 */
+		 *
 		if(0){
 		std::vector<serial_read_session*> vec_srs;
 
@@ -159,7 +160,7 @@ int main(int argc, char** argv) {
 		 *
 		 * These values should later be part of startup discovery processes instead
 		 * of being explicitly stated.
-		 */
+		 *
 
 
 
@@ -182,7 +183,7 @@ int main(int argc, char** argv) {
 		 */
 		io_service.run();
 
-		}
+
 
 	} catch (std::exception& e) {
 		std::cerr << e.what() << std::endl;

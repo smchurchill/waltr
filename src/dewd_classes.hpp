@@ -14,7 +14,7 @@
 /* For std::move */
 #include <utility>
 
-#include <boost/asio.hpp>
+
 #include <boost/bind.hpp>
 #include <boost/shared_ptr.hpp>
 
