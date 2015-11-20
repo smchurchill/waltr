@@ -127,9 +127,10 @@ public:
 				comm_(io_in, uid_in), uid_(uid_in), logdir_(log_in), ref(ref_in)
 	{
 		start_ = boost::chrono::steady_clock::now();
+		this->start();
 	}
 
-	void start();
+	void start() {};
 
 protected:
 	friend class dispatcher;

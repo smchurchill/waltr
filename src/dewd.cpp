@@ -30,8 +30,8 @@
 #include <boost/chrono/time_point.hpp>
 #include <boost/chrono/duration.hpp>
 
-#include <session.hpp>
-#include <methods.hpp>
+#include "session.hpp"
+#include "methods.hpp"
 
 namespace
 {
@@ -174,16 +174,15 @@ int main(int argc, char** argv) {
 			for(int i = 0; i < 13 ; ++i) {
 				if(i < 9)
 					ends.emplace_back(
-						boost::asio::ip::address_v4::from_string(
-							"192.168.16." + std::to_string(i)), 2023
-					);
+							boost::asio::ip::address_v4::from_string(
+								"192.168.16." + std::to_string(i)), 2023);
 				if(i > 4)
 					rdev.emplace_back("/dev/ttyS" + std::to_string(i));
 			}
 		}
 		else {
-			for(std::vector<std::string>::iterator it = addr.begin() ;
-					it != addr.end() ; ++it)
+			for(std::vector<std::string>::iterator
+					it = addr.begin() ;	it != addr.end() ; ++it)
 						ends.emplace_back(
 							boost::asio::ip::address_v4::from_string(*it), port_number );
 		}
@@ -203,16 +202,22 @@ int main(int argc, char** argv) {
 				;	it != ends.end() ; ++it)
 			std::cout << (*it) << '\n';
 
-		std::vector<serial_read_session*> vec_srs =
-				make_asio_work<serial_read_session, std::vector<std::string> >(
-						*io_service, rdev, logging_directory);
-		std::vector<serial_write_session*> vec_sws =
-				make_asio_work<serial_write_session, std::vector<std::string> >(
-						*io_service, wdev, logging_directory);
-		std::vector<network_acceptor*> vec_nas =
-				make_asio_work<network_acceptor, std::vector<
-					boost::asio::ip::tcp::endpoint> >(
-						*io_service, comm, logging_directory);
+		dispatcher* dis = new dispatcher;
+
+		std::vector<io_session<boost::asio::serial_port, std::string>*> vec_srs =
+				make_asio_work<
+					boost::asio::serial_port, std::string >(
+						*io_service, rdev, logging_directory, dis);
+
+		std::vector<io_session<boost::asio::serial_port, std::string>*>  vec_sws =
+				make_asio_work<
+					boost::asio::serial_port, std::string >(
+						*io_service, wdev, logging_directory, dis);
+
+		std::vector<io_session<boost::asio::ip::tcp::acceptor, boost::asio::ip::tcp::endpoint>*>  vec_nas =
+				make_asio_work<
+				boost::asio::ip::tcp::acceptor, boost::asio::ip::tcp::endpoint >(
+						*io_service, ends, logging_directory, dis);
 
 
 

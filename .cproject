@@ -31,7 +31,7 @@
 								<option id="gnu.cpp.compiler.option.other.other.1374123164" name="Other flags" superClass="gnu.cpp.compiler.option.other.other" useByScannerDiscovery="false" value="-c -fmessage-length=0 -Wc++0x-compat -std=c++11" valueType="string"/>
 								<option id="gnu.cpp.compiler.option.include.paths.852213614" name="Include paths (-I)" superClass="gnu.cpp.compiler.option.include.paths" useByScannerDiscovery="false" valueType="includePath">
 									<listOptionValue builtIn="false" value="/boost"/>
-									<listOptionValue builtIn="false" value="/home/schurchill/ASIO/dewd/src"/>
+									<listOptionValue builtIn="false" value=""/>
 								</option>
 								<option id="gnu.cpp.compiler.option.dialect.std.222380085" name="Language standard" superClass="gnu.cpp.compiler.option.dialect.std" useByScannerDiscovery="true" value="gnu.cpp.compiler.dialect.default" valueType="enumerated"/>
 								<inputType id="cdt.managedbuild.tool.gnu.cpp.compiler.input.1885079348" superClass="cdt.managedbuild.tool.gnu.cpp.compiler.input"/>
