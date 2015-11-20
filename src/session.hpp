@@ -22,6 +22,16 @@
 
 class dispatcher;
 
+/*
+ * README::
+ * 	Massive refactoring November 19th.  Any documentation dated prior to that
+ * 	should be considered out of date.
+ *
+ *
+ */
+
+
+
 /*-----------------------------------------------------------------------------
  * November 18, 2015
  *
@@ -448,9 +458,7 @@ private:
 class dispatcher {
 
 private:
-	template<typename session_type, typename unique_identifier>
-	std::vector<io_session<session_type, unique_identifier>*>* friends;
-	boost::asio::io_service* io_service;
+	std::vector<boost::any*>* friends = NULL;
 
 	void forward() {
 
@@ -458,22 +466,17 @@ private:
 	}
 
 public:
-	template<typename session_type, typename unique_identifier>
-	dispatcher(boost::asio::io_service& io_in,
-		std::vector<io_session<session_type, unique_identifier>*> session_in ) {
-		friends = session_in;
-		io_service = &io_in;
+	dispatcher() {}
+
+	template < typename session_type, typename unique_identifier >
+	void add_friends()
+	{}
+
+
+		std::vector<io_session<typename session_type,typename unique_identifier>*>new_friends) {
+		for(std::vector<io_session<typename session_type,typename unique_identifier >*>::iterator
+				it = new_friends.begin() ; it != new_friends.end() ; ++it)
 	}
-
-	template<typename session_type, typename unique_identifier>
-	void initialize(){
-		for(std::vector<io_session<session_type, unique_identifier>*>::iterator it = friends->begin() ;
-				it != friends->end() ; ++it)
-			(**it).setRef(this);
-	}
-
-
-
 };
 
 
