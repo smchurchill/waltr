@@ -20,8 +20,6 @@
 #include <boost/chrono/time_point.hpp>
 #include <boost/chrono/duration.hpp>
 
-class dispatcher;
-
 /*
  * README::
  * 	Massive refactoring November 19th.  Any documentation dated prior to that
@@ -30,6 +28,50 @@ class dispatcher;
  *
  */
 
+/*-----------------------------------------------------------------------------
+ * November 10, 2015
+ * class dispatcher
+ *
+ * A single dispatch object should be instantiated in main, before any other
+ * object is created.  Other class constructors will be overloaded to accept a
+ * pointer to a dispatch object.  That dispatch object will be able to route
+ * communications between our other objects.  The desired functionality is des-
+ * cribed by the following example:
+ *
+ * 0. Server twnn is launched on pang, listening on port 50001.
+ * 			One dispatch object dispatch_, one server object server_, and ~enough~
+ * 			serial_read_session and serial_write_session objects srs_i and sws_i
+ * 			are instantiated.
+ * 1. Client zabbix connects to pang on port 50001.
+ * 2. server_ instantiates a network_session net_j to talk to zabbix.
+ * 3.	zabbix sends a command to pang, asking for the GUID of the flopoint board
+ * 			connected to serial port i.
+ * 4. net_j forwards the command to dispatch which forwards the command to sws_i
+ * 5. sws_i asks its board for a GUID.
+ * 6. srs_i read a GUID, and sends that to dispatch.
+ * 7. dispatch_ heard about a GUID from srs_i.  net_j asked for the GUID of who
+ * 			is attached to serial port i, so dispatch sends the GUID to net_j
+ * 8. net_j forwards the GUID to zabbix.
+ *
+ * This level of translation is needed because the commands being issued to and
+ * from the flopoint board are intended to be bjson, while the communication
+ * across the network is intended to be json.  The different wrappers should be
+ * simple, but necessary.
+ *
+ */
+
+class dispatcher {
+
+private:
+	std::vector<boost::any*>* friends = NULL;
+
+	void hello(boost::any* new_friend) {
+		friends->push_back(new_friend);
+	}
+
+public:
+	dispatcher() {}
+};
 
 
 /*-----------------------------------------------------------------------------
@@ -78,9 +120,11 @@ class dispatcher;
 template< typename session_type, typename unique_identifier >
 class io_session{
 public:
-	io_session(boost::asio::io_service& io_in, unique_identifier uid_in,
-			std::string log_in) :
-				comm_(io_in, uid_in), logdir_(log_in)
+	io_session(boost::asio::io_service& io_in,
+						unique_identifier uid_in,
+						std::string log_in,
+						dispatcher* ref_in) :
+				comm_(io_in, uid_in), uid_(uid_in), logdir_(log_in), ref(ref_in)
 	{
 		start_ = boost::chrono::steady_clock::now();
 	}
@@ -89,17 +133,11 @@ public:
 
 protected:
 	friend class dispatcher;
-	dispatcher* ref = NULL;
-	void setRef(dispatcher* toSet) {
-		ref = toSet;
-	}
-
-	session_type& get_comm() {
-		return &comm_;
-	}
 
 	session_type comm_;
+  unique_identifier uid_;
 	std::string logdir_;
+	dispatcher* ref;
 
   boost::chrono::time_point<boost::chrono::steady_clock> start_;
 };
@@ -125,13 +163,14 @@ protected:
 class serial_read_session :
 		public io_session<boost::asio::serial_port,std::string> {
 public:
-	serial_read_session(boost::asio::io_service& io_in, std::string device_in,
-			std::string log_in) :
-		io_session(io_in, device_in, log_in), //init the standard io_session stuff
-		name_(device_in), 										//init the serial_read specific stuff
+	serial_read_session(boost::asio::io_service& io_in,
+											std::string device_in,
+											std::string log_in,
+											dispatcher* ref_in) :
+		io_session(io_in, device_in, log_in, ref_in),
 		timer_(io_in)
 	{
-		filename_ = logdir_ + name_.substr(name_.find_last_of("/\\")+1);
+		filename_ = logdir_ + uid_.substr(uid_.find_last_of("/\\")+1);
 		dead_ = start_ + timeout_;
 	}
 
@@ -188,7 +227,7 @@ private:
 
 		/* The following is for debugging purposes only */
 		if(0) {
-			std::cout << "[" << name_ << "]: " << length << " characters written\n";
+			std::cout << "[" << uid_ << "]: " << length << " characters written\n";
 		}
 	}
 
@@ -221,7 +260,7 @@ private:
 
 		/* The following is for debugging purposes only */
 		if(0) {
-			std::cout << "[" << name_ << "]: deadline set to " << dead_ << '\n';
+			std::cout << "[" << uid_ << "]: deadline set to " << dead_ << '\n';
 		}
 	}
 
@@ -232,7 +271,6 @@ private:
   	set_timer();
   }
 
-	std::string name_;
 	std::string filename_;
 
 	/* November 18, 2015
@@ -288,13 +326,14 @@ private:
 class serial_write_session :
 	public io_session<boost::asio::serial_port,std::string>{
 public:
-	serial_write_session(boost::asio::io_service& io_in, std::string device_in,
-			std::string log_in) :
-				io_session(io_in, device_in, log_in),
-				name_(device_in)
+	serial_write_session(boost::asio::io_service& io_in,
+											std::string device_in,
+											std::string log_in,
+											dispatcher* ref_in) :
+				io_session(io_in, device_in, log_in, ref_in)
 		{
-			filename_ = logdir_ + name_.substr(name_.find_last_of("/\\"));
-			std::cout << "Serial write session ready on port located at " << name_ << '\n';
+			filename_ = logdir_ + uid_.substr(uid_.find_last_of("/\\"));
+			std::cout << "Serial write session ready on port located at " << uid_ << '\n';
 		}
 
 	/*
@@ -307,7 +346,6 @@ private:
 	 *
 	 */
 
-	std::string name_;
 	std::string filename_;
 };
 
@@ -325,8 +363,10 @@ class network_socket_session :
 											boost::asio::ip::tcp::endpoint> {
 public:
 	network_socket_session(boost::asio::io_service& io_in,
-			boost::asio::ip::tcp::endpoint ep_in, std::string log_in ) :
-			io_session(io_in, ep_in, log_in)
+												boost::asio::ip::tcp::endpoint ep_in,
+												std::string log_in,
+												dispatcher* ref_in) :
+			io_session(io_in, ep_in, log_in, ref_in)
 	{
 	}
 
@@ -338,6 +378,10 @@ public:
 
 private:
 	friend class network_acceptor_session;
+
+	boost::asio::ip::tcp::socket& get_sock() {
+		return comm_;
+	}
 
 	/*
 	 * November 16, 2015
@@ -398,8 +442,10 @@ class network_acceptor_session :
 											boost::asio::ip::tcp::endpoint> {
 public:
 	network_acceptor_session(boost::asio::io_service& io_in,
-			boost::asio::ip::tcp::endpoint ep_in, std::string log_in ) :
-				io_session(io_in, ep_in, log_in) {
+													 boost::asio::ip::tcp::endpoint ep_in,
+													 std::string log_in,
+													 dispatcher* ref_in) :
+				io_session(io_in, ep_in, log_in, ref_in) {
 	}
 
 	void start() {
@@ -409,9 +455,9 @@ public:
 private:
 	void do_accept() {
 		network_socket_session* sock_ =	new network_socket_session(
-				comm_.get_io_service(), comm_.local_endpoint(), logdir_);
+				comm_.get_io_service(), comm_.local_endpoint(), logdir_, ref);
 
-		comm_.async_accept(sock_->get_comm(),
+		comm_.async_accept(sock_->get_sock(),
 				[this,sock_](boost::system::error_code ec)
 				{
 					if(!ec) {
@@ -422,62 +468,6 @@ private:
 	}
 };
 
-
-/*-----------------------------------------------------------------------------
- * November 10, 2015
- * class dispatcher
- *
- * A single dispatch object should be instantiated in main, before any other
- * object is created.  Other class constructors will be overloaded to accept a
- * pointer to a dispatch object.  That dispatch object will be able to route
- * communications between our other objects.  The desired functionality is des-
- * cribed by the following example:
- *
- * 0. Server twnn is launched on pang, listening on port 50001.
- * 			One dispatch object dispatch_, one server object server_, and ~enough~
- * 			serial_read_session and serial_write_session objects srs_i and sws_i
- * 			are instantiated.
- * 1. Client zabbix connects to pang on port 50001.
- * 2. server_ instantiates a network_session net_j to talk to zabbix.
- * 3.	zabbix sends a command to pang, asking for the GUID of the flopoint board
- * 			connected to serial port i.
- * 4. net_j forwards the command to dispatch which forwards the command to sws_i
- * 5. sws_i asks its board for a GUID.
- * 6. srs_i read a GUID, and sends that to dispatch.
- * 7. dispatch_ heard about a GUID from srs_i.  net_j asked for the GUID of who
- * 			is attached to serial port i, so dispatch sends the GUID to net_j
- * 8. net_j forwards the GUID to zabbix.
- *
- * This level of translation is needed because the commands being issued to and
- * from the flopoint board are intended to be bjson, while the communication
- * across the network is intended to be json.  The different wrappers should be
- * simple, but necessary.
- *
- */
-
-class dispatcher {
-
-private:
-	std::vector<boost::any*>* friends = NULL;
-
-	void forward() {
-
-
-	}
-
-public:
-	dispatcher() {}
-
-	template < typename session_type, typename unique_identifier >
-	void add_friends()
-	{}
-
-
-		std::vector<io_session<typename session_type,typename unique_identifier>*>new_friends) {
-		for(std::vector<io_session<typename session_type,typename unique_identifier >*>::iterator
-				it = new_friends.begin() ; it != new_friends.end() ; ++it)
-	}
-};
 
 
 #endif /* SESSION_HPP_ */
