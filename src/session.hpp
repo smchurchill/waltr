@@ -127,10 +127,9 @@ public:
 				comm_(io_in, uid_in), uid_(uid_in), logdir_(log_in), ref(ref_in)
 	{
 		start_ = boost::chrono::steady_clock::now();
-		this->start();
+		std::cout << "io_session started with log directory [" << logdir_ << "] and uid_ [" << uid_ << "]\n";
 	}
 
-	void start() {};
 
 protected:
 	friend class dispatcher;
@@ -142,6 +141,7 @@ protected:
 
   boost::chrono::time_point<boost::chrono::steady_clock> start_;
 };
+
 
 /*-----------------------------------------------------------------------------
  * November 18, 2015
