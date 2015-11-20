@@ -21,8 +21,7 @@
 #include <boost/chrono/time_point.hpp>
 #include <boost/chrono/duration.hpp>
 
-class dispatcher;
-class basic_session;
+#include "session.h"
 
 
 /*
@@ -65,19 +64,16 @@ class basic_session;
  *
  */
 
-class dispatcher {
-	friend class basic_session;
-
-private:
-	std::vector<basic_session*> friends;
-
-	void hello(basic_session* new_friend) {
+void dispatcher::hello(basic_session* new_friend) {
 		friends.push_back(new_friend);
-	}
+}
 
-public:
-	dispatcher() {}
-};
+void dispatcher::brag() {
+		for(std::vector<basic_session*>::iterator
+				it = friends.begin() ; it != friends.end() ; ++it )
+			std::cout << (**it).print() << '\n';
+}
+
 
 
 /*-----------------------------------------------------------------------------
@@ -113,9 +109,8 @@ public:
  * connected io_service.
  */
 
-class basic_session{
-public:
-	basic_session(
+
+basic_session::basic_session(
 			boost::asio::io_service& io_in,
 			std::string log_in,
 			dispatcher* ref_in) :
@@ -124,19 +119,9 @@ public:
 				ref(ref_in) {
 		start_ = boost::chrono::steady_clock::now();
 		ref->hello(this);
-	}
+}
 
-protected:
-	boost::asio::io_service* io_service;
-	std::string logdir_;
-	dispatcher* ref;
-  boost::chrono::time_point<boost::chrono::steady_clock> start_;
-
-};
-
-class serial_session : public basic_session{
-public:
-	serial_session(
+class serial_session::serial_session(
 			boost::asio::io_service& io_in,
 			std::string log_in,
 			dispatcher* ref_in,
@@ -144,7 +129,9 @@ public:
 				basic_session(io_in, log_in, ref_in),
 				name_(device_in),
 				port_(*io_service, name_) {
-	}
+}
+
+	std::string print() { return name_; }
 
 protected:
 	std::string name_;
@@ -160,6 +147,12 @@ public:
 			boost::asio::ip::tcp::endpoint ep_in) :
 				basic_session(io_in, log_in, ref_in),
 				endpoint_(ep_in) {
+	}
+
+	std::string print() {
+		std::stringstream ss;
+		ss << endpoint_;
+		return ss.str();
 	}
 
 
@@ -195,17 +188,110 @@ public:
 			std::string device_in) :
 				serial_session(io_in, log_in, ref_in, device_in),
 				timer_(*io_service) {
+	}
+
+
+protected:
+
+  /* This timeout handling attempts to set a stopwatch that expires every 100ms
+   * so that the read/handle cycle of a serial_read_session operates at 10Hz.
+   *
+   * 10Hz timers are available in all serial_read_sessions, but are not
+   * necessary. The set_timer() function must be called by the inheriting class
+   * if the class wants to use the timer.
+   */
+	void set_timer() {
+		boost::chrono::time_point<boost::chrono::steady_clock> now_ =
+			boost::chrono::steady_clock::now();
+
+		while(dead_< now_)
+			dead_ = dead_ + timeout_;
+
+		timer_.expires_at(dead_);
+		timer_.async_wait(
+    	boost::bind(&serial_read_session::handle_timeout, this, _1));
+
+		/* The following is for debugging purposes only */
+		if(0) {
+			std::cout << "[" << name_ << "]: deadline set to " << dead_ << '\n';
+		}
+	}
+
+  void handle_timeout(boost::system::error_code ec) {
+  	if(!ec)
+  		port_.cancel();
+
+  	set_timer();
+  }
+
+	/* November 18, 2015
+	 * AJS says that pang has a 4k kernel buffer.  We want our buffer to be
+	 * bigger than that, and we can be greedy with what "bigger" means.
+	 */
+	const long BUFFER_LENGTH = 8192;
+
+	/* Timer specific members */
+
+	/* November 18, 2015
+	 * This value gives us a polling rate of 10Hz.  This is the only place where
+	 * this polling rate is set.
+	 */
+	boost::chrono::milliseconds timeout_ = boost::chrono::milliseconds(100);
+
+	/* November 13, 2015
+	 *
+	 * Using:
+	 * 	boost::asio::basic_waitable_timer<boost::chrono::steady_clock>
+	 * 	boost::chrono::time_point<boost::chrono::steady_clock>
+	 *
+	 * over:
+	 * 	boost::asio::steady_timer
+	 * 	boost::asio::steady_timer::time_point
+	 *
+	 * because the latter does not work.  The typedefs of the asio library should
+	 * make them act the same, but they don't.  The latter doesn't even compile.
+	 *
+	 * May be related to the issue located at:
+	 *	www.boost.org/doc/libs/1_59_0/doc/html/boost_asio/overview/cpp2011/chrono.html
+	 *
+	 *
+	 */
+
+  boost::asio::basic_waitable_timer<boost::chrono::steady_clock> timer_;
+  boost::chrono::time_point<boost::chrono::steady_clock> dead_;
+
+};
+
+class serial_read_parse_session :
+		public serial_read_session {
+public:
+	serial_read_parse_session(
+			boost::asio::io_service& io_in,
+			std::string log_in,
+			dispatcher* ref_in,
+			std::string device_in) :
+				serial_read_session(io_in, log_in, ref_in, device_in) {
+	}
+};
+
+class serial_read_log_session :
+		public serial_read_session {
+public:
+		serial_read_log_session(
+			boost::asio::io_service& io_in,
+			std::string log_in,
+			dispatcher* ref_in,
+			std::string device_in) :
+				serial_read_session(io_in, log_in, ref_in, device_in) {
 		filename_ = logdir_ + name_.substr(name_.find_last_of("/\\")+1);
-		dead_ = start_ + timeout_;
 		this->start();
 	}
 
 	void start() {
 		start_read();
+		dead_ = boost::chrono::steady_clock::now() + timeout_;
 		set_timer();
 	}
-
-private:
 
 	/* For now, this function begins the read/write loop with a call to
 	 * port_.async_read_some with handler handle_read.  It makes a new vector,
@@ -218,8 +304,8 @@ private:
 		std::vector<char>* buffer_ = new std::vector<char>;
 		buffer_->assign (BUFFER_LENGTH,0);
 		boost::asio::mutable_buffers_1 Buffer_ = boost::asio::buffer(*buffer_);
-		boost::asio::async_read(port_,Buffer_,
-				boost::bind(&serial_read_session::handle_read, this, _1, _2, buffer_));
+		boost::asio::async_read(port_,Buffer_,boost::bind(
+				&serial_read_log_session::handle_read, this, _1, _2, buffer_));
 	}
 
 	/* This handler first gives more work to the io_service.  The io_service will
@@ -257,83 +343,9 @@ private:
 		}
 	}
 
-  /* This timeout handling is based on the blog post located at:
-   *
-   * blog.think-async.com/2010/04/timeouts-by-analogy.html
-   *
-   * The basic idea is that there are two pieces of async work in handled by a
-   * serial_read_session: a read and a wait.
-   *
-   * The async_wait runs the handle_timout handler either when time expires or
-   * when the wait operation is canceled.  Nothing will cancel the wait in this
-   * program at the moment.
-   *
-   * The async_read reads characters from the port_ buffer into this session's
-   * buffer_ container.  The async_read will exit and run read_handler when
-   * either buffer_ is full or timer_ expires and invokes handle_timeout, which
-   * cancels all current work operations in progress through port_.
-   */
-	void set_timer() {
-		boost::chrono::time_point<boost::chrono::steady_clock> now_ =
-			boost::chrono::steady_clock::now();
 
-		while(dead_< now_)
-			dead_ = dead_ + timeout_;
-
-		timer_.expires_at(dead_);
-		timer_.async_wait(
-    	boost::bind(&serial_read_session::handle_timeout, this, _1));
-
-		/* The following is for debugging purposes only */
-		if(0) {
-			std::cout << "[" << name_ << "]: deadline set to " << dead_ << '\n';
-		}
-	}
-
-  void handle_timeout(boost::system::error_code ec) {
-  	if(!ec)
-  		port_.cancel();
-
-  	set_timer();
-  }
-
+private:
 	std::string filename_;
-
-	/* November 18, 2015
-	 * AJS says that pang has a 4k kernel buffer.  We want our buffer to be
-	 * bigger than that, and we can be greedy with what "bigger" means.
-	 */
-	const long BUFFER_LENGTH = 8192;
-
-	/* Timer specific members */
-
-	/* November 18, 2015
-	 * This value gives us a polling rate of 10Hz.  This is the only place where
-	 * this polling rate is set.
-	 */
-	boost::chrono::milliseconds timeout_ = boost::chrono::milliseconds(100);
-
-	/* November 13, 2015
-	 *
-	 * Using:
-	 * 	boost::asio::basic_waitable_timer<boost::chrono::steady_clock>
-	 * 	boost::chrono::time_point<boost::chrono::steady_clock>
-	 *
-	 * over:
-	 * 	boost::asio::steady_timer
-	 * 	boost::asio::steady_timer::time_point
-	 *
-	 * because the latter does not work.  The typedefs of the asio library should
-	 * make them act the same, but they don't.  The latter doesn't even compile.
-	 *
-	 * May be related to the issue located at:
-	 *	www.boost.org/doc/libs/1_59_0/doc/html/boost_asio/overview/cpp2011/chrono.html
-	 *
-	 *
-	 */
-
-  boost::asio::basic_waitable_timer<boost::chrono::steady_clock> timer_;
-  boost::chrono::time_point<boost::chrono::steady_clock> dead_;
 
 };
 

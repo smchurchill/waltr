@@ -31,7 +31,6 @@
 #include <boost/chrono/duration.hpp>
 
 #include "session.hpp"
-#include "methods.hpp"
 
 namespace
 {
@@ -196,8 +195,11 @@ int main(int argc, char** argv) {
 		std::cout << "Reading from ports:\n";
 		for(std::vector<std::string>::iterator it = rdev.begin() ;
 				it != rdev.end() ; ++it) {
-			serial_read_session* session =
-					new serial_read_session(*io_service, logging_directory, dis, *it);
+			basic_session* session;
+			if(vmap.count("test")) {
+				session =	new serial_read_log_session(
+						*io_service, logging_directory, dis, *it);
+			}
 
 			sessions.push_back(session);
 
