@@ -12,25 +12,11 @@
 
 #include <boost/version.hpp>
 #include <boost/asio.hpp>
-
 #include <boost/program_options.hpp>
 
-/* For std::make_shared and std::enable_shared_from_this */
-#include <memory>
-
-/* For std::move */
-#include <utility>
-
-
-#include <boost/bind.hpp>
-#include <boost/shared_ptr.hpp>
-
-#include <boost/asio/steady_timer.hpp>
-#include <boost/chrono.hpp>
-#include <boost/chrono/time_point.hpp>
-#include <boost/chrono/duration.hpp>
-
 #include "session.hpp"
+#include "serial_session.hpp"
+#include "network_session.hpp"
 
 namespace
 {
@@ -43,12 +29,6 @@ class serial_read_session;
 class serial_write_session;
 class fp_em_session;
 class network_acceptor;
-
-/* November 17, 2015
- *
- *
- *
- */
 
 void graceful_exit(const boost::system::error_code& error, int signal_number)
 {

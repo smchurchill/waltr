@@ -46,20 +46,5 @@ protected:
 private:
 };
 
-class serial_session : public basic_session{
-public:
-	serial_session(
-			boost::asio::io_service& io_in,
-			std::string log_in,
-			dispatcher* ref_in,
-			std::string device_in);
-
-	std::string print() { return name_; }
-
-protected:
-	std::string name_;
-	boost::asio::serial_port port_;
-};
-
 
 #endif /* SESSION_H_ */
