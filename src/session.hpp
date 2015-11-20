@@ -448,7 +448,8 @@ private:
 class dispatcher {
 
 private:
-	std::vector<io_session*>* friends;
+	template<typename session_type, typename unique_identifier>
+	std::vector<io_session<session_type, unique_identifier>*>* friends;
 	boost::asio::io_service* io_service;
 
 	void forward() {
@@ -456,14 +457,17 @@ private:
 
 	}
 
-public:	dispatcher(boost::asio::io_service& io_in,
-		std::vector<io_session*> session_in ) {
+public:
+	template<typename session_type, typename unique_identifier>
+	dispatcher(boost::asio::io_service& io_in,
+		std::vector<io_session<session_type, unique_identifier>*> session_in ) {
 		friends = session_in;
 		io_service = &io_in;
 	}
 
+	template<typename session_type, typename unique_identifier>
 	void initialize(){
-		for(std::vector<io_session*>::iterator it = friends->begin() ;
+		for(std::vector<io_session<session_type, unique_identifier>*>::iterator it = friends->begin() ;
 				it != friends->end() ; ++it)
 			(**it).setRef(this);
 	}
