@@ -31,6 +31,7 @@
 #include <boost/chrono/duration.hpp>
 
 #include <session.hpp>
+#include <methods.hpp>
 
 namespace
 {
@@ -50,31 +51,9 @@ class network_acceptor;
  *
  */
 
-template<typename handler_wrapper, typename initializer_list >
-std::vector<handler_wrapper*> make_asio_work(
-		boost::asio::io_service& io_service, initializer_list i,
-		std::string logging_directory ){
-
-	std::vector<handler_wrapper*>* v = new std::vector<handler_wrapper*>;
-
-	for(typename initializer_list::iterator it = i.begin() ;
-			it != i.end() ; ++it ) {
-		handler_wrapper* h = new handler_wrapper(
-				io_service, *it, logging_directory);
-		v->push_back(h);
-	}
-
-	for(typename std::vector<handler_wrapper*>::iterator it = v->begin() ;
-			it != v->end() ; ++it ) {
-		(**it).start();
-	}
-
-	return *v;
-}
-
 void graceful_exit(const boost::system::error_code& error, int signal_number)
 {
-	exit(1);
+	exit(0);
 }
 
 int main(int argc, char** argv) {
@@ -95,21 +74,22 @@ int main(int argc, char** argv) {
 						" and current as of November 17, 2015.")
 				("logging,l",boost::program_options::value<std::string>(
 						&logging_directory)->default_value("/tmp/dewd/"),
-						"Specify the path to logging folder.  Default is /tmp/dewd/."
-						" Permissions are not checked before logging begins -- it is"
-						" assumed that dewd can write to the given directory.")
+						"Specify the path to logging folder, where input string must have"
+						" trailing '/'.  Default is /tmp/dewd/. Permissions are not"
+						" checked before logging begins -- it is assumed that dewd can"
+						" write to the given directory.")
 				("read-from,r", boost::program_options::value<
 						std::vector<std::string> >(&rdev),
-						"Specify serial ports to read from. "
-						"Allows multiple entries. Ex. /dev/ttyS0 /dev/ttyS1")
+						"Specify serial ports to read from."
+						" Allows multiple entries. Ex. /dev/ttyS0")
 				("write-to,w", boost::program_options::value<
 						std::vector<std::string> >(&wdev),
-						"Specify serial ports to write to. "
-						"Allows multiple entries. Ex. /dev/ttyS0 /dev/ttyS1")
+						"Specify serial ports to write to."
+						" Allows multiple entries. Ex. /dev/ttyS0")
 				("network,n",boost::program_options::value<
 						std::vector<std::string> >(&addr),
-						"Enable networking and specify local ip4 addresses to bind to."
-						" It is assumed that these ip addresses can be bound to by dewd." )
+						"Enable networking and specify local ip4 addresses to bind to. It"
+						" is assumed that these ip addresses can be bound to by dewd." )
 				("port-number,p",boost::program_options::value<
 						int>()->default_value(2023),
 						"Give a port number to bind to.  Used with --network flag.  It is"
@@ -185,7 +165,7 @@ int main(int argc, char** argv) {
 		 * the future.
 		 */
 
-		std::vector<boost::asio::ip::tcp::endpoint> comm;
+		std::vector<boost::asio::ip::tcp::endpoint> ends;
 
 		if(vmap.count("test")||(!vmap.count("read-from")&&!vmap.count("write-to")
 				&&!vmap.count("network")))
@@ -193,7 +173,7 @@ int main(int argc, char** argv) {
 			std::cout << "Starting in test mode.\n";
 			for(int i = 0; i < 13 ; ++i) {
 				if(i < 9)
-					comm.emplace_back(
+					ends.emplace_back(
 						boost::asio::ip::address_v4::from_string(
 							"192.168.16." + std::to_string(i)), 2023
 					);
@@ -204,7 +184,7 @@ int main(int argc, char** argv) {
 		else {
 			for(std::vector<std::string>::iterator it = addr.begin() ;
 					it != addr.end() ; ++it)
-						comm.emplace_back(
+						ends.emplace_back(
 							boost::asio::ip::address_v4::from_string(*it), port_number );
 		}
 
@@ -219,8 +199,8 @@ int main(int argc, char** argv) {
 			std::cout << (*it) << '\n';
 
 		std::cout << "Binding to ips:\n";
-		for(std::vector<boost::asio::ip::tcp::endpoint>::iterator it = comm.begin()
-				;	it != comm.end() ; ++it)
+		for(std::vector<boost::asio::ip::tcp::endpoint>::iterator it = ends.begin()
+				;	it != ends.end() ; ++it)
 			std::cout << (*it) << '\n';
 
 		std::vector<serial_read_session*> vec_srs =
