@@ -11,6 +11,7 @@
 #include <iostream>
 #include <fstream>
 #include <string>
+#include <sstream>
 #include <vector>
 #include <cstdio>
 #include <boost/asio.hpp>
@@ -19,6 +20,10 @@
 #include <boost/chrono.hpp>
 #include <boost/chrono/time_point.hpp>
 #include <boost/chrono/duration.hpp>
+
+class dispatcher;
+class basic_session;
+
 
 /*
  * README::
@@ -61,12 +66,13 @@
  */
 
 class dispatcher {
+	friend class basic_session;
 
 private:
-	std::vector<boost::any*>* friends = NULL;
+	std::vector<basic_session*> friends;
 
-	void hello(boost::any* new_friend) {
-		friends->push_back(new_friend);
+	void hello(basic_session* new_friend) {
+		friends.push_back(new_friend);
 	}
 
 public:
@@ -97,51 +103,69 @@ public:
 
 
 /*-----------------------------------------------------------------------------
- * November 19, 2015
+ * November 20, 2015
  *
- * base class io_session
+ * base class basic_session
  *
  * The new model for the session classes found in previous versions of dewd is
- * implemented using inheritance.  There is a base class io_session that states
- * the structure needed for initialization.
- *
- * An io_session class constructor takes as input the io_service the session
- * posts work to, a unique identifier such as a tcp endpoint or serial port,
- * a directory to be logged to, and a handler to call when work is completed.
- *
- * Further, the io_session class has a
- 	 	 void start()
- * function that must be called in order for the instantiated object to begin
- * work.  A derived class defines their own start() function.
- *
- * Every instance of an io_session can be connected to a central dispatcher.
+ * implemented using inheritance.  The basic_session class sets the logging
+ * directory, notifies the dispatcher that it exists, and keeps track of the
+ * connected io_service.
  */
 
-template< typename session_type, typename unique_identifier >
-class io_session{
+class basic_session{
 public:
-	io_session(boost::asio::io_service& io_in,
-						unique_identifier uid_in,
-						std::string log_in,
-						dispatcher* ref_in) :
-				comm_(io_in, uid_in), uid_(uid_in), logdir_(log_in), ref(ref_in)
-	{
+	basic_session(
+			boost::asio::io_service& io_in,
+			std::string log_in,
+			dispatcher* ref_in) :
+				io_service(&io_in),
+				logdir_(log_in),
+				ref(ref_in) {
 		start_ = boost::chrono::steady_clock::now();
-		std::cout << "io_session started with log directory [" << logdir_ << "] and uid_ [" << uid_ << "]\n";
+		ref->hello(this);
+	}
+
+protected:
+	boost::asio::io_service* io_service;
+	std::string logdir_;
+	dispatcher* ref;
+  boost::chrono::time_point<boost::chrono::steady_clock> start_;
+
+};
+
+class serial_session : public basic_session{
+public:
+	serial_session(
+			boost::asio::io_service& io_in,
+			std::string log_in,
+			dispatcher* ref_in,
+			std::string device_in) :
+				basic_session(io_in, log_in, ref_in),
+				name_(device_in),
+				port_(*io_service, name_) {
+	}
+
+protected:
+	std::string name_;
+	boost::asio::serial_port port_;
+};
+
+class network_session : public basic_session{
+public:
+	network_session(
+			boost::asio::io_service& io_in,
+			std::string log_in,
+			dispatcher* ref_in,
+			boost::asio::ip::tcp::endpoint ep_in) :
+				basic_session(io_in, log_in, ref_in),
+				endpoint_(ep_in) {
 	}
 
 
 protected:
-	friend class dispatcher;
-
-	session_type comm_;
-  unique_identifier uid_;
-	std::string logdir_;
-	dispatcher* ref;
-
-  boost::chrono::time_point<boost::chrono::steady_clock> start_;
+	boost::asio::ip::tcp::endpoint endpoint_;
 };
-
 
 /*-----------------------------------------------------------------------------
  * November 18, 2015
@@ -162,17 +186,18 @@ protected:
  */
 
 class serial_read_session :
-		public io_session<boost::asio::serial_port,std::string> {
+		public serial_session {
 public:
-	serial_read_session(boost::asio::io_service& io_in,
-											std::string device_in,
-											std::string log_in,
-											dispatcher* ref_in) :
-		io_session(io_in, device_in, log_in, ref_in),
-		timer_(io_in)
-	{
-		filename_ = logdir_ + uid_.substr(uid_.find_last_of("/\\")+1);
+	serial_read_session(
+			boost::asio::io_service& io_in,
+			std::string log_in,
+			dispatcher* ref_in,
+			std::string device_in) :
+				serial_session(io_in, log_in, ref_in, device_in),
+				timer_(*io_service) {
+		filename_ = logdir_ + name_.substr(name_.find_last_of("/\\")+1);
 		dead_ = start_ + timeout_;
+		this->start();
 	}
 
 	void start() {
@@ -193,7 +218,7 @@ private:
 		std::vector<char>* buffer_ = new std::vector<char>;
 		buffer_->assign (BUFFER_LENGTH,0);
 		boost::asio::mutable_buffers_1 Buffer_ = boost::asio::buffer(*buffer_);
-		boost::asio::async_read(comm_,Buffer_,
+		boost::asio::async_read(port_,Buffer_,
 				boost::bind(&serial_read_session::handle_read, this, _1, _2, buffer_));
 	}
 
@@ -228,7 +253,7 @@ private:
 
 		/* The following is for debugging purposes only */
 		if(0) {
-			std::cout << "[" << uid_ << "]: " << length << " characters written\n";
+			std::cout << "[" << name_ << "]: " << length << " characters written\n";
 		}
 	}
 
@@ -261,13 +286,13 @@ private:
 
 		/* The following is for debugging purposes only */
 		if(0) {
-			std::cout << "[" << uid_ << "]: deadline set to " << dead_ << '\n';
+			std::cout << "[" << name_ << "]: deadline set to " << dead_ << '\n';
 		}
 	}
 
   void handle_timeout(boost::system::error_code ec) {
   	if(!ec)
-  		comm_.cancel();
+  		port_.cancel();
 
   	set_timer();
   }
@@ -325,17 +350,17 @@ private:
  */
 
 class serial_write_session :
-	public io_session<boost::asio::serial_port,std::string>{
+	public serial_session {
 public:
-	serial_write_session(boost::asio::io_service& io_in,
-											std::string device_in,
-											std::string log_in,
-											dispatcher* ref_in) :
-				io_session(io_in, device_in, log_in, ref_in)
-		{
-			filename_ = logdir_ + uid_.substr(uid_.find_last_of("/\\"));
-			std::cout << "Serial write session ready on port located at " << uid_ << '\n';
-		}
+	serial_write_session(
+			boost::asio::io_service& io_in,
+			std::string log_in,
+			dispatcher* ref_in,
+			std::string device_in) :
+				serial_session(io_in, log_in, ref_in, device_in) {
+		filename_ = logdir_ + name_.substr(name_.find_last_of("/\\")+1);
+		this->start();
+	}
 
 	/*
 	 */
@@ -360,29 +385,53 @@ private:
  */
 
 class network_socket_session :
-		public io_session<boost::asio::ip::tcp::socket,
-											boost::asio::ip::tcp::endpoint> {
+		public network_session {
+	friend class network_acceptor_session;
+
 public:
-	network_socket_session(boost::asio::io_service& io_in,
-												boost::asio::ip::tcp::endpoint ep_in,
-												std::string log_in,
-												dispatcher* ref_in) :
-			io_session(io_in, ep_in, log_in, ref_in)
-	{
+	network_socket_session(
+			boost::asio::io_service& io_in,
+			std::string log_in,
+			dispatcher* ref_in,
+			boost::asio::ip::tcp::endpoint ep_in) :
+				network_session(io_in, log_in, ref_in, ep_in),
+				socket_(*io_service) {
+	}
+protected:
+	boost::asio::ip::tcp::socket& get_sock() {
+		return socket_;
 	}
 
+	/* November 18, 2015
+	 * The buffer for this class probably doesn't need to be this large.
+	 */
+	const long BUFFER_LENGTH = 8192;
+
+	std::vector<char> data_ = std::vector<char>(BUFFER_LENGTH,0);
+
+	boost::asio::ip::tcp::socket socket_;
+
+};
+
+class network_socket_echo_session :
+		public network_socket_session {
+
+public:
+	network_socket_echo_session(
+	boost::asio::io_service& io_in,
+	std::string log_in,
+	dispatcher* ref_in,
+	boost::asio::ip::tcp::endpoint ep_in) :
+		network_socket_session(io_in, log_in, ref_in, ep_in) {
+}
+
 	void start() {
+		if(1)
+		std::cout << "nss started at endpoint [" << endpoint_ << "]\n";
 		do_read();
 	}
 
-
-
 private:
-	friend class network_acceptor_session;
-
-	boost::asio::ip::tcp::socket& get_sock() {
-		return comm_;
-	}
 
 	/*
 	 * November 16, 2015
@@ -390,7 +439,7 @@ private:
 	 * asio library.
 	 */
 	void do_read() {
-		comm_.async_read_some(boost::asio::buffer(data_),
+		socket_.async_read_some(boost::asio::buffer(data_),
 				[this](boost::system::error_code ec, std::size_t length)
 				{
 					if(!ec)
@@ -404,19 +453,13 @@ private:
 
 	void do_write(std::size_t length)
 	{
-		boost::asio::async_write(comm_,boost::asio::buffer(data_,length),
+		boost::asio::async_write(socket_,boost::asio::buffer(data_,length),
 				[this](boost::system::error_code ec, std::size_t)
 				{
 					do_read();
 				});
 	}
 
-	/* November 18, 2015
-	 * The buffer for this class probably doesn't need to be this large.
-	 */
-	const long BUFFER_LENGTH = 8192;
-
-	std::vector<char> data_ = std::vector<char>(BUFFER_LENGTH,0);
 };
 
 /*-----------------------------------------------------------------------------
@@ -439,14 +482,16 @@ private:
  */
 
 class network_acceptor_session :
-		public io_session<boost::asio::ip::tcp::acceptor,
-											boost::asio::ip::tcp::endpoint> {
+		public network_session {
 public:
-	network_acceptor_session(boost::asio::io_service& io_in,
-													 boost::asio::ip::tcp::endpoint ep_in,
-													 std::string log_in,
-													 dispatcher* ref_in) :
-				io_session(io_in, ep_in, log_in, ref_in) {
+	network_acceptor_session(
+			boost::asio::io_service& io_in,
+			std::string log_in,
+			dispatcher* ref_in,
+			boost::asio::ip::tcp::endpoint ep_in) :
+				network_session(io_in, log_in, ref_in, ep_in),
+				acceptor_(*io_service, endpoint_){
+		start();
 	}
 
 	void start() {
@@ -455,10 +500,10 @@ public:
 
 private:
 	void do_accept() {
-		network_socket_session* sock_ =	new network_socket_session(
-				comm_.get_io_service(), comm_.local_endpoint(), logdir_, ref);
+		network_socket_echo_session* sock_ =	new network_socket_echo_session(
+				*io_service, logdir_, ref, endpoint_);
 
-		comm_.async_accept(sock_->get_sock(),
+		acceptor_.async_accept(sock_->get_sock(),
 				[this,sock_](boost::system::error_code ec)
 				{
 					if(!ec) {
@@ -467,6 +512,8 @@ private:
 					this->start();
 				});
 	}
+
+	boost::asio::ip::tcp::acceptor acceptor_;
 };
 
 

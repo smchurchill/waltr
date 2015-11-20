@@ -176,86 +176,54 @@ int main(int argc, char** argv) {
 					ends.emplace_back(
 							boost::asio::ip::address_v4::from_string(
 								"192.168.16." + std::to_string(i)), 2023);
+
 				if(i > 4)
 					rdev.emplace_back("/dev/ttyS" + std::to_string(i));
 			}
 		}
 		else {
 			for(std::vector<std::string>::iterator
-					it = addr.begin() ;	it != addr.end() ; ++it)
+					it = addr.begin() ;	it != addr.end() ; ++it) {
 						ends.emplace_back(
-							boost::asio::ip::address_v4::from_string(*it), port_number );
+								boost::asio::ip::address_v4::from_string(*it), port_number);
+			}
 		}
-
-		std::cout << "Reading from ports:\n";
-		for(std::vector<std::string>::iterator it = rdev.begin() ;
-				it != rdev.end() ; ++it)
-			std::cout << (*it) << '\n';
-
-		std::cout << "Writing to ports:\n";
-		for(std::vector<std::string>::iterator it = wdev.begin() ;
-				it != wdev.end() ; ++it)
-			std::cout << (*it) << '\n';
-
-		std::cout << "Binding to ips:\n";
-		for(std::vector<boost::asio::ip::tcp::endpoint>::iterator it = ends.begin()
-				;	it != ends.end() ; ++it)
-			std::cout << (*it) << '\n';
 
 		dispatcher* dis = new dispatcher;
 
-		std::vector<io_session<boost::asio::serial_port, std::string>*> vec_srs =
-				make_asio_work<
-					boost::asio::serial_port, std::string >(
-						*io_service, rdev, logging_directory, dis);
+		std::vector<basic_session*> sessions;
 
-		std::vector<io_session<boost::asio::serial_port, std::string>*>  vec_sws =
-				make_asio_work<
-					boost::asio::serial_port, std::string >(
-						*io_service, wdev, logging_directory, dis);
+		std::cout << "Reading from ports:\n";
+		for(std::vector<std::string>::iterator it = rdev.begin() ;
+				it != rdev.end() ; ++it) {
+			serial_read_session* session =
+					new serial_read_session(*io_service, logging_directory, dis, *it);
 
-		std::vector<io_session<boost::asio::ip::tcp::acceptor, boost::asio::ip::tcp::endpoint>*>  vec_nas =
-				make_asio_work<
-				boost::asio::ip::tcp::acceptor, boost::asio::ip::tcp::endpoint >(
-						*io_service, ends, logging_directory, dis);
+			sessions.push_back(session);
 
-
-
-
-
-		/*
-		 * Instantiate the serial port sessions
-		 *
-		if(0){
-		std::vector<serial_read_session*> vec_srs;
-
-		for (int i = 2; i < argc; ++i) {
-			serial_read_session* s = new serial_read_session(io_service, argv[i], argv[1]);
-			vec_srs.push_back(s);
+			std::cout << (*it) << '\n';
 		}
 
-		* November 13, 2015
-		 * Instantiate the network acceptors.  As of writing, the ip addresses on
-		 * pang assigned to flopoint are 192.168.16.X, for X in [0:8].
-		 *
-		 * These values should later be part of startup discovery processes instead
-		 * of being explicitly stated.
-		 *
+		std::cout << "Writing to ports:\n";
+		for(std::vector<std::string>::iterator it = wdev.begin() ;
+				it != wdev.end() ; ++it) {
+			serial_write_session* session =
+					new serial_write_session(*io_service,	logging_directory, dis, *it);
 
+			sessions.push_back(session);
 
-
-
-		std::vector<network_acceptor*> vec_na;
-		for (std::vector<std::string>::iterator it = ips.begin() ;
-				it != ips.end() ; ++it ) {
-			boost::asio::ip::tcp::endpoint ep (
-					boost::asio::ip::address_v4::from_string(*it), PORT_NUMBER);
-			std::cout << ep << '\n';
-			network_acceptor* a = new network_acceptor(io_service, ep);
-			vec_na.push_back(a);
+			std::cout << (*it) << '\n';
 		}
 
-		*/
+		std::cout << "Accepting connections on:\n";
+		for(std::vector<boost::asio::ip::tcp::endpoint>::iterator it = ends.begin()
+				;	it != ends.end() ; ++it) {
+			std::cout << (*it) << '\n';
+
+			network_acceptor_session* session =
+					new network_acceptor_session(*io_service, logging_directory, dis, *it);
+			sessions.push_back(session);
+		}
 
 		/*
 		 * Set signals to catch for graceful termination.
