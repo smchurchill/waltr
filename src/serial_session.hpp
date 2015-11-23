@@ -121,7 +121,7 @@ void serial_read_parse_session::check_the_deque() {
 	/* every time we check the deque, we first scrub to an 'FF' or empty the
 	 * deque if no 'FF' exists.
 	 */
-	bool scrubbed;
+	bool scrubbed = false;
 	while(!to_parse.empty() && to_parse.front()!=0xFF) {
 		to_parse.pop_front();
 		scrubbed = true;
