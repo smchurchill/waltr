@@ -17,6 +17,8 @@ private:
 	std::vector<basic_session*> friends;
 	void hello(basic_session* new_friend);
 
+	void forward(basic_session* msg_from,std::vector<char>* msg) {delete msg;}
+
 public:
 	dispatcher() {};
 	void brag();
@@ -27,13 +29,7 @@ public:
 	basic_session(
 				boost::asio::io_service& io_in,
 				std::string log_in,
-				dispatcher* ref_in);/* :
-					io_service(&io_in),
-					logdir_(log_in),
-					ref(ref_in) {
-			start_ = boost::chrono::steady_clock::now();
-			ref->hello(this);
-		}*/
+				dispatcher* ref_in);
 	virtual std::string print() =0;
 	virtual ~basic_session() {};
 

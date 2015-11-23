@@ -59,12 +59,12 @@ int main(int argc, char** argv) {
 						" write to the given directory.")
 				("read-from,r", boost::program_options::value<
 						std::vector<std::string> >(&rdev),
-						"Specify serial ports to read from."
-						" Allows multiple entries. Ex. /dev/ttyS0")
+						"Specify serial ports to read from, where the input string must"
+						" have no trailing '/'. Allows multiple entries. Ex. /dev/ttyS0")
 				("write-to,w", boost::program_options::value<
 						std::vector<std::string> >(&wdev),
-						"Specify serial ports to write to."
-						" Allows multiple entries. Ex. /dev/ttyS0")
+						"Specify serial ports to write to, where the input string must"
+						" have no trailing '/'. Allows multiple entries. Ex. /dev/ttyS0")
 				("network,n",boost::program_options::value<
 						std::vector<std::string> >(&addr),
 						"Enable networking and specify local ip4 addresses to bind to. It"
@@ -176,7 +176,8 @@ int main(int argc, char** argv) {
 		for(std::vector<std::string>::iterator it = rdev.begin() ;
 				it != rdev.end() ; ++it) {
 			basic_session* session;
-			if(vmap.count("test")) {
+			if(vmap.count("test")||(!vmap.count("read-from")&&!vmap.count("write-to")
+					&&!vmap.count("network"))) {
 				session =	new serial_read_log_session(
 						*io_service, logging_directory, dis, *it);
 			}

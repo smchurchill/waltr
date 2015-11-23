@@ -37,6 +37,8 @@ public:
 			dispatcher* ref_in,
 			std::string device_in);
 
+	virtual ~serial_read_session() {}
+
 protected:
 	/* November 18, 2015
 	 * AJS says that pang has a 4k kernel buffer.  We want our buffer to be
@@ -82,7 +84,7 @@ protected:
 	 */
 	void set_timer();
 	void handle_timeout(boost::system::error_code ec);
-
+	inline virtual void handle_timeout_extra() {}
 };
 
 /*-----------------------------------------------------------------------------
@@ -95,6 +97,25 @@ public:
 			std::string log_in,
 			dispatcher* ref_in,
 			std::string device_in);
+
+	void start();
+
+private:
+	void start_read();
+	void handle_read(boost::system::error_code ec, size_t length,
+			std::vector<char>* buffer_);
+	void check_the_deque();
+	inline void handle_timeout_extra();
+
+	const int MAX_FRAME_LENGTH = 2048;
+
+	std::deque<char> to_parse;
+
+	std::string garbage_file;
+
+	boost::chrono::time_point<boost::chrono::steady_clock> front_last;
+	int front_count;
+
 };
 
 /*-----------------------------------------------------------------------------
