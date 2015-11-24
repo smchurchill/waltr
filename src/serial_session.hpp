@@ -173,27 +173,39 @@ void serial_read_parse_session::check_the_deque() {
 	for(
 			struct{ std::deque<u8>::iterator it; int i;} iit = {to_parse.begin(), 0};
 				iit.it != to_parse.end()-6 ; ++(iit.i) ) {
+		if(0)
 		std::cout << " {{" << iit.it+iit.i - to_parse.begin() << "}} " << *(delim.begin()+iit.i) << ":" << *(iit.it+iit.i);
 
 		if((*(delim.begin()+iit.i) == *(iit.it+iit.i))) {
 			if(iit.i==5){
-				std::cout << "match found\n"; match_point = iit.it; match_found = true; break;
+				if(0) std::cout << "match found\n"; match_point = iit.it; match_found = true; break;
 			}
 		}
 		else {
-			iit.i = -1; ++iit.it; std::cout << std::endl;
+			/* we ++iit.i after every time through the loop and want iit.i to be 0
+			 * when we increase our starting point.
+			 */
+			iit.i = -1; ++iit.it;
 		}
 	}
 
+	if(0){
 	if(match_found)
 		std::cout << "end frame found in to_parse starting at position " << match_point - to_parse.begin() << '\n';
 	else
 		std::cout << "no match found\n";
+	}
 
+	std::deque<u8>* to_send = new std::deque<u8>;
 
-	while(!to_parse.empty())
+	while(match_point - to_parse.begin() + 6) {
+		to_send->emplace_back(to_parse.front());
 		to_parse.pop_front();
+	}
 
+	for(std::deque<u8>::iterator it = to_send->begin() ; it != to_send->end() ; ++it )
+		std::cout << *it;
+	std::cout << '\n';
 
 
 }
