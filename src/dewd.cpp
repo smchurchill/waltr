@@ -44,38 +44,51 @@ int main(int argc, char** argv) {
 		std::vector<std::string> rdev;
 		std::vector<std::string> wdev;
 		std::vector<std::string> addr;
+		std::string conf;
 
-		boost::program_options::options_description desc("Options");
-		desc.add_options()
-				("help,h", "Print help messages.")
+		boost::program_options::options_description modes("Mode options");
+		modes.add_options()
 				("test,t", "Start in testing mode.  No other arguments considered when"
 						" starting in test mode.  Test mode configuration is pang-specific"
 						" and current as of November 17, 2015.")
+				("fp-comm,c", "Start the dewd in flopoint communication mode.  Need to"
+						" specify serial ports to read and write to.")
+				("fp-em,m", "Start dewd as a flo-point emulator rather than a"
+						" communications server.  Not currently supported.")
+				;
+		boost::program_options::options_description ifaces("Interface options");
+		ifaces.add_options()
+				("read-from,r", boost::program_options::value<
+					std::vector<std::string> >(&rdev)->multitoken(),
+					"Specify serial ports to read from, where the input string must"
+					" have no trailing '/'. Allows multiple entries. Ex. /dev/ttyS0")
+				("write-to,w", boost::program_options::value<
+					std::vector<std::string> >(&wdev)->multitoken(),
+					"Specify serial ports to write to, where the input string must"
+					" have no trailing '/'. Allows multiple entries. Ex. /dev/ttyS0")
+				("network,n",boost::program_options::value<
+					std::vector<std::string> >(&addr)->multitoken(),
+					"Enable networking and specify local ip4 addresses to bind to. It"
+					" is assumed that these ip addresses can be bound to by dewd." )
+				("port-number,p",boost::program_options::value<
+					int>()->default_value(2023),
+					"Give a port number to bind to.  Used with --network flag.  It is"
+					" assumed that dewd can bind to the given port.");
+
+		boost::program_options::options_description general("General options");
+		general.add_options()
+				("help,h", "Print help messages.")
 				("logging,l",boost::program_options::value<std::string>(
 						&logging_directory)->default_value("/tmp/dewd/"),
 						"Specify the path to logging folder, where input string must have"
 						" trailing '/'.  Default is /tmp/dewd/. Permissions are not"
 						" checked before logging begins -- it is assumed that dewd can"
 						" write to the given directory.")
-				("read-from,r", boost::program_options::value<
-						std::vector<std::string> >(&rdev),
-						"Specify serial ports to read from, where the input string must"
-						" have no trailing '/'. Allows multiple entries. Ex. /dev/ttyS0")
-				("write-to,w", boost::program_options::value<
-						std::vector<std::string> >(&wdev),
-						"Specify serial ports to write to, where the input string must"
-						" have no trailing '/'. Allows multiple entries. Ex. /dev/ttyS0")
-				("network,n",boost::program_options::value<
-						std::vector<std::string> >(&addr),
-						"Enable networking and specify local ip4 addresses to bind to. It"
-						" is assumed that these ip addresses can be bound to by dewd." )
-				("port-number,p",boost::program_options::value<
-						int>()->default_value(2023),
-						"Give a port number to bind to.  Used with --network flag.  It is"
-						" assumed that dewd can bind to the given port.")
-				("fp-em,f", "Start dewd as a flo-point emulator rather than a"
-						" communications server.  Not currently supported.")
-				;
+			;
+
+		boost::program_options::options_description cmdline_options;
+		cmdline_options.add(general).add(modes).add(ifaces);
+
 
 		/* If you ask for help, you only get help.
 		 *
@@ -88,10 +101,12 @@ int main(int argc, char** argv) {
 		boost::program_options::variables_map vmap;
 		try {
 			boost::program_options::store(boost::program_options::parse_command_line(
-					argc,argv,desc), vmap);
+					argc,argv,cmdline_options), vmap);
 
-			if(vmap.count("help")) {
-				std::cout << "The dewd DewDrop daemon.\n" << desc << '\n';
+			if(vmap.count("help")
+					||
+					!(vmap.count("test")||vmap.count("fp-comm")||vmap.count("fp-em"))) {
+				std::cout << "The dewd DewDrop daemon.\n" << cmdline_options << '\n';
 
 				return SUCCESS;
 			}
@@ -144,10 +159,11 @@ int main(int argc, char** argv) {
 		 * the future.
 		 */
 
+
+
 		std::vector<boost::asio::ip::tcp::endpoint> ends;
 
-		if(vmap.count("test")||(!vmap.count("read-from")&&!vmap.count("write-to")
-				&&!vmap.count("network")))
+		if(vmap.count("test"))
 		{
 			std::cout << "Starting in test mode.\n";
 			for(int i = 0; i < 13 ; ++i) {
@@ -160,7 +176,7 @@ int main(int argc, char** argv) {
 					rdev.emplace_back("/dev/ttyS" + std::to_string(i));
 			}
 		}
-		else {
+		else if (vmap.count("network")){
 			for(std::vector<std::string>::iterator
 					it = addr.begin() ;	it != addr.end() ; ++it) {
 						ends.emplace_back(
@@ -172,13 +188,18 @@ int main(int argc, char** argv) {
 
 		std::vector<basic_session*> sessions;
 
+
+
 		std::cout << "Reading from ports:\n";
 		for(std::vector<std::string>::iterator it = rdev.begin() ;
 				it != rdev.end() ; ++it) {
 			basic_session* session;
-			if(vmap.count("test")||(!vmap.count("read-from")&&!vmap.count("write-to")
-					&&!vmap.count("network"))) {
+			if(vmap.count("test")) {
 				session =	new serial_read_log_session(
+						*io_service, logging_directory, dis, *it);
+			}
+			if(vmap.count("fp-comm")) {
+				session = new serial_read_parse_session(
 						*io_service, logging_directory, dis, *it);
 			}
 

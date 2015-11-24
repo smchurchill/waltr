@@ -8,6 +8,8 @@
 #ifndef SERIAL_SESSION_H_
 #define SERIAL_SESSION_H_
 
+typedef uint8_t u8;
+
 /*-----------------------------------------------------------------------------
  * November 20, 2015 :: base class
  */
@@ -44,7 +46,7 @@ protected:
 	 * AJS says that pang has a 4k kernel buffer.  We want our buffer to be
 	 * bigger than that, and we can be greedy with what "bigger" means.
 	 */
-	const long BUFFER_LENGTH = 8192;
+	const long BUFFER_LENGTH = 2048;
 
 	/* Timer specific members/methods */
 
@@ -103,13 +105,13 @@ public:
 private:
 	void start_read();
 	void handle_read(boost::system::error_code ec, size_t length,
-			std::vector<char>* buffer_);
+			std::vector<u8>* buffer_);
 	void check_the_deque();
 	inline void handle_timeout_extra();
 
 	const int MAX_FRAME_LENGTH = 2048;
 
-	std::deque<char> to_parse;
+	std::deque<u8> to_parse;
 
 	std::string garbage_file;
 
@@ -148,7 +150,7 @@ public:
 	 * and there are no characters ready to write in buffer_.
 	 */
 	void handle_read(boost::system::error_code ec, size_t length,
-		std::vector<char>* buffer_);
+		std::vector<u8>* buffer_);
 
 private:
 		std::string filename_;

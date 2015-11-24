@@ -92,14 +92,14 @@ void serial_read_parse_session::start() {
 	set_timer();
 }
 void serial_read_parse_session::start_read() {
-	std::vector<char>* buffer_ = new std::vector<char>;
+	std::vector<u8>* buffer_ = new std::vector<u8>;
 	buffer_->assign (BUFFER_LENGTH,0);
 	boost::asio::mutable_buffers_1 Buffer_ = boost::asio::buffer(*buffer_);
 	boost::asio::async_read(port_,Buffer_,boost::bind(
 			&serial_read_parse_session::handle_read, this, _1, _2, buffer_));
 }
 void serial_read_parse_session::handle_read(boost::system::error_code ec,
-		size_t length, std::vector<char>* buffer_) {
+		size_t length, std::vector<u8>* buffer_) {
 
 	/* First, make sure we add more work to the io_service.
 	 */
@@ -108,8 +108,8 @@ void serial_read_parse_session::handle_read(boost::system::error_code ec,
 	if(!buffer_->empty()) {
 		if(to_parse.empty())
 			front_last = boost::chrono::steady_clock::now();
-		for(std::vector<char>::iterator
-				it = buffer_->begin(); it!=buffer_->end() ; ++it)
+		for(std::vector<u8>::iterator
+				it = buffer_->begin(); it - buffer_->begin() < (signed)length ; ++it)
 			to_parse.emplace_back(*it);
 	}
 	delete buffer_;
@@ -122,7 +122,7 @@ void serial_read_parse_session::check_the_deque() {
 	 * deque if no 'FF' exists.
 	 */
 	bool scrubbed = false;
-	while(!to_parse.empty() && to_parse.front()!=0xFF) {
+	while(!to_parse.empty() && to_parse.front()!=0xff) {
 		to_parse.pop_front();
 		scrubbed = true;
 	}
@@ -146,7 +146,7 @@ void serial_read_parse_session::check_the_deque() {
 	 * if not, we get rid of the first 'FF' and try again.
 	 */
 
-	if(to_parse[1]!=0xFE) {
+	if(to_parse[1]!=0xfe) {
 		to_parse.pop_front();
 		check_the_deque();
 	}
@@ -164,20 +164,37 @@ void serial_read_parse_session::check_the_deque() {
 	 * 	<nonce> + 'FE' + 'FF'
 	 */
 
-	std::deque<char> delim;
-	std::copy(to_parse.begin()+2,to_parse.begin()+6,delim.begin());
-	std::copy(to_parse.begin(),to_parse.begin()+2,delim.end());
-	std::deque<char>::iterator endframe =
-		std::search(to_parse.begin(), to_parse.end(), delim.begin(), delim.end());
-	if(endframe != to_parse.end()) {
-			 /* then we found a match that begins at endframe.  we can copy the frame
-		    * into to_send and send it off to the dispatcher.  they'll know what to
-		    * do with it...
-		    */
-		std::vector<char>* to_send = new std::vector<char>;
-		copy(to_parse.begin(),endframe+6,to_send->begin());
-	//	io_service->post(bind(&(dispatcher::forward),this,to_send));
+	std::deque<u8> delim (to_parse.begin()+2, to_parse.begin()+6);
+	delim.push_back(0xfe); delim.push_back(0xff);
+
+	std::deque<u8>::iterator match_point;
+	bool match_found = false;
+
+	for(
+			struct{ std::deque<u8>::iterator it; int i;} iit = {to_parse.begin(), 0};
+				iit.it != to_parse.end()-6 ; ++(iit.i) ) {
+		std::cout << " {{" << iit.it+iit.i - to_parse.begin() << "}} " << *(delim.begin()+iit.i) << ":" << *(iit.it+iit.i);
+
+		if((*(delim.begin()+iit.i) == *(iit.it+iit.i))) {
+			if(iit.i==5){
+				std::cout << "match found\n"; match_point = iit.it; match_found = true; break;
+			}
+		}
+		else {
+			iit.i = -1; ++iit.it; std::cout << std::endl;
+		}
 	}
+
+	if(match_found)
+		std::cout << "end frame found in to_parse starting at position " << match_point - to_parse.begin() << '\n';
+	else
+		std::cout << "no match found\n";
+
+
+	while(!to_parse.empty())
+		to_parse.pop_front();
+
+
 
 }
 inline void serial_read_parse_session::handle_timeout_extra() {
@@ -215,18 +232,18 @@ void serial_read_log_session::start() {
 }
 
 void serial_read_log_session::start_read() {
-	std::vector<char>* buffer_ = new std::vector<char>;
+	std::vector<u8>* buffer_ = new std::vector<u8>;
 	buffer_->assign (BUFFER_LENGTH,0);
 	boost::asio::mutable_buffers_1 Buffer_ = boost::asio::buffer(*buffer_);
 	boost::asio::async_read(port_,Buffer_,boost::bind(
 			&serial_read_log_session::handle_read, this, _1, _2, buffer_));
 }
 void serial_read_log_session::handle_read(boost::system::error_code ec,
-		size_t length,	std::vector<char>* buffer_) {
+		size_t length,	std::vector<u8>* buffer_) {
 	this->start_read();
 	if (length > 0) {
 		FILE* file_ = fopen(filename_.c_str(), "a");
-		std::fwrite(buffer_->data(), sizeof(char), length, file_);
+		std::fwrite(buffer_->data(), sizeof(u8), length, file_);
 		fclose(file_);
 	}
 	delete buffer_;
