@@ -74,7 +74,7 @@ void serial_read_session::handle_timeout(boost::system::error_code ec) {
 }
 
 /*-----------------------------------------------------------------------------
- * November 20, 2015 :: _read_parse_ methods
+ * November 24, 2015 :: _read_parse_ methods
  */
 serial_read_parse_session::serial_read_parse_session(
 		boost::asio::io_service& io_in,
@@ -162,7 +162,15 @@ void serial_read_parse_session::check_the_deque() {
 	 *
 	 * the matching delimiter we search for is:
 	 * 	<nonce> + 'FE' + 'FF'
+	 *
+	 * We search to_parse for a matching delimiter and, if found, cut it away
+	 * from the rest of to_parse and ...
+	 *  - currently printing to console
+	 *  - later, will send to dispatcher
 	 */
+
+	std::deque<u8> other_delim;
+//	std::copy(to_parse.begin()+2,to_parse.begin()+6,other_delim
 
 	std::deque<u8> delim (to_parse.begin()+2, to_parse.begin()+6);
 	delim.push_back(0xfe); delim.push_back(0xff);
@@ -206,6 +214,9 @@ void serial_read_parse_session::check_the_deque() {
 	for(std::deque<u8>::iterator it = to_send->begin() ; it != to_send->end() ; ++it )
 		std::cout << *it;
 	std::cout << '\n';
+
+	/* dispatcher forward() method will delete the deque that it is sent. */
+	delete to_send;
 
 
 }
@@ -270,6 +281,40 @@ serial_write_session::serial_write_session(
 		dispatcher* ref_in,
 		std::string device_in) :
 			serial_session(io_in, log_in, ref_in, device_in) {
+}
+
+/*-----------------------------------------------------------------------------
+ * November 24, 2015 :: _write_methods
+ */
+serial_write_nonsense_session::serial_write_nonsense_session(
+			boost::asio::io_service& io_in,
+			std::string log_in,
+			dispatcher* ref_in,
+			std::string device_in) :
+					serial_write_session(io_in, log_in, ref_in, device_in) {
+
+}
+
+void serial_write_nonsense_session::start() {
+	start_write();
+}
+void serial_write_nonsense_session::start_write() {
+	boost::asio::const_buffers_1 nonsense =
+			boost::asio::buffer(generate_nonsense());
+	boost::asio::async_write(port_, nonsense, boost::bind(
+			&serial_write_nonsense_session::handle_write, this, _1, _2));
+}
+void serial_write_nonsense_session::handle_write(
+		const boost::system::error_code& error, std::size_t bytes_transferred) {
+
+}
+std::vector<u8> serial_write_nonsense_session::generate_nonsense() {
+		std::vector<u8> what = {0x00};
+		return what;
+}
+std::vector<u8> serial_write_nonsense_session::generate_some_sense(
+		std::vector<u8> payload) {
+	return payload;
 }
 
 #endif /* SERIAL_SESSION_HPP_ */

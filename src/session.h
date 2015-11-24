@@ -17,11 +17,10 @@ private:
 	std::vector<basic_session*> friends;
 	void hello(basic_session* new_friend);
 
-	void forward(basic_session* msg_from,std::vector<char>* msg) {delete msg;}
-
 public:
 	dispatcher() {};
 	void brag();
+	void forward(basic_session* msg_from,std::vector<char>* msg) {delete msg;}
 };
 
 class basic_session{

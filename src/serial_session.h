@@ -169,4 +169,26 @@ public:
 			std::string device_in);
 };
 
+/*-----------------------------------------------------------------------------
+ * November 24, 2015 :: _write_nonsense_ class
+ */
+class serial_write_nonsense_session : public serial_write_session {
+public:
+	serial_write_nonsense_session(
+			boost::asio::io_service& io_in,
+			std::string log_in,
+			dispatcher* ref_in,
+			std::string device_in);
+
+	void start();
+
+private:
+	void start_write();
+	void handle_write(
+			const boost::system::error_code& error, std::size_t bytes_transferred);
+	std::vector<u8> generate_nonsense();
+	std::vector<u8> generate_some_sense(std::vector<u8> payload);
+
+};
+
 #endif /* SERIAL_SESSION_H_ */
