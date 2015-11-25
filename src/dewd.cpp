@@ -16,9 +16,11 @@
 #include <boost/program_options.hpp>
 
 #include "types.h"
-#include "debug.h"
 
 using namespace dew;
+
+#include "utils.h"
+#include "debug.h"
 
 #include "session.hpp"
 #include "serial_session.hpp"

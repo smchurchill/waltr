@@ -84,7 +84,7 @@ serial_read_parse_session::serial_read_parse_session(
 		dispatcher* ref_in,
 		std::string device_in) :
 			serial_read_session(io_in, log_in, ref_in, device_in),
-			front_last(boost::chrono::steady_clock::now()), front_count(0) {
+			front_last(boost::chrono::steady_clock::now()) {
 	garbage_file = logdir_ + name_.substr(name_.find_last_of("/\\")+1);
 	this->start();
 }
@@ -151,12 +151,23 @@ void serial_read_parse_session::check_the_deque() {
 	if(to_parse[1]!=0xfe) {
 		to_parse.pop_front();
 		check_the_deque();
+		return;
 	}
 
 	/* GATP that to_parse has at least 12 characters and the first two characters
 	 * are 'FF' then 'FE'.
 	 *
-	 * We now have a valid prefix, so we gather the rest of the frame delimiter,
+	 * The last check of whether we have a valid prefix is to compute the crc.
+	 * The crc is located at byte location 11, counting from 0, of to_parse.
+	 */
+	assert(to_parse.size()>=12);
+	assert(to_parse[0]==0xff);
+	assert(to_parse[1]==0xfe);
+
+	if(crc8(&*to_parse.begin(),11)!=to_parse[11])
+		return;
+
+	/* We now have a valid prefix, so we gather the rest of the frame delimiter,
 	 * which is of the form
 	 * 	'FF' + 'FE' + <nonce>
 	 * where nonce is 4 character identifier occuring in positions 2 through 5 of
@@ -170,9 +181,8 @@ void serial_read_parse_session::check_the_deque() {
 	 *  - currently printing to console
 	 *  - later, will send to dispatcher
 	 */
-	assert(to_parse.size()>=12);
-	assert(to_parse[0]==0xff);
-	assert(to_parse[1]==0xfe);
+
+
 
 	pBuff delim (to_parse.begin()+2, to_parse.begin()+6);
 	delim.push_back(0xfe); delim.push_back(0xff);
@@ -181,6 +191,7 @@ void serial_read_parse_session::check_the_deque() {
 			std::search(to_parse.begin(), to_parse.end(), delim.begin(), delim.end());
 
 	if(match_point!=to_parse.end()) {
+		++internal_count;
 		pBuff* to_send = new pBuff;
 
 		/* We have a match and match_point points to the beginning of the endframe
@@ -192,16 +203,18 @@ void serial_read_parse_session::check_the_deque() {
 		to_parse.erase(to_parse.begin(), match_point+6);
 		front_last = boost::chrono::steady_clock::now();
 
-		std::cout << "message from port: " << name_ << '\n';
-		printc(to_send);
-		std::cout << '\n';
+		assert(to_send->size()>=11);
+		std::cout << "message number marked [" <<
+				(int)to_send->at(10) << "] and is internal count [256*" << internal_count/256 << "]+[" << internal_count%256 << "] arrived"
+						" at port " << name_ << '\n';
+		//printi(to_send);
+		//std::cout << '\n';
 	}
 }
 inline void serial_read_parse_session::handle_timeout_extra() {
 	/* if the first character in to_parse is too old, we pop it. */
-	++front_count;
-	if(!front_count%5) {
-		front_count=0;
+	++tenths_count;
+	if(!(tenths_count%5)) {
 		if(
 				front_last <= boost::chrono::steady_clock::now()-boost::chrono::milliseconds(500)
 					&&
@@ -209,6 +222,8 @@ inline void serial_read_parse_session::handle_timeout_extra() {
 			) {
 			to_parse.pop_front();
 		}
+		if(0)
+		std::cout << "messages received at " << name_ << ": " << internal_count << '\n';
 	}
 }
 
@@ -280,9 +295,14 @@ void serial_write_nonsense_session::start() {
 void serial_write_nonsense_session::start_write() {
 	bBuff nonsense = generate_nonsense();
 	boost::asio::mutable_buffers_1 bnonsense = boost::asio::buffer(nonsense);
-	std::cout << "writing to port: " << name_ << '\n';
-	printc(&nonsense);
-	std::cout << '\n';
+	//std::cout << "writing to port: " << name_ << '\n';
+	//printi(&nonsense);
+	//std::cout << '\n';
+
+	++internal_counter;
+	if(0)
+	if(!(internal_counter%5))
+		std::cout << "messages sent from " << name_ << ": " << internal_counter << '\n';
 
 	boost::asio::async_write(port_, bnonsense, boost::bind(
 			&serial_write_nonsense_session::handle_write, this, _1, _2));
@@ -290,27 +310,34 @@ void serial_write_nonsense_session::start_write() {
 }
 void serial_write_nonsense_session::handle_write(
 		const boost::system::error_code& error, std::size_t bytes_transferred) {
-	unsigned long int wait = 1000 + std::rand()%1000;
+	unsigned long int wait = 150 + std::rand()%50;
 	timer_.expires_from_now(boost::chrono::milliseconds(wait));
 	timer_.async_wait(
-					boost::bind(&serial_write_nonsense_session::start_write,this));
+	//io_service->post(
+			boost::bind(&serial_write_nonsense_session::start_write,this));
 }
 bBuff serial_write_nonsense_session::generate_nonsense() {
-		bBuff msg,  nonce1, nonce2, payload, garbage ;
+		bBuff msg,  nonce1, nonce2, payload;
 		for(int i=0;i<4;++i) {
-			msg.push_back(32 + std::rand()%95);
-			nonce1.push_back(32 + std::rand()%95);
-			nonce2.push_back(32 + std::rand()%95);
-			payload.push_back(32 + std::rand()%95);
-			garbage.push_back(32 + std::rand()%95);
+			nonce1.push_back(32+std::rand()%224);
+			nonce2.push_back(32+std::rand()%224);
 		}
+
+		for(int i=2000 ; i ; --i)
+			payload.push_back(32+std::rand()%224);
+
 		msg.push_back(0xff); msg.push_back(0xfe);
 		std::copy(nonce1.begin(), nonce1.end(), back_inserter(msg));
 		std::copy(nonce2.begin(), nonce2.end(), back_inserter(msg));
+		msg.push_back(internal_counter%256);
+
+		assert(msg.size()==11);
+		msg.push_back(crc8(&*msg.begin(),msg.size()));
+
+
 		std::copy(payload.begin(), payload.end(), back_inserter(msg));
 		std::copy(nonce1.begin(), nonce1.end(), back_inserter(msg));
 		msg.push_back(0xfe); msg.push_back(0xff);
-		std::copy(garbage.begin(),garbage.end(),back_inserter(msg));
 		return msg;
 }
 bBuff serial_write_nonsense_session::generate_some_sense(

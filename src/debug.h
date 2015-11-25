@@ -17,6 +17,13 @@ void printc(container_type* container) {
 	std::cout << '\n';
 }
 
+template<typename container_type>
+void printi(container_type* container) {
+	for(auto i : container_type(container->begin(),container->end()))
+		std::cout << (int) i << ' ';
+	std::cout << '\n';
+}
+
 }; //namespace dew
 
 #endif /* DEBUG_H_ */

@@ -114,7 +114,8 @@ private:
 	std::string garbage_file;
 
 	boost::chrono::time_point<boost::chrono::steady_clock> front_last;
-	int front_count;
+	long int tenths_count = 0;
+	int internal_count = -1;
 
 };
 
@@ -188,6 +189,8 @@ private:
 	bBuff generate_some_sense(bBuff payload);
 
   boost::asio::basic_waitable_timer<boost::chrono::steady_clock> timer_;
+
+  int internal_counter = 0;
 
 };
 
