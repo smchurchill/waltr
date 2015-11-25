@@ -71,7 +71,7 @@ void network_acceptor_session::do_accept() {
 	network_socket_echo_session* sock_ =	new network_socket_echo_session(
 			*io_service, logdir_, ref, endpoint_);
 
-	acceptor_.async_accept(sock_->get_sock(), endpoint_,
+	acceptor_.async_accept(*(sock_->get_sock()), endpoint_,
 			[this,sock_](boost::system::error_code ec)
 			{
 				if(!ec) {

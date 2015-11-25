@@ -108,15 +108,15 @@ private:
 	inline void handle_timeout_extra();
 
 	const int MAX_FRAME_LENGTH = 2048;
+	long int tenths_count = 0;
+	int internal_count = -1;
+
 
 	pBuff to_parse;
 
 	std::string garbage_file;
 
 	boost::chrono::time_point<boost::chrono::steady_clock> front_last;
-	long int tenths_count = 0;
-	int internal_count = -1;
-
 };
 
 /*-----------------------------------------------------------------------------
@@ -185,7 +185,7 @@ private:
 	void start_write();
 	void handle_write(
 			const boost::system::error_code& error, std::size_t bytes_transferred);
-	bBuff generate_nonsense();
+	bBuff* generate_nonsense();
 	bBuff generate_some_sense(bBuff payload);
 
   boost::asio::basic_waitable_timer<boost::chrono::steady_clock> timer_;

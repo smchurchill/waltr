@@ -41,7 +41,7 @@ public:
 			boost::asio::ip::tcp::endpoint ep_in);
 
 protected:
-	boost::asio::ip::tcp::socket& get_sock() { return socket_; }
+	boost::asio::ip::tcp::socket* get_sock() { return &socket_; }
 
 	const long BUFFER_LENGTH = 8192;
 	std::vector<char> data_ = std::vector<char>(BUFFER_LENGTH,0);
