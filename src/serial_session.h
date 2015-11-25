@@ -8,8 +8,6 @@
 #ifndef SERIAL_SESSION_H_
 #define SERIAL_SESSION_H_
 
-typedef uint8_t u8;
-
 /*-----------------------------------------------------------------------------
  * November 20, 2015 :: base class
  */
@@ -105,13 +103,13 @@ public:
 private:
 	void start_read();
 	void handle_read(boost::system::error_code ec, size_t length,
-			std::vector<u8>* buffer_);
+			bBuff* buffer_);
 	void check_the_deque();
 	inline void handle_timeout_extra();
 
 	const int MAX_FRAME_LENGTH = 2048;
 
-	std::deque<u8> to_parse;
+	pBuff to_parse;
 
 	std::string garbage_file;
 
@@ -150,7 +148,7 @@ public:
 	 * and there are no characters ready to write in buffer_.
 	 */
 	void handle_read(boost::system::error_code ec, size_t length,
-		std::vector<u8>* buffer_);
+		bBuff* buffer_);
 
 private:
 		std::string filename_;
@@ -186,8 +184,10 @@ private:
 	void start_write();
 	void handle_write(
 			const boost::system::error_code& error, std::size_t bytes_transferred);
-	std::vector<u8> generate_nonsense();
-	std::vector<u8> generate_some_sense(std::vector<u8> payload);
+	bBuff generate_nonsense();
+	bBuff generate_some_sense(bBuff payload);
+
+  boost::asio::basic_waitable_timer<boost::chrono::steady_clock> timer_;
 
 };
 

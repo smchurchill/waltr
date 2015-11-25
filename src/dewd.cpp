@@ -8,11 +8,17 @@
 #include <fstream>
 #include <string>
 #include <vector>
+#include <deque>
 #include <cstdio>
 
 #include <boost/version.hpp>
 #include <boost/asio.hpp>
 #include <boost/program_options.hpp>
+
+#include "types.h"
+#include "debug.h"
+
+using namespace dew;
 
 #include "session.hpp"
 #include "serial_session.hpp"
@@ -143,7 +149,7 @@ int main(int argc, char** argv) {
 		 *
 		 *
 		 */
-
+		if(0)
 		std::cout << "Logging to " << logging_directory << '\n';
 
 
@@ -190,7 +196,6 @@ int main(int argc, char** argv) {
 
 
 
-		std::cout << "Reading from ports:\n";
 		for(std::vector<std::string>::iterator it = rdev.begin() ;
 				it != rdev.end() ; ++it) {
 			basic_session* session;
@@ -205,24 +210,23 @@ int main(int argc, char** argv) {
 
 			sessions.push_back(session);
 
-			std::cout << (*it) << '\n';
 		}
 
-		std::cout << "Writing to ports:\n";
 		for(std::vector<std::string>::iterator it = wdev.begin() ;
 				it != wdev.end() ; ++it) {
-			serial_write_session* session =
-					new serial_write_session(*io_service,	logging_directory, dis, *it);
+			basic_session* session;
+			if(vmap.count("fp-comm")) {
+				session = new serial_write_nonsense_session(
+						*io_service,	logging_directory, dis, *it);
+			}
 
 			sessions.push_back(session);
 
-			std::cout << (*it) << '\n';
 		}
 
-		std::cout << "Accepting connections on:\n";
+		if(vmap.count("test")) std::cout << "Accepting connections on:\n";
 		for(std::vector<boost::asio::ip::tcp::endpoint>::iterator it = ends.begin()
 				;	it != ends.end() ; ++it) {
-			std::cout << (*it) << '\n';
 
 			network_acceptor_session* session =
 					new network_acceptor_session(*io_service, logging_directory, dis, *it);

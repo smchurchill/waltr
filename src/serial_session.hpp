@@ -16,6 +16,8 @@
 #include <deque>
 #include <cstdio>
 #include <algorithm>
+#include <time.h>
+#include <iterator>
 
 #include <boost/asio.hpp>
 #include <boost/bind.hpp>
@@ -92,14 +94,14 @@ void serial_read_parse_session::start() {
 	set_timer();
 }
 void serial_read_parse_session::start_read() {
-	std::vector<u8>* buffer_ = new std::vector<u8>;
+	bBuff* buffer_ = new bBuff;
 	buffer_->assign (BUFFER_LENGTH,0);
 	boost::asio::mutable_buffers_1 Buffer_ = boost::asio::buffer(*buffer_);
 	boost::asio::async_read(port_,Buffer_,boost::bind(
 			&serial_read_parse_session::handle_read, this, _1, _2, buffer_));
 }
 void serial_read_parse_session::handle_read(boost::system::error_code ec,
-		size_t length, std::vector<u8>* buffer_) {
+		size_t length, bBuff* buffer_) {
 
 	/* First, make sure we add more work to the io_service.
 	 */
@@ -108,7 +110,7 @@ void serial_read_parse_session::handle_read(boost::system::error_code ec,
 	if(!buffer_->empty()) {
 		if(to_parse.empty())
 			front_last = boost::chrono::steady_clock::now();
-		for(std::vector<u8>::iterator
+		for(bBuff::iterator
 				it = buffer_->begin(); it - buffer_->begin() < (signed)length ; ++it)
 			to_parse.emplace_back(*it);
 	}
@@ -168,57 +170,32 @@ void serial_read_parse_session::check_the_deque() {
 	 *  - currently printing to console
 	 *  - later, will send to dispatcher
 	 */
+	assert(to_parse.size()>=12);
+	assert(to_parse[0]==0xff);
+	assert(to_parse[1]==0xfe);
 
-	std::deque<u8> other_delim;
-//	std::copy(to_parse.begin()+2,to_parse.begin()+6,other_delim
-
-	std::deque<u8> delim (to_parse.begin()+2, to_parse.begin()+6);
+	pBuff delim (to_parse.begin()+2, to_parse.begin()+6);
 	delim.push_back(0xfe); delim.push_back(0xff);
 
-	std::deque<u8>::iterator match_point;
-	bool match_found = false;
+	pBuff::iterator match_point =
+			std::search(to_parse.begin(), to_parse.end(), delim.begin(), delim.end());
 
-	for(
-			struct{ std::deque<u8>::iterator it; int i;} iit = {to_parse.begin(), 0};
-				iit.it != to_parse.end()-6 ; ++(iit.i) ) {
-		if(0)
-		std::cout << " {{" << iit.it+iit.i - to_parse.begin() << "}} " << *(delim.begin()+iit.i) << ":" << *(iit.it+iit.i);
+	if(match_point!=to_parse.end()) {
+		pBuff* to_send = new pBuff;
 
-		if((*(delim.begin()+iit.i) == *(iit.it+iit.i))) {
-			if(iit.i==5){
-				if(0) std::cout << "match found\n"; match_point = iit.it; match_found = true; break;
-			}
-		}
-		else {
-			/* we ++iit.i after every time through the loop and want iit.i to be 0
-			 * when we increase our starting point.
-			 */
-			iit.i = -1; ++iit.it;
-		}
+		/* We have a match and match_point points to the beginning of the endframe
+		 * delimiter.  endframe delimiter is 6 characters long, so match_point + 6
+		 * is less than to_parse.end().
+		 */
+		assert(match_point+6 <= to_parse.end());
+		std::copy(to_parse.begin(), match_point+6, back_inserter(*to_send));
+		to_parse.erase(to_parse.begin(), match_point+6);
+		front_last = boost::chrono::steady_clock::now();
+
+		std::cout << "message from port: " << name_ << '\n';
+		printc(to_send);
+		std::cout << '\n';
 	}
-
-	if(0){
-	if(match_found)
-		std::cout << "end frame found in to_parse starting at position " << match_point - to_parse.begin() << '\n';
-	else
-		std::cout << "no match found\n";
-	}
-
-	std::deque<u8>* to_send = new std::deque<u8>;
-
-	while(match_point - to_parse.begin() + 6) {
-		to_send->emplace_back(to_parse.front());
-		to_parse.pop_front();
-	}
-
-	for(std::deque<u8>::iterator it = to_send->begin() ; it != to_send->end() ; ++it )
-		std::cout << *it;
-	std::cout << '\n';
-
-	/* dispatcher forward() method will delete the deque that it is sent. */
-	delete to_send;
-
-
 }
 inline void serial_read_parse_session::handle_timeout_extra() {
 	/* if the first character in to_parse is too old, we pop it. */
@@ -255,14 +232,14 @@ void serial_read_log_session::start() {
 }
 
 void serial_read_log_session::start_read() {
-	std::vector<u8>* buffer_ = new std::vector<u8>;
+	bBuff* buffer_ = new bBuff;
 	buffer_->assign (BUFFER_LENGTH,0);
 	boost::asio::mutable_buffers_1 Buffer_ = boost::asio::buffer(*buffer_);
 	boost::asio::async_read(port_,Buffer_,boost::bind(
 			&serial_read_log_session::handle_read, this, _1, _2, buffer_));
 }
 void serial_read_log_session::handle_read(boost::system::error_code ec,
-		size_t length,	std::vector<u8>* buffer_) {
+		size_t length,	bBuff* buffer_) {
 	this->start_read();
 	if (length > 0) {
 		FILE* file_ = fopen(filename_.c_str(), "a");
@@ -291,29 +268,53 @@ serial_write_nonsense_session::serial_write_nonsense_session(
 			std::string log_in,
 			dispatcher* ref_in,
 			std::string device_in) :
-					serial_write_session(io_in, log_in, ref_in, device_in) {
+					serial_write_session(io_in, log_in, ref_in, device_in),
+					timer_(*io_service) {
+	this->start();
 
 }
-
 void serial_write_nonsense_session::start() {
+	std::srand(time(NULL)*time(NULL));
 	start_write();
 }
 void serial_write_nonsense_session::start_write() {
-	boost::asio::const_buffers_1 nonsense =
-			boost::asio::buffer(generate_nonsense());
-	boost::asio::async_write(port_, nonsense, boost::bind(
+	bBuff nonsense = generate_nonsense();
+	boost::asio::mutable_buffers_1 bnonsense = boost::asio::buffer(nonsense);
+	std::cout << "writing to port: " << name_ << '\n';
+	printc(&nonsense);
+	std::cout << '\n';
+
+	boost::asio::async_write(port_, bnonsense, boost::bind(
 			&serial_write_nonsense_session::handle_write, this, _1, _2));
+
 }
 void serial_write_nonsense_session::handle_write(
 		const boost::system::error_code& error, std::size_t bytes_transferred) {
-
+	unsigned long int wait = 1000 + std::rand()%1000;
+	timer_.expires_from_now(boost::chrono::milliseconds(wait));
+	timer_.async_wait(
+					boost::bind(&serial_write_nonsense_session::start_write,this));
 }
-std::vector<u8> serial_write_nonsense_session::generate_nonsense() {
-		std::vector<u8> what = {0x00};
-		return what;
+bBuff serial_write_nonsense_session::generate_nonsense() {
+		bBuff msg,  nonce1, nonce2, payload, garbage ;
+		for(int i=0;i<4;++i) {
+			msg.push_back(32 + std::rand()%95);
+			nonce1.push_back(32 + std::rand()%95);
+			nonce2.push_back(32 + std::rand()%95);
+			payload.push_back(32 + std::rand()%95);
+			garbage.push_back(32 + std::rand()%95);
+		}
+		msg.push_back(0xff); msg.push_back(0xfe);
+		std::copy(nonce1.begin(), nonce1.end(), back_inserter(msg));
+		std::copy(nonce2.begin(), nonce2.end(), back_inserter(msg));
+		std::copy(payload.begin(), payload.end(), back_inserter(msg));
+		std::copy(nonce1.begin(), nonce1.end(), back_inserter(msg));
+		msg.push_back(0xfe); msg.push_back(0xff);
+		std::copy(garbage.begin(),garbage.end(),back_inserter(msg));
+		return msg;
 }
-std::vector<u8> serial_write_nonsense_session::generate_some_sense(
-		std::vector<u8> payload) {
+bBuff serial_write_nonsense_session::generate_some_sense(
+		bBuff payload) {
 	return payload;
 }
 
