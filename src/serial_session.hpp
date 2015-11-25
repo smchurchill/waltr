@@ -85,7 +85,6 @@ serial_read_parse_session::serial_read_parse_session(
 		std::string device_in) :
 			serial_read_session(io_in, log_in, ref_in, device_in),
 			front_last(boost::chrono::steady_clock::now()) {
-	garbage_file = logdir_ + name_.substr(name_.find_last_of("/\\")+1);
 	this->start();
 }
 void serial_read_parse_session::start() {
@@ -199,6 +198,10 @@ void serial_read_parse_session::check_the_deque() {
 
 	if(match_point!=to_parse.end()) {
 		++internal_count;
+
+		/* Dispatcher forward() function promises to release this memory once the
+		 * message has been processed.
+		 */
 		pBuff* to_send = new pBuff;
 
 		/* We have a match and match_point points to the beginning of the endframe
@@ -211,19 +214,17 @@ void serial_read_parse_session::check_the_deque() {
 		front_last = boost::chrono::steady_clock::now();
 
 		assert(to_send->size()>=11);
-		if(0)
+
+
 		std::cout << "message number marked [" <<
 				(int)to_send->at(10) << "] and is internal count [256*" << internal_count/256 << "]+[" << internal_count%256 << "] arrived"
 						" at port " << name_ << '\n';
-		//printi(to_send);
-		//std::cout << '\n';
 
-		/* Finally, if we just found a match then there might be another one wait-
-		 * -ing.  We don't want to wait for the handle_read to finish again in 99ms
-		 * so we'll just pop another copy of check_the_deque onto the io_service
-		 * stack.
-		 */
-		io_service->post(boost::bind(&serial_read_parse_session::check_the_deque,this));
+		io_service->post(
+				[this,to_send](){
+					ref->forward(this,to_send);
+				}
+		);
 	}
 }
 inline void serial_read_parse_session::handle_timeout_extra() {

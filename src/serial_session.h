@@ -110,11 +110,10 @@ private:
 	const int MAX_FRAME_LENGTH = 2048;
 	long int tenths_count = 0;
 	int internal_count = -1;
-
+	int last_message = 0;
+	int lost_messages = 0;
 
 	pBuff to_parse;
-
-	std::string garbage_file;
 
 	boost::chrono::time_point<boost::chrono::steady_clock> front_last;
 };

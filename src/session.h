@@ -20,7 +20,9 @@ private:
 public:
 	dispatcher() {};
 	void brag();
-	void forward(basic_session* msg_from,std::vector<char>* msg) {delete msg;}
+
+	template<class container_type>
+	void forward(basic_session* msg_from, container_type* msg) {delete msg;}
 };
 
 class basic_session{
