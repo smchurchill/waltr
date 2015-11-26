@@ -8,22 +8,39 @@
 #ifndef SERIAL_SESSION_H_
 #define SERIAL_SESSION_H_
 
+namespace dew {
+
+using ::boost::asio::io_service;
+using ::boost::chrono::steady_clock;
+
+using ::boost::asio::basic_waitable_timer;
+using ::boost::chrono::time_point;
+using ::boost::chrono::milliseconds;
+
+using ::boost::asio::serial_port;
+
+using ::std::string;
+using ::std::vector;
+using ::std::deque;
+using ::std::size_t;
+
 /*-----------------------------------------------------------------------------
  * November 20, 2015 :: base class
  */
 class serial_session : public basic_session{
 public:
 	serial_session(
-			boost::asio::io_service& io_in,
-			std::string log_in,
-			dispatcher* ref_in,
-			std::string device_in);
+			io_service& io_in, string log_in, dispatcher* ref_in, string device_in) :
+				basic_session(io_in, log_in, ref_in),
+				name_(device_in),	port_(*io_ref, name_)
+	{
+	}
 
-	std::string print() { return name_; }
+	string print() { return name_; }
 
 protected:
-	std::string name_;
-	boost::asio::serial_port port_;
+	string name_;
+	serial_port port_;
 };
 
 /*-----------------------------------------------------------------------------
@@ -32,10 +49,10 @@ protected:
 class serial_read_session :	public serial_session {
 public:
 	serial_read_session(
-			boost::asio::io_service& io_in,
-			std::string log_in,
-			dispatcher* ref_in,
-			std::string device_in);
+			io_service& io_in, string log_in, dispatcher* ref_in, string device_in) :
+				serial_session(io_in, log_in, ref_in, device_in), timer_(*io_ref)
+	{
+	}
 
 	virtual ~serial_read_session() {}
 
@@ -66,14 +83,14 @@ protected:
 	 *
 	 *
 	 */
-  boost::asio::basic_waitable_timer<boost::chrono::steady_clock> timer_;
-  boost::chrono::time_point<boost::chrono::steady_clock> dead_;
+  basic_waitable_timer<steady_clock> timer_;
+  time_point<steady_clock> dead_;
 
   /* November 18, 2015
 	 * This value gives us a polling rate of 10Hz.  This is the only place where
 	 * this polling rate is set.
 	 */
-	boost::chrono::milliseconds timeout_ = boost::chrono::milliseconds(100);
+	milliseconds timeout_ = milliseconds(100);
 
 	/* November 20, 2015
 	 * This timeout handling attempts to set a stopwatch that expires every 100ms
@@ -93,10 +110,11 @@ protected:
 class serial_read_parse_session :	public serial_read_session {
 public:
 	serial_read_parse_session(
-			boost::asio::io_service& io_in,
-			std::string log_in,
-			dispatcher* ref_in,
-			std::string device_in);
+			io_service& io_in, string log_in, dispatcher* ref_in, string device_in) :
+				serial_read_session(io_in, log_in, ref_in, device_in)
+	{
+		this->start();
+	}
 
 	void start();
 
@@ -107,15 +125,14 @@ private:
 	void check_the_deque();
 	inline void handle_timeout_extra();
 
+	time_point<steady_clock> front_last = steady_clock::now();
+
 	const int MAX_FRAME_LENGTH = 2048;
 	long int tenths_count = 0;
-	int internal_count = -1;
-	int last_message = 0;
-	int lost_messages = 0;
 
 	pBuff to_parse;
 
-	boost::chrono::time_point<boost::chrono::steady_clock> front_last;
+
 };
 
 /*-----------------------------------------------------------------------------
@@ -124,10 +141,12 @@ private:
 class serial_read_log_session :	public serial_read_session {
 public:
 		serial_read_log_session(
-			boost::asio::io_service& io_in,
-			std::string log_in,
-			dispatcher* ref_in,
-			std::string device_in);
+			io_service& io_in, string log_in,	dispatcher* ref_in,	string device_in) :
+				serial_read_session(io_in, log_in, ref_in, device_in)
+	{
+		filename_ = logdir_ + name_.substr(name_.find_last_of("/\\")+1);
+		this->start();
+	}
 
 	void start();
 
@@ -151,7 +170,7 @@ public:
 		bBuff* buffer_);
 
 private:
-		std::string filename_;
+		string filename_;
 
 };
 
@@ -161,10 +180,10 @@ private:
 class serial_write_session : public serial_session {
 public:
 	serial_write_session(
-			boost::asio::io_service& io_in,
-			std::string log_in,
-			dispatcher* ref_in,
-			std::string device_in);
+			io_service& io_in, string log_in,	dispatcher* ref_in,	string device_in) :
+				serial_session(io_in, log_in, ref_in, device_in)
+	{
+	}
 };
 
 /*-----------------------------------------------------------------------------
@@ -173,24 +192,28 @@ public:
 class serial_write_nonsense_session : public serial_write_session {
 public:
 	serial_write_nonsense_session(
-			boost::asio::io_service& io_in,
-			std::string log_in,
-			dispatcher* ref_in,
-			std::string device_in);
+			io_service& io_in, string log_in, dispatcher* ref_in, string device_in) :
+				serial_write_session(io_in, log_in, ref_in, device_in), timer_(*io_ref)
+	{
+		this->start();
+	}
 
 	void start();
 
 private:
 	void start_write();
 	void handle_write(
-			const boost::system::error_code& error, std::size_t bytes_transferred);
+			const boost::system::error_code& error, size_t bytes_transferred);
 	bBuff* generate_nonsense();
 	bBuff generate_some_sense(bBuff payload);
 
-  boost::asio::basic_waitable_timer<boost::chrono::steady_clock> timer_;
+  time_point<steady_clock> dead_ = steady_clock::now();
+  basic_waitable_timer<steady_clock> timer_;
 
   int internal_counter = 0;
 
 };
+
+} // dew namespace
 
 #endif /* SERIAL_SESSION_H_ */

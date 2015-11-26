@@ -20,28 +20,37 @@
 #include <boost/chrono.hpp>
 #include <boost/chrono/time_point.hpp>
 
-
 #include "session.h"
 
+namespace dew {
+
+using ::boost::asio::io_service;
+using ::boost::chrono::steady_clock;
+
+using ::std::string;
+using ::std::vector;
+using ::std::deque;
+
+using ::std::cout;
+
+
+/*-----------------------------------------------------------------------------
+ * November 25, 2015 :: dispatcher methods
+ */
 void dispatcher::hello(basic_session* new_friend) {
 		friends.push_back(new_friend);
 }
 
 void dispatcher::brag() {
-		for(std::vector<basic_session*>::iterator
+		for(vector<basic_session*>::iterator
 				it = friends.begin() ; it != friends.end() ; ++it )
-			std::cout << (**it).print() << '\n';
+			cout << (**it).print() << '\n';
 }
 
-basic_session::basic_session(
-			boost::asio::io_service& io_in,
-			std::string log_in,
-			dispatcher* ref_in) :
-				io_service(&io_in),
-				logdir_(log_in),
-				ref(ref_in) {
-		start_ = boost::chrono::steady_clock::now();
-		ref->hello(this);
-}
+/*-----------------------------------------------------------------------------
+ * November 25, 2015 :: basic_session methods
+ */
+
+} //namespace
 
 #endif /* SESSION_HPP_ */

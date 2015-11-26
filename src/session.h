@@ -8,13 +8,23 @@
 #ifndef SESSION_H_
 #define SESSION_H_
 
+namespace dew {
+
+using ::boost::asio::io_service;
+using ::boost::chrono::steady_clock;
+using ::boost::chrono::time_point;
+
+using ::std::string;
+using ::std::vector;
+using ::std::deque;
+
 class basic_session;
 
 class dispatcher {
 	friend class basic_session;
 
 private:
-	std::vector<basic_session*> friends;
+	vector<basic_session*> friends;
 	void hello(basic_session* new_friend);
 
 public:
@@ -27,21 +37,22 @@ public:
 
 class basic_session{
 public:
-	basic_session(
-				boost::asio::io_service& io_in,
-				std::string log_in,
-				dispatcher* ref_in);
-	virtual std::string print() =0;
+	basic_session( io_service& io_in, string log_in, dispatcher* ref_in) :
+			io_ref(&io_in), logdir_(log_in), dis_ref(ref_in)
+	{
+		dis_ref->hello(this);
+	};
+	virtual string print() =0;
 	virtual ~basic_session() {};
 
 protected:
-	boost::asio::io_service* io_service;
-	std::string logdir_;
-	dispatcher* ref;
-  boost::chrono::time_point<boost::chrono::steady_clock> start_;
-
+  time_point<steady_clock> start_ = steady_clock::now();
+	io_service* io_ref;
+	string logdir_;
+	dispatcher* dis_ref;
 private:
 };
 
+} // dew namespace
 
 #endif /* SESSION_H_ */

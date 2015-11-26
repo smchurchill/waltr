@@ -27,36 +27,40 @@
 #include <boost/asio/steady_timer.hpp>
 #include <boost/chrono/duration.hpp>
 
+#include "session.hpp"
 #include "serial_session.h"
+
+namespace dew {
+
+using ::boost::asio::io_service;
+
+using ::boost::chrono::steady_clock;
+using ::boost::asio::basic_waitable_timer;
+using ::boost::chrono::time_point;
+using ::boost::chrono::milliseconds;
+
+using ::boost::asio::serial_port;
+using ::boost::asio::mutable_buffers_1;
+
+using ::std::string;
+using ::std::vector;
+using ::std::deque;
+
+using ::std::srand;
+using ::std::rand;
+
+using ::std::search;
+using ::std::copy;
 
 /*-----------------------------------------------------------------------------
  * November 20, 2015 :: base methods
  */
-serial_session::serial_session(
-			boost::asio::io_service& io_in,
-			std::string log_in,
-			dispatcher* ref_in,
-			std::string device_in) :
-				basic_session(io_in, log_in, ref_in),
-				name_(device_in),
-				port_(*io_service, name_) {
-}
 
 /*-----------------------------------------------------------------------------
  * November 20, 2015 :: _read_ methods
  */
-serial_read_session::serial_read_session(
-		boost::asio::io_service& io_in,
-		std::string log_in,
-		dispatcher* ref_in,
-		std::string device_in) :
-			serial_session(io_in, log_in, ref_in, device_in),
-			timer_(*io_service) {
-}
-
 void serial_read_session::set_timer() {
-	boost::chrono::time_point<boost::chrono::steady_clock> now_ =
-		boost::chrono::steady_clock::now();
+	time_point<steady_clock> now_ =	steady_clock::now();
 
 	while(dead_< now_)
 		dead_ = dead_ + timeout_;
@@ -78,24 +82,15 @@ void serial_read_session::handle_timeout(boost::system::error_code ec) {
 /*-----------------------------------------------------------------------------
  * November 24, 2015 :: _read_parse_ methods
  */
-serial_read_parse_session::serial_read_parse_session(
-		boost::asio::io_service& io_in,
-		std::string log_in,
-		dispatcher* ref_in,
-		std::string device_in) :
-			serial_read_session(io_in, log_in, ref_in, device_in),
-			front_last(boost::chrono::steady_clock::now()) {
-	this->start();
-}
 void serial_read_parse_session::start() {
 	start_read();
-	dead_ = boost::chrono::steady_clock::now() + timeout_;
+	dead_ = steady_clock::now() + timeout_;
 	set_timer();
 }
 void serial_read_parse_session::start_read() {
 	bBuff* buffer_ = new bBuff;
 	buffer_->assign (BUFFER_LENGTH,0);
-	boost::asio::mutable_buffers_1 Buffer_ = boost::asio::buffer(*buffer_);
+	mutable_buffers_1 Buffer_ = boost::asio::buffer(*buffer_);
 	boost::asio::async_read(port_,Buffer_,boost::bind(
 			&serial_read_parse_session::handle_read, this, _1, _2, buffer_));
 }
@@ -108,7 +103,7 @@ void serial_read_parse_session::handle_read(boost::system::error_code ec,
 
 	if(!buffer_->empty()) {
 		if(to_parse.empty())
-			front_last = boost::chrono::steady_clock::now();
+			front_last = steady_clock::now();
 		for(bBuff::iterator
 				it = buffer_->begin(); it - buffer_->begin() < (signed)length ; ++it)
 			to_parse.emplace_back(*it);
@@ -129,7 +124,7 @@ void serial_read_parse_session::check_the_deque() {
 	}
 
 	if(scrubbed)
-		front_last = boost::chrono::steady_clock::now();
+		front_last = steady_clock::now();
 
 	/* the prefix delimiter of a frame takes up
 	 * FF + FE + nonce1(4) + nonce2(4) + seq + crc = 12 characters.
@@ -194,10 +189,9 @@ void serial_read_parse_session::check_the_deque() {
 	 * size at least 18, so we'll be fine.
 	 */
 	pBuff::iterator match_point =
-			std::search(to_parse.begin()+12, to_parse.end(), delim.begin(), delim.end());
+			search(to_parse.begin()+12, to_parse.end(), delim.begin(), delim.end());
 
 	if(match_point!=to_parse.end()) {
-		++internal_count;
 
 		/* Dispatcher forward() function promises to release this memory once the
 		 * message has been processed.
@@ -209,22 +203,19 @@ void serial_read_parse_session::check_the_deque() {
 		 * is less than to_parse.end().
 		 */
 		assert(match_point+6 <= to_parse.end());
-		std::copy(to_parse.begin(), match_point+6, back_inserter(*to_send));
+		copy(to_parse.begin(), match_point+6, back_inserter(*to_send));
 		to_parse.erase(to_parse.begin(), match_point+6);
-		front_last = boost::chrono::steady_clock::now();
+		front_last = steady_clock::now();
 
 		assert(to_send->size()>=11);
 
-
-		std::cout << "message number marked [" <<
-				(int)to_send->at(10) << "] and is internal count [256*" << internal_count/256 << "]+[" << internal_count%256 << "] arrived"
-						" at port " << name_ << '\n';
-
-		io_service->post(
+		io_ref->post(
 				[this,to_send](){
-					ref->forward(this,to_send);
+					dis_ref->forward(this,to_send);
 				}
-		);
+			);
+	} else if (to_parse.size() > MAX_FRAME_LENGTH ) {
+		to_parse.pop_front();
 	}
 }
 inline void serial_read_parse_session::handle_timeout_extra() {
@@ -232,40 +223,28 @@ inline void serial_read_parse_session::handle_timeout_extra() {
 	++tenths_count;
 	if(!(tenths_count%5)) {
 		if(
-				front_last <= boost::chrono::steady_clock::now()-boost::chrono::milliseconds(500)
+				front_last <= steady_clock::now()-milliseconds(500)
 					&&
 				!to_parse.empty()
 			) {
 			to_parse.pop_front();
 		}
-		if(0)
-		std::cout << "messages received at " << name_ << ": " << internal_count << '\n';
 	}
 }
 
 /*-----------------------------------------------------------------------------
  * November 20, 2015 :: _read_log_ methods
  */
-serial_read_log_session::serial_read_log_session(
-		boost::asio::io_service& io_in,
-		std::string log_in,
-		dispatcher* ref_in,
-		std::string device_in) :
-			serial_read_session(io_in, log_in, ref_in, device_in) {
-	filename_ = logdir_ + name_.substr(name_.find_last_of("/\\")+1);
-	this->start();
-}
-
 void serial_read_log_session::start() {
 	start_read();
-	dead_ = boost::chrono::steady_clock::now() + timeout_;
+	dead_ = steady_clock::now() + timeout_;
 	set_timer();
 }
 
 void serial_read_log_session::start_read() {
 	bBuff* buffer_ = new bBuff;
 	buffer_->assign (BUFFER_LENGTH,0);
-	boost::asio::mutable_buffers_1 Buffer_ = boost::asio::buffer(*buffer_);
+	mutable_buffers_1 Buffer_ = boost::asio::buffer(*buffer_);
 	boost::asio::async_read(port_,Buffer_,boost::bind(
 			&serial_read_log_session::handle_read, this, _1, _2, buffer_));
 }
@@ -283,34 +262,17 @@ void serial_read_log_session::handle_read(boost::system::error_code ec,
 /*-----------------------------------------------------------------------------
  * November 20, 2015 :: _write_methods
  */
-serial_write_session::serial_write_session(
-		boost::asio::io_service& io_in,
-		std::string log_in,
-		dispatcher* ref_in,
-		std::string device_in) :
-			serial_session(io_in, log_in, ref_in, device_in) {
-}
 
 /*-----------------------------------------------------------------------------
- * November 24, 2015 :: _write_methods
+ * November 24, 2015 :: _write_nonsense_methods
  */
-serial_write_nonsense_session::serial_write_nonsense_session(
-			boost::asio::io_service& io_in,
-			std::string log_in,
-			dispatcher* ref_in,
-			std::string device_in) :
-					serial_write_session(io_in, log_in, ref_in, device_in),
-					timer_(*io_service) {
-	this->start();
-
-}
 void serial_write_nonsense_session::start() {
-	std::srand(time(NULL)*time(NULL));
+	srand(time(NULL)*time(NULL));
 	start_write();
 }
 void serial_write_nonsense_session::start_write() {
 	bBuff* nonsense = generate_nonsense();
-	boost::asio::mutable_buffers_1 bnonsense = boost::asio::buffer(*nonsense);
+	mutable_buffers_1 bnonsense = boost::asio::buffer(*nonsense);
 	//std::cout << "writing to port: " << name_ << '\n';
 	//printi(&nonsense);
 	//std::cout << '\n';
@@ -327,8 +289,9 @@ void serial_write_nonsense_session::start_write() {
 }
 void serial_write_nonsense_session::handle_write(
 		const boost::system::error_code& error, std::size_t bytes_transferred) {
-	boost::chrono::milliseconds wait (175 + std::rand()%25);
-	timer_.expires_at(boost::chrono::steady_clock::now() + wait);
+	milliseconds wait (175 + std::rand()%25);
+	dead_ = steady_clock::now() + wait;
+	timer_.expires_at(dead_);
 	timer_.async_wait(
 	//io_service->post(
 			boost::bind(&serial_write_nonsense_session::start_write,this));
@@ -347,16 +310,16 @@ bBuff* serial_write_nonsense_session::generate_nonsense() {
 				payload.push_back(32+std::rand()%224);
 
 		msg->push_back(0xff); msg->push_back(0xfe);
-		std::copy(nonce1.begin(), nonce1.end(), back_inserter(*msg));
-		std::copy(nonce2.begin(), nonce2.end(), back_inserter(*msg));
+		copy(nonce1.begin(), nonce1.end(), back_inserter(*msg));
+		copy(nonce2.begin(), nonce2.end(), back_inserter(*msg));
 		msg->push_back(internal_counter%256);
 
 		assert(msg->size()==11);
 		msg->push_back(crc8(&*msg->begin(),msg->size()));
 
 
-		std::copy(payload.begin(), payload.end(), back_inserter(*msg));
-		std::copy(nonce1.begin(), nonce1.end(), back_inserter(*msg));
+		copy(payload.begin(), payload.end(), back_inserter(*msg));
+		copy(nonce1.begin(), nonce1.end(), back_inserter(*msg));
 		msg->push_back(0xfe); msg->push_back(0xff);
 
 		return msg;
@@ -365,5 +328,7 @@ bBuff serial_write_nonsense_session::generate_some_sense(
 		bBuff payload) {
 	return payload;
 }
+
+} // dew namespace
 
 #endif /* SERIAL_SESSION_HPP_ */
