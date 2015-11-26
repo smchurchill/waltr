@@ -24,11 +24,16 @@ class dispatcher {
 	friend class basic_session;
 
 private:
-	vector<basic_session*> friends;
-	void hello(basic_session* new_friend);
+	vector<basic_session*> comrades;
+	void hello(basic_session* new_comrade);
 
 public:
 	dispatcher() {};
+	~dispatcher() {
+		for(auto comrade : comrades) {
+			delete comrade;
+		}
+	}
 	void brag();
 
 	template<class container_type>

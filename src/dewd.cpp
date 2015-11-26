@@ -45,8 +45,9 @@ using ::std::to_string;
 using ::std::endl;
 
 
-void graceful_exit(const boost::system::error_code& error, int signal_number)
+void graceful_exit(const boost::system::error_code& error, int signal_number, dispatcher* dis)
 {
+	delete dis;
 	exit(0);
 }
 
@@ -135,6 +136,7 @@ int main(int argc, char** argv) {
 		 * to a const int ASAP.
 		 */
 		const int port_number = vmap["port-number"].as<int>();
+
 
 		/* Everything else we're doing requires an asio io_service, so we
 		 * initialize that now.
@@ -232,7 +234,7 @@ int main(int argc, char** argv) {
 		 */
 
 		boost::asio::signal_set signals(*service, SIGINT, SIGTERM);
-		signals.async_wait(&graceful_exit);
+		signals.async_wait(boost::bind(&graceful_exit,_1,_2, dis));
 
 		/*
 		 * io_service.run() will run the io_service until there are no jobs or han-

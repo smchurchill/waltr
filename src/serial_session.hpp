@@ -110,12 +110,16 @@ void serial_read_parse_session::handle_read(boost::system::error_code ec,
 	}
 	delete buffer_;
 
+
 	/* immediately check for a frame.  this should be very fast */
 	check_the_deque();
+
 }
 void serial_read_parse_session::check_the_deque() {
 	/* every time we check the deque, we first scrub to an 'FF' or empty the
 	 * deque if no 'FF' exists.
+	 *
+	 *
 	 */
 	bool scrubbed = false;
 	while(!to_parse.empty() && to_parse.front()!=0xff) {
@@ -148,7 +152,6 @@ void serial_read_parse_session::check_the_deque() {
 	if(to_parse[1]!=0xfe) {
 		to_parse.pop_front();
 		check_the_deque();
-		return;
 	}
 
 	/* GATP that to_parse has at least 18 characters and the first two characters
@@ -161,8 +164,10 @@ void serial_read_parse_session::check_the_deque() {
 	assert(to_parse[0]==0xff);
 	assert(to_parse[1]==0xfe);
 
-	if(crc8(&*to_parse.begin(),11)!=to_parse[11])
-		return;
+	if(crc8(&*to_parse.begin(),11)!=to_parse[11]) {
+		to_parse.pop_front();
+		check_the_deque();
+	}
 
 	/* We now have a valid prefix, so we gather the rest of the frame delimiter,
 	 * which is of the form
@@ -208,14 +213,27 @@ void serial_read_parse_session::check_the_deque() {
 		front_last = steady_clock::now();
 
 		assert(to_send->size()>=11);
+		curr_msg = (int)(to_send->at(10));
+		if(last_msg > curr_msg )
+			last_msg -= 256;
+		while(last_msg < curr_msg - 1){
+			cout << last_msg << " : " << curr_msg << '\n';
+			cout << ++last_msg << '\n';
+			++lost_msg_count;
+		}
+		++last_msg;
+		++msg_tot;
 
 		io_ref->post(
 				[this,to_send](){
 					dis_ref->forward(this,to_send);
 				}
 			);
+		/* Loop checks until to_parse has no more messages waiting for us. */
+		check_the_deque();
 	} else if (to_parse.size() > MAX_FRAME_LENGTH ) {
 		to_parse.pop_front();
+		++frame_too_long;
 	}
 }
 inline void serial_read_parse_session::handle_timeout_extra() {
@@ -273,14 +291,10 @@ void serial_write_nonsense_session::start() {
 void serial_write_nonsense_session::start_write() {
 	bBuff* nonsense = generate_nonsense();
 	mutable_buffers_1 bnonsense = boost::asio::buffer(*nonsense);
-	//std::cout << "writing to port: " << name_ << '\n';
-	//printi(&nonsense);
-	//std::cout << '\n';
+
+	//debug(nonsense->begin(),nonsense->end());
 
 	++internal_counter;
-	if(0)
-	if(!(internal_counter%5))
-		std::cout << "messages sent from " << name_ << ": " << internal_counter << '\n';
 
 	boost::asio::async_write(port_, bnonsense, boost::bind(
 			&serial_write_nonsense_session::handle_write, this, _1, _2));
@@ -289,7 +303,7 @@ void serial_write_nonsense_session::start_write() {
 }
 void serial_write_nonsense_session::handle_write(
 		const boost::system::error_code& error, std::size_t bytes_transferred) {
-	milliseconds wait (175 + std::rand()%25);
+	milliseconds wait (75 + std::rand()%50);
 	dead_ = steady_clock::now() + wait;
 	timer_.expires_at(dead_);
 	timer_.async_wait(
@@ -306,7 +320,7 @@ bBuff* serial_write_nonsense_session::generate_nonsense() {
 
 		int d256 = std::rand()%256;
 		if(d256)
-			for(int i=2000 ; i ; --i)
+			for(int i=500 ; i ; --i)
 				payload.push_back(32+std::rand()%224);
 
 		msg->push_back(0xff); msg->push_back(0xfe);

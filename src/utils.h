@@ -31,6 +31,17 @@ namespace dew {
 /*-----------------------------------------------------------------------------
  * November 25, 2015
  *
+ * wanted a nonnegative modulus operator
+ */
+
+inline int mod(int n, int m) {
+	return (n%m < 0 ? n%m + m : n%m);
+}
+
+
+/*-----------------------------------------------------------------------------
+ * November 25, 2015
+ *
  * specialized fn from AJS
  */
 
@@ -89,7 +100,7 @@ void test_specialization (void)
 
 
 
-// could just as well transform !is_print(c) to <ff><fe> notation
+/* could just as well transform !is_print(c) to <ff><fe> notation
 string filter_unprintable (u8 c) {
 	stringstream ss;
 	ss << "<" << std::hex << c << ">";
@@ -102,8 +113,8 @@ void debug (Range rng) {
 	boost::transform (rng | boost::adaptors::reversed, ostream_iterator<string> (cout), filter_unprintable);
 	cout << '\n';
 }
-
-
+*/
+ /*
 void test_range (void)
 {
 	cout << "==Test range==\n";
@@ -111,7 +122,7 @@ void test_range (void)
     std::deque<u8> dc (sc.begin(), sc.end());
     debug (std::make_pair (dc.begin(), dc.end()));
 }
-
+*/
 
 
 

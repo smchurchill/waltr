@@ -115,6 +115,21 @@ public:
 	{
 		this->start();
 	}
+	~serial_read_parse_session() {
+		FILE * log = fopen((logdir_ + name_.substr(name_.find_last_of("/\\")+1) + ".garbage").c_str(),"a");
+		stringstream ss;
+		ss  << "Port " << name_ << " totals::\n"
+				<< "\tMessages received: " << msg_tot << '\n'
+				<< "\tMessages lost: " << lost_msg_count << '\n'
+				<< "Messages destroyed ::\n"
+				<< "\tFrame too old: " << frame_too_old << '\n'
+				<< "\tFrame too long: " << frame_too_long << '\n'
+				<< "\tBad prefix: " << bad_prefix << '\n'
+				<< "\tBad CRC: " << bad_crc << std::endl;
+		std::fwrite(ss.str().c_str(), sizeof(u8), ss.str().length(), log);
+		fclose(log);
+	}
+
 
 	void start();
 
@@ -129,6 +144,17 @@ private:
 
 	const int MAX_FRAME_LENGTH = 2048;
 	long int tenths_count = 0;
+
+	int msg_tot = 0;
+
+	int last_msg = 0;
+	int curr_msg = 0;
+	int lost_msg_count = 0;
+
+	int frame_too_long = 0;
+	int frame_too_old = 0;
+	int bad_prefix = 0;
+	int bad_crc = 0;
 
 	pBuff to_parse;
 

@@ -37,13 +37,13 @@ using ::std::cout;
 /*-----------------------------------------------------------------------------
  * November 25, 2015 :: dispatcher methods
  */
-void dispatcher::hello(basic_session* new_friend) {
-		friends.push_back(new_friend);
+void dispatcher::hello(basic_session* new_comrade) {
+		comrades.push_back(new_comrade);
 }
 
 void dispatcher::brag() {
 		for(vector<basic_session*>::iterator
-				it = friends.begin() ; it != friends.end() ; ++it )
+				it = comrades.begin() ; it != comrades.end() ; ++it )
 			cout << (**it).print() << '\n';
 }
 
