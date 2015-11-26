@@ -231,7 +231,8 @@ public:
 	FILE * log = fopen((logdir_ + name_.substr(name_.find_last_of("/\\")+1) + ".garbage").c_str(),"a");
 	stringstream ss;
 	ss  << "Port " << name_ << " write totals::\n"
-			<< "Total bytes sent:\n" << bytes_sent << '\n' << '\n';
+			<< "Total bytes sent: " << bytes_sent << '\n'
+			<< "Total bytes intended: " << bytes_intended << '\n' << '\n';
 	std::fwrite(ss.str().c_str(), sizeof(u8), ss.str().length(), log);
 	fclose(log);
 	}
@@ -241,7 +242,8 @@ public:
 private:
 	void start_write();
 	void handle_write(
-			const boost::system::error_code& error, size_t bytes_transferred);
+			const boost::system::error_code& error, size_t bytes_transferred,
+			std::size_t message_size);
 	bBuff* generate_nonsense();
 	bBuff generate_some_sense(bBuff payload);
 
@@ -250,6 +252,7 @@ private:
 
   int internal_counter = 0;
   long int bytes_sent = 0;
+  long int bytes_intended = 0;
 
 };
 

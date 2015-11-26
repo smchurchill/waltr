@@ -56,7 +56,7 @@ using ::std::ostream_iterator;
 using ::std::cout;
 using ::std::isgraph;
 
-
+/*
 template <typename T> using ivt = typename iterator_traits<T>::value_type;
 
 template<typename Input>
@@ -89,7 +89,7 @@ void test_specialization (void)
     std::deque<u8> dc (sc.begin(), sc.end());
     debug (dc.begin(), dc.end());
 }
-
+*/
 
 /*-----------------------------------------------------------------------------
  * November 25, 2015
@@ -102,16 +102,24 @@ void test_specialization (void)
 
 /* could just as well transform !is_print(c) to <ff><fe> notation*/
 string filter_unprintable (u8 c) {
-	stringstream ss;
-	ss << "<" << std::hex << c << ">";
-  return "nothing"; // string ( isgraph(c) ? c : ss.str() );
+	stringstream ss, cs;
+	ss << "<" << (int)c << ">";
+	cs << c;
+  return string ( isprint(c) ? cs.str() : ss.str() );
 }
 
 template<typename Range>
 void debug (Range rng) {
 	// typedef typename Range::first_type::value_type T;
-	boost::transform (rng | boost::adaptors::reversed, ostream_iterator<string> (cout), filter_unprintable);
+	boost::transform (rng, ostream_iterator<string> (cout), filter_unprintable);
 	cout << '\n';
+}
+
+template<typename Range>
+void debug (Range rng, std::iostream* ios) {
+	// typedef typename Range::first_type::value_type T;
+	boost::transform (rng, ostream_iterator<string> (*ios), filter_unprintable);
+	*ios << '\n';
 }
 
  /*

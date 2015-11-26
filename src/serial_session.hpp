@@ -27,8 +27,11 @@
 #include <boost/asio/steady_timer.hpp>
 #include <boost/chrono/duration.hpp>
 
+#include "utils.h"
+
 #include "session.hpp"
 #include "serial_session.h"
+
 
 namespace dew {
 
@@ -166,7 +169,9 @@ void serial_read_parse_session::check_the_deque() {
 	assert(to_parse[1]==0xfe);
 
 	if(crc8(&*to_parse.begin(),11)!=to_parse[11]) {
-		cout << (int)crc8(&*to_parse.begin(),11) << " : " << (int)to_parse[11] << '\n';
+		debug(std::make_pair(to_parse.begin(),to_parse.begin()+11));
+		cout << "Computed CRC " << filter_unprintable(crc8(&*to_parse.begin(),11))
+				 << " : " << "Sent CRC: " << filter_unprintable(to_parse[11]) << '\n';
 		++bad_crc;
 		to_parse.pop_front();
 		io_ref->post(boost::bind(&serial_read_parse_session::check_the_deque,this));
@@ -227,6 +232,12 @@ void serial_read_parse_session::check_the_deque() {
 		}
 		++last_msg;
 		++msg_tot;
+
+		FILE * log = fopen((logdir_ + name_.substr(name_.find_last_of("/\\")+1) + ".received").c_str(),"a");
+		stringstream ss;
+		debug(std::make_pair(to_send->begin(),to_send->end()),&ss);
+		std::fwrite(ss.str().c_str(), sizeof(u8), ss.str().length(), log);
+		fclose(log);
 
 		io_ref->post(
 				[this,to_send](){
@@ -290,7 +301,7 @@ void serial_read_log_session::handle_read(boost::system::error_code ec,
  * November 24, 2015 :: _write_nonsense_methods
  */
 void serial_write_nonsense_session::start() {
-	srand(time(NULL)*time(NULL));
+	srand(0);
 	start_write();
 }
 void serial_write_nonsense_session::start_write() {
@@ -299,17 +310,26 @@ void serial_write_nonsense_session::start_write() {
 	bBuff* nonsense = generate_nonsense();
 	mutable_buffers_1 bnonsense = boost::asio::buffer(*nonsense);
 
+	/* log the message to send */
+	FILE * log = fopen((logdir_ + name_.substr(name_.find_last_of("/\\")+1) + ".sent").c_str(),"a");
+	stringstream ss;
+	debug(std::make_pair(nonsense->begin(),nonsense->end()),&ss);
+	std::fwrite(ss.str().c_str(), sizeof(u8), ss.str().length(), log);
+	fclose(log);
+
 	//debug(nonsense->begin(),nonsense->end());
 	boost::asio::async_write(port_, bnonsense, boost::bind(
-			&serial_write_nonsense_session::handle_write, this, _1, _2));
+			&serial_write_nonsense_session::handle_write, this, _1, _2, nonsense->size()));
 
 	delete nonsense;
 }
 void serial_write_nonsense_session::handle_write(
-		const boost::system::error_code& error, std::size_t bytes_transferred) {
+		const boost::system::error_code& error, std::size_t bytes_transferred,
+		std::size_t message_size) {
 	bytes_sent += bytes_transferred;
+	bytes_intended += message_size;
 
-	milliseconds wait (90 + std::rand()%20);
+	milliseconds wait (std::rand()%5);
 	dead_ = steady_clock::now() + wait;
 	timer_.expires_at(dead_);
 	timer_.async_wait(
@@ -324,7 +344,7 @@ bBuff* serial_write_nonsense_session::generate_nonsense() {
 			nonce2.push_back(std::rand()%256);
 		}
 
-		for(int i=500 ; i ; --i)
+		for(int i=8 ; i ; --i)
 			payload.push_back(std::rand()%256);
 
 		msg->push_back(0xff); msg->push_back(0xfe);
