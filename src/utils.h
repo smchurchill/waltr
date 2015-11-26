@@ -100,7 +100,7 @@ void test_specialization (void)
 
 
 
-/* could just as well transform !is_print(c) to <ff><fe> notation
+/* could just as well transform !is_print(c) to <ff><fe> notation*/
 string filter_unprintable (u8 c) {
 	stringstream ss;
 	ss << "<" << std::hex << c << ">";
@@ -113,7 +113,7 @@ void debug (Range rng) {
 	boost::transform (rng | boost::adaptors::reversed, ostream_iterator<string> (cout), filter_unprintable);
 	cout << '\n';
 }
-*/
+
  /*
 void test_range (void)
 {

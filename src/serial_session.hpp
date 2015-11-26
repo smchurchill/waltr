@@ -97,9 +97,7 @@ void serial_read_parse_session::start_read() {
 void serial_read_parse_session::handle_read(boost::system::error_code ec,
 		size_t length, bBuff* buffer_) {
 
-	/* First, make sure we add more work to the io_service.
-	 */
-	start_read();
+	bytes_received += length;
 
 	if(!buffer_->empty()) {
 		if(to_parse.empty())
@@ -110,9 +108,8 @@ void serial_read_parse_session::handle_read(boost::system::error_code ec,
 	}
 	delete buffer_;
 
-
-	/* immediately check for a frame.  this should be very fast */
-	check_the_deque();
+	io_ref->post(boost::bind(&serial_read_parse_session::check_the_deque,this));
+	start_read();
 
 }
 void serial_read_parse_session::check_the_deque() {
@@ -123,12 +120,14 @@ void serial_read_parse_session::check_the_deque() {
 	 */
 	bool scrubbed = false;
 	while(!to_parse.empty() && to_parse.front()!=0xff) {
+		++scrubbed_count;
 		to_parse.pop_front();
 		scrubbed = true;
 	}
 
-	if(scrubbed)
+	if(scrubbed) {
 		front_last = steady_clock::now();
+	}
 
 	/* the prefix delimiter of a frame takes up
 	 * FF + FE + nonce1(4) + nonce2(4) + seq + crc = 12 characters.
@@ -150,8 +149,10 @@ void serial_read_parse_session::check_the_deque() {
 	 */
 
 	if(to_parse[1]!=0xfe) {
+		++bad_prefix;
 		to_parse.pop_front();
-		check_the_deque();
+		io_ref->post(boost::bind(&serial_read_parse_session::check_the_deque,this));
+		return;
 	}
 
 	/* GATP that to_parse has at least 18 characters and the first two characters
@@ -165,8 +166,11 @@ void serial_read_parse_session::check_the_deque() {
 	assert(to_parse[1]==0xfe);
 
 	if(crc8(&*to_parse.begin(),11)!=to_parse[11]) {
+		cout << (int)crc8(&*to_parse.begin(),11) << " : " << (int)to_parse[11] << '\n';
+		++bad_crc;
 		to_parse.pop_front();
-		check_the_deque();
+		io_ref->post(boost::bind(&serial_read_parse_session::check_the_deque,this));
+		return;
 	}
 
 	/* We now have a valid prefix, so we gather the rest of the frame delimiter,
@@ -217,8 +221,8 @@ void serial_read_parse_session::check_the_deque() {
 		if(last_msg > curr_msg )
 			last_msg -= 256;
 		while(last_msg < curr_msg - 1){
-			cout << last_msg << " : " << curr_msg << '\n';
-			cout << ++last_msg << '\n';
+			//cout << last_msg << " : " << curr_msg << '\n';
+			++last_msg;
 			++lost_msg_count;
 		}
 		++last_msg;
@@ -230,7 +234,7 @@ void serial_read_parse_session::check_the_deque() {
 				}
 			);
 		/* Loop checks until to_parse has no more messages waiting for us. */
-		check_the_deque();
+		io_ref->post(boost::bind(&serial_read_parse_session::check_the_deque,this));
 	} else if (to_parse.size() > MAX_FRAME_LENGTH ) {
 		to_parse.pop_front();
 		++frame_too_long;
@@ -245,6 +249,7 @@ inline void serial_read_parse_session::handle_timeout_extra() {
 					&&
 				!to_parse.empty()
 			) {
+			++frame_too_old;
 			to_parse.pop_front();
 		}
 	}
@@ -289,13 +294,12 @@ void serial_write_nonsense_session::start() {
 	start_write();
 }
 void serial_write_nonsense_session::start_write() {
+	++internal_counter;
+
 	bBuff* nonsense = generate_nonsense();
 	mutable_buffers_1 bnonsense = boost::asio::buffer(*nonsense);
 
 	//debug(nonsense->begin(),nonsense->end());
-
-	++internal_counter;
-
 	boost::asio::async_write(port_, bnonsense, boost::bind(
 			&serial_write_nonsense_session::handle_write, this, _1, _2));
 
@@ -303,7 +307,9 @@ void serial_write_nonsense_session::start_write() {
 }
 void serial_write_nonsense_session::handle_write(
 		const boost::system::error_code& error, std::size_t bytes_transferred) {
-	milliseconds wait (75 + std::rand()%50);
+	bytes_sent += bytes_transferred;
+
+	milliseconds wait (90 + std::rand()%20);
 	dead_ = steady_clock::now() + wait;
 	timer_.expires_at(dead_);
 	timer_.async_wait(
@@ -314,19 +320,17 @@ bBuff* serial_write_nonsense_session::generate_nonsense() {
 		bBuff * msg = new bBuff;
 		bBuff nonce1, nonce2, payload;
 		for(int i=0;i<4;++i) {
-			nonce1.push_back(32+std::rand()%224);
-			nonce2.push_back(32+std::rand()%224);
+			nonce1.push_back(std::rand()%256);
+			nonce2.push_back(std::rand()%256);
 		}
 
-		int d256 = std::rand()%256;
-		if(d256)
-			for(int i=500 ; i ; --i)
-				payload.push_back(32+std::rand()%224);
+		for(int i=500 ; i ; --i)
+			payload.push_back(std::rand()%256);
 
 		msg->push_back(0xff); msg->push_back(0xfe);
 		copy(nonce1.begin(), nonce1.end(), back_inserter(*msg));
 		copy(nonce2.begin(), nonce2.end(), back_inserter(*msg));
-		msg->push_back(internal_counter%256);
+		msg->push_back(mod(internal_counter,256));
 
 		assert(msg->size()==11);
 		msg->push_back(crc8(&*msg->begin(),msg->size()));

@@ -47,9 +47,22 @@ void dispatcher::brag() {
 			cout << (**it).print() << '\n';
 }
 
+dispatcher::~dispatcher() {
+	for(auto comrade : comrades) {
+		delete comrade;
+	}
+}
+
 /*-----------------------------------------------------------------------------
  * November 25, 2015 :: basic_session methods
  */
+basic_session::basic_session( io_service& io_in, string log_in, dispatcher* ref_in) :
+		io_ref(&io_in), logdir_(log_in), dis_ref(ref_in)
+{
+	dis_ref->hello(this);
+}
+
+
 
 } //namespace
 

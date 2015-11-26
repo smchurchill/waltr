@@ -118,14 +118,16 @@ public:
 	~serial_read_parse_session() {
 		FILE * log = fopen((logdir_ + name_.substr(name_.find_last_of("/\\")+1) + ".garbage").c_str(),"a");
 		stringstream ss;
-		ss  << "Port " << name_ << " totals::\n"
+		ss  << "Port " << name_ << " read totals::\n"
 				<< "\tMessages received: " << msg_tot << '\n'
 				<< "\tMessages lost: " << lost_msg_count << '\n'
 				<< "Messages destroyed ::\n"
 				<< "\tFrame too old: " << frame_too_old << '\n'
 				<< "\tFrame too long: " << frame_too_long << '\n'
 				<< "\tBad prefix: " << bad_prefix << '\n'
-				<< "\tBad CRC: " << bad_crc << std::endl;
+				<< "\tBad CRC: " << bad_crc << '\n'
+				<< "\tScrubbed: " << scrubbed_count << '\n'
+				<< "Total bytes received:\n" << bytes_received << '\n' << '\n';
 		std::fwrite(ss.str().c_str(), sizeof(u8), ss.str().length(), log);
 		fclose(log);
 	}
@@ -146,6 +148,7 @@ private:
 	long int tenths_count = 0;
 
 	int msg_tot = 0;
+	int bytes_received = 0;
 
 	int last_msg = 0;
 	int curr_msg = 0;
@@ -155,6 +158,7 @@ private:
 	int frame_too_old = 0;
 	int bad_prefix = 0;
 	int bad_crc = 0;
+	int scrubbed_count = 0;
 
 	pBuff to_parse;
 
@@ -223,6 +227,14 @@ public:
 	{
 		this->start();
 	}
+	~serial_write_nonsense_session(){
+	FILE * log = fopen((logdir_ + name_.substr(name_.find_last_of("/\\")+1) + ".garbage").c_str(),"a");
+	stringstream ss;
+	ss  << "Port " << name_ << " write totals::\n"
+			<< "Total bytes sent:\n" << bytes_sent << '\n' << '\n';
+	std::fwrite(ss.str().c_str(), sizeof(u8), ss.str().length(), log);
+	fclose(log);
+	}
 
 	void start();
 
@@ -237,6 +249,7 @@ private:
   basic_waitable_timer<steady_clock> timer_;
 
   int internal_counter = 0;
+  long int bytes_sent = 0;
 
 };
 

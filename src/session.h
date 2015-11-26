@@ -19,34 +19,11 @@ using ::std::vector;
 using ::std::deque;
 
 class basic_session;
-
-class dispatcher {
-	friend class basic_session;
-
-private:
-	vector<basic_session*> comrades;
-	void hello(basic_session* new_comrade);
-
-public:
-	dispatcher() {};
-	~dispatcher() {
-		for(auto comrade : comrades) {
-			delete comrade;
-		}
-	}
-	void brag();
-
-	template<class container_type>
-	void forward(basic_session* msg_from, container_type* msg) {delete msg;}
-};
+class dispatcher;
 
 class basic_session{
 public:
-	basic_session( io_service& io_in, string log_in, dispatcher* ref_in) :
-			io_ref(&io_in), logdir_(log_in), dis_ref(ref_in)
-	{
-		dis_ref->hello(this);
-	};
+	basic_session( io_service& io_in, string log_in, dispatcher* ref_in);
 	virtual string print() =0;
 	virtual ~basic_session() {};
 
@@ -57,6 +34,25 @@ protected:
 	dispatcher* dis_ref;
 private:
 };
+
+
+
+class dispatcher {
+	friend class basic_session;
+
+private:
+	vector<basic_session*> comrades;
+	void hello(basic_session* new_comrade);
+
+public:
+	dispatcher() {};
+	~dispatcher();
+	void brag();
+
+	template<class container_type>
+	void forward(basic_session* msg_from, container_type* msg) {delete msg;}
+};
+
 
 } // dew namespace
 
