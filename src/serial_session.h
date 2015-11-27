@@ -61,7 +61,7 @@ protected:
 	 * AJS says that pang has a 4k kernel buffer.  We want our buffer to be
 	 * bigger than that, and we can be greedy with what "bigger" means.
 	 */
-	const long BUFFER_LENGTH = 2048;
+	const long BUFFER_LENGTH = 16384;
 
 	/* Timer specific members/methods */
 
@@ -144,7 +144,7 @@ private:
 
 	time_point<steady_clock> front_last = steady_clock::now();
 
-	const int MAX_FRAME_LENGTH = 2048;
+	//const int MAX_FRAME_LENGTH = 2048;
 	long int tenths_count = 0;
 
 	int msg_tot = 0;
@@ -243,7 +243,7 @@ private:
 	void start_write();
 	void handle_write(
 			const boost::system::error_code& error, size_t bytes_transferred,
-			std::size_t message_size);
+			std::size_t message_size, bBuff* nonsense);
 	bBuff* generate_nonsense();
 	bBuff generate_some_sense(bBuff payload);
 

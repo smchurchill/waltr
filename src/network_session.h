@@ -18,6 +18,8 @@ using ::std::string;
 using ::std::vector;
 using ::std::deque;
 
+using ::std::size_t;
+
 
 /*-----------------------------------------------------------------------------
  * November 20, 2015 :: base class
@@ -53,7 +55,8 @@ protected:
 	tcp::socket* get_sock() { return &socket_; }
 
 	const long BUFFER_LENGTH = 8192;
-	vector<char> data_ = vector<char>(BUFFER_LENGTH,0);
+	bBuff request_ = vector<u8>(BUFFER_LENGTH,0);
+	bBuff reply_ = vector<u8>(2*BUFFER_LENGTH,0);
 	tcp::socket socket_;
 };
 
@@ -97,7 +100,29 @@ public:
 
 private:
 	void do_read();
-	void do_write(std::size_t length);
+	void do_write(size_t length);
+};
+
+/*-----------------------------------------------------------------------------
+ * November 27, 2015 :: _socket_iface_ class
+ */
+
+class network_socket_iface_session : public network_socket_session {
+public:
+	network_socket_iface_session(
+			io_service& io_in, string log_in, dispatcher* ref_in, tcp::endpoint ep_in) :
+				network_socket_session(io_in, log_in, ref_in, ep_in)
+	{
+	}
+
+	void start() { do_read(); }
+
+protected:
+
+	void do_read();
+	void do_write(size_t length);
+	bool valid_request(size_t length);
+	size_t process_request(size_t length);
 };
 
 } // dew namespace

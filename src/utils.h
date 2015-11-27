@@ -26,6 +26,8 @@
 #include <boost/range/adaptors.hpp>
 #include <boost/range/algorithm.hpp>
 
+#include "session.hpp"
+
 namespace dew {
 
 /*-----------------------------------------------------------------------------
@@ -45,8 +47,13 @@ inline int mod(int n, int m) {
  * specialized fn from AJS
  */
 
+using ::boost::asio::ip::address_v4;
+using ::boost::asio::ip::tcp;
+
 using ::std::stringstream;
 using ::std::string;
+using ::std::to_string;
+using ::std::vector;
 
 using ::std::iterator_traits;
 using ::std::enable_if;
@@ -122,6 +129,12 @@ void debug (Range rng, std::iostream* ios) {
 	*ios << '\n';
 }
 
+template<typename Range>
+void stream_xfer (Range rng, std::iostream* ios) {
+	// typedef typename Range::first_type::value_type T;
+	boost::transform (rng, ostream_iterator<string> (*ios), filter_unprintable);
+}
+
  /*
 void test_range (void)
 {
@@ -135,7 +148,7 @@ void test_range (void)
 
 
 /*-----------------------------------------------------------------------------
- * November 24, 2015
+ * November 25, 2015
  *
  * We will use the generating polynomial x^8 + x^2 + x^1 + 1.  This
  * can also be written as 10000111 or 135 or 0x87, etc.
@@ -144,23 +157,53 @@ void test_range (void)
  * first google result for "crc8 c".
  */
 
-u8 crc8(const u8* vptr, int len) {
-	const u8 * data = vptr;
-	unsigned crc = 0;
-	int i, j;
+template< typename Range >
+u8 crc8( Range rng ) {
 
-	for(j=len ; j ; --j , ++data) {
-		crc ^= (*data << 8);
-		for(i=8 ; i ; --i) {
-			if(crc & 0x8000)
-				crc ^= (0x1070 << 3);
-			crc <<= 1;
-		}
+	unsigned crc = 0;
+	int j;
+	for( const auto & i : rng ) {
+			crc ^= (i << 8);
+			for( j=8 ; j ; --j) {
+				if(crc & 0x8000)
+					crc^= (0x1070 << 3);
+				crc <<=1;
+			}
 	}
 
 	return (u8)(crc >> 8);
 }
 
-}; // dew namespace
+
+
+/*-----------------------------------------------------------------------------
+ * November 27, 2015
+ *
+ * Shuffling some mode code away from main()
+ */
+
+void graceful_exit(const boost::system::error_code& error, int signal_number, dispatcher* dis)
+{
+	delete dis;
+	exit(0);
+}
+
+void set_default_ports(vector<string>* dev){
+	for(int i = 5; i < 13 ; ++i)
+		dev->emplace_back("/dev/ttyS" + to_string(i));
+}
+
+void set_default_endpoints(vector<tcp::endpoint>* end, const int port_num){
+	for(int i = 0; i < 9 ; ++i)
+		end->emplace_back(address_v4::from_string("192.168.16." + to_string(i)), port_num);
+}
+
+void set_endpoints(vector<tcp::endpoint>* end, vector<string>* addr, const int port_num){
+	for(auto it : *addr)
+		end->emplace_back(address_v4::from_string(it),port_num);
+}
+
+}; // namespace dew
+
 
 #endif /* UTILS_H_ */

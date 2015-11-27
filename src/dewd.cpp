@@ -45,11 +45,7 @@ using ::std::to_string;
 using ::std::endl;
 
 
-void graceful_exit(const boost::system::error_code& error, int signal_number, dispatcher* dis)
-{
-	delete dis;
-	exit(0);
-}
+
 
 int main(int argc, char** argv) {
 	static_assert(BOOST_VERSION >= 104900,
@@ -64,28 +60,43 @@ int main(int argc, char** argv) {
 
 		po::options_description modes("Mode options");
 		modes.add_options()
-				("test,t", "Start in testing mode.  No other arguments considered when"
-						" starting in test mode.  Test mode configuration is pang-specific"
-						" and current as of November 17, 2015.")
-				("fp-comm,c", "Start the dewd in flopoint communication mode.  Need to"
+				("sp-comm,S", "Start the dewd in serial port communication mode.  Need to"
 						" specify serial ports to read and write to.")
-				("fp-em,m", "Start dewd as a flo-point emulator rather than a"
+				("net-comm,N", "Start the dewd in network communication mode.  Need to"
+						" specify ip-addresses to bind to.")
+				("fp-em,M", "Start dewd as a flo-point emulator rather than a"
 						" communications server.  Not currently supported.")
 				;
 		po::options_description ifaces("Interface options");
 		ifaces.add_options()
-				("read-from,r", po::value<vector<string> >(&rdev)->multitoken(),
+				("read-from,R", po::value<vector<string> >(&rdev)->multitoken(),
 					"Specify serial ports to read from, where the input string must"
 					" have no trailing '/'. Allows multiple entries. Ex. /dev/ttyS0")
-				("write-to,w", po::value<vector<string> >(&wdev)->multitoken(),
+				("write-to,W", po::value<vector<string> >(&wdev)->multitoken(),
 					"Specify serial ports to write to, where the input string must"
 					" have no trailing '/'. Allows multiple entries. Ex. /dev/ttyS0")
-				("network,n",po::value<vector<string> >(&addr)->multitoken(),
-					"Enable networking and specify local ip4 addresses to bind to. It"
-					" is assumed that these ip addresses can be bound to by dewd." )
-				("port-number,p",po::value<int>()->default_value(2023),
+				("network,I",po::value<vector<string> >(&addr)->multitoken(),
+					"Specify local ip4 addresses to bind to. It is assumed that these ip"
+					" addresses can be bound to by dewd." )
+				("port-number,P",po::value<int>()->default_value(2023),
 					"Give a port number to bind to.  Used with --network flag.  It is"
-					" assumed that dewd can bind to the given port.");
+					" assumed that dewd can bind to the given port.")
+				;
+
+		po::options_description testing("Test options");
+		testing.add_options()
+				("test,t", "Starting all test interfaces.  These interfaces are"
+						" pang-specific and current as of November 27, 2015.  We use"
+						" serial ports /dev/ttyS{5..12} in RW mode and tcp endpoints of"
+						" 192.168.16.{0..8}:2023.  No other test options or interface"
+						" options should be specified with --test.  --test is equivalent"
+						" to -rwn.")
+				("read-test,r", "Start serial ports as specified in --test in read"
+						" mode.")
+				("write-test,w", "Start serial ports as specified in --test in write"
+						" mode.")
+				("network-test,n", "Bind tcp endpoints specified in --test.")
+				;
 
 		po::options_description general("General options");
 		general.add_options()
@@ -96,10 +107,10 @@ int main(int argc, char** argv) {
 						" trailing '/'.  Default is /tmp/dewd/. Permissions are not"
 						" checked before logging begins -- it is assumed that dewd can"
 						" write to the given directory.")
-			;
+				;
 
 		po::options_description cmdline_options;
-		cmdline_options.add(general).add(modes).add(ifaces);
+		cmdline_options.add(modes).add(ifaces).add(testing).add(general);
 
 
 		/* If you ask for help, you only get help.
@@ -114,9 +125,11 @@ int main(int argc, char** argv) {
 		try {
 			po::store(po::parse_command_line(argc,argv,cmdline_options), vmap);
 
-			if(vmap.count("help")
-					||
-					!(vmap.count("test")||vmap.count("fp-comm")||vmap.count("fp-em"))) {
+			if(vmap.count("help") ||
+				 !(vmap.count("test")||
+					 vmap.count("fp-comm")||
+					 vmap.count("fp-em")||
+					 vmap.count("net-comm"))) {
 				cout << "The dewd DewDrop daemon.\n" << cmdline_options << '\n';
 
 				return SUCCESS;
@@ -129,6 +142,9 @@ int main(int argc, char** argv) {
 			cerr << "Exception:" << poe.what() << ".\nExiting.\n";
 			return ERROR_UNHANDLED_EXCEPTION;
 		}
+
+		assert(vmap.count("test")||vmap.count("fp-comm")||vmap.count("fp-em")||vmap.count("net-comm"));
+
 
 		/* The first thing we'll do is set a port number for network communications
 		 *
@@ -170,64 +186,33 @@ int main(int argc, char** argv) {
 		 * the future.
 		 */
 
-
-
+		dispatcher* dis = new dispatcher;
 		vector<tcp::endpoint> ends;
 
-		if(vmap.count("test"))
-		{
-			std::cout << "Starting in test mode.\n";
-			for(int i = 0; i < 13 ; ++i) {
-				if(i < 9)
-					ends.emplace_back(
-							address_v4::from_string(
-								"192.168.16." + to_string(i)), 2023);
+		if(vmap.count("test")||vmap.count("read-test"))
+			set_default_ports(&rdev);
 
-				if(i > 4)
-					rdev.emplace_back("/dev/ttyS" + to_string(i));
-			}
-		}
-		else if (vmap.count("network")){
-			for(vector<string>::iterator
-					it = addr.begin() ;	it != addr.end() ; ++it) {
-						ends.emplace_back(
-								address_v4::from_string(*it), port_number);
-			}
-		}
+		if(vmap.count("test")||vmap.count("write-test"))
+			set_default_ports(&wdev);
 
-		dispatcher* dis = new dispatcher;
-
-		vector<basic_session*> sessions;
+		if(vmap.count("test")||vmap.count("network-test"))
+			set_default_endpoints(&ends, port_number);
+		else if (vmap.count("network"))
+			set_endpoints(&ends,&addr,port_number);
 
 
-		for(vector<string>::iterator it = rdev.begin() ; it != rdev.end() ; ++it) {
-			basic_session* session;
-			if(vmap.count("test")) {
-				session =	new serial_read_log_session(
-						*service, logging_directory, dis, *it);
-			}
-			if(vmap.count("fp-comm")) {
-				session = new serial_read_parse_session(
-						*service, logging_directory, dis, *it);
-			}
-			sessions.push_back(session);
+		basic_session* session;
+
+		if(vmap.count("sp-comm")){
+			for(auto it : rdev)
+				session = new serial_read_parse_session(*service, logging_directory, dis, it);
+			for(auto it : wdev)
+				session = new serial_write_nonsense_session(*service,	logging_directory, dis, it);
 		}
 
-		for(vector<string>::iterator it = wdev.begin() ; it != wdev.end() ; ++it) {
-			basic_session* session;
-			if(vmap.count("fp-comm")) {
-				session = new serial_write_nonsense_session(
-						*service,	logging_directory, dis, *it);
-			}
-			sessions.push_back(session);
-		}
-
-		if(vmap.count("test")) cout << "Accepting connections on:\n";
-		for(vector<tcp::endpoint>::iterator it = ends.begin() ;	it != ends.end() ; ++it) {
-			network_acceptor_session* session =
-					new network_acceptor_session(*service, logging_directory, dis, *it);
-			sessions.push_back(session);
-		}
+		if(vmap.count("net-comm"))
+			for(auto it : ends)
+				session = new network_acceptor_session(*service, logging_directory, dis, it);
 
 		/*
 		 * Set signals to catch for graceful termination.

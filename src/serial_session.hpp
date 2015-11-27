@@ -27,6 +27,8 @@
 #include <boost/asio/steady_timer.hpp>
 #include <boost/chrono/duration.hpp>
 
+#include <boost/range/iterator_range.hpp>
+
 #include "utils.h"
 
 #include "session.hpp"
@@ -44,6 +46,8 @@ using ::boost::chrono::milliseconds;
 
 using ::boost::asio::serial_port;
 using ::boost::asio::mutable_buffers_1;
+
+using ::boost::make_iterator_range;
 
 using ::std::string;
 using ::std::vector;
@@ -168,10 +172,17 @@ void serial_read_parse_session::check_the_deque() {
 	assert(to_parse[0]==0xff);
 	assert(to_parse[1]==0xfe);
 
-	if(crc8(&*to_parse.begin(),11)!=to_parse[11]) {
-		debug(std::make_pair(to_parse.begin(),to_parse.begin()+11));
-		cout << "Computed CRC " << filter_unprintable(crc8(&*to_parse.begin(),11))
-				 << " : " << "Sent CRC: " << filter_unprintable(to_parse[11]) << '\n';
+	//cout << "Computing CRC at " << name_ << " for:\n";
+	//debug(std::make_pair(to_parse.begin(),to_parse.begin()+11));
+
+	u8 crc_comp = crc8(make_iterator_range(to_parse.begin(),to_parse.begin()+11));
+	if(crc_comp==to_parse[11]) {
+		//cout << "CRC matches." << " Sent: " << filter_unprintable(to_parse[11]) << " :: Comp: " << filter_unprintable(crc_comp) << '\n';
+	}
+	else {
+		cout << "At " << name_ << " in message:\n";
+		debug(make_iterator_range(to_parse.begin(),to_parse.begin()+19));
+		cout << "Bad CRC. " << " Sent: " << filter_unprintable(to_parse[11]) << " :: Comp: " << filter_unprintable(crc_comp) << '\n';
 		++bad_crc;
 		to_parse.pop_front();
 		io_ref->post(boost::bind(&serial_read_parse_session::check_the_deque,this));
@@ -233,11 +244,14 @@ void serial_read_parse_session::check_the_deque() {
 		++last_msg;
 		++msg_tot;
 
-		FILE * log = fopen((logdir_ + name_.substr(name_.find_last_of("/\\")+1) + ".received").c_str(),"a");
+		/* debug logging */
+		if(0) {
+		FILE * log = fopen((logdir_ + name_.substr(name_.find_last_of("/\\")+1) + ".received.prefix").c_str(),"a");
 		stringstream ss;
-		debug(std::make_pair(to_send->begin(),to_send->end()),&ss);
+		debug(make_iterator_range(to_send->begin(),to_send->begin()+18),&ss);
 		std::fwrite(ss.str().c_str(), sizeof(u8), ss.str().length(), log);
 		fclose(log);
+		}
 
 		io_ref->post(
 				[this,to_send](){
@@ -246,7 +260,7 @@ void serial_read_parse_session::check_the_deque() {
 			);
 		/* Loop checks until to_parse has no more messages waiting for us. */
 		io_ref->post(boost::bind(&serial_read_parse_session::check_the_deque,this));
-	} else if (to_parse.size() > MAX_FRAME_LENGTH ) {
+	} else if (0) { //to_parse.size() > MAX_FRAME_LENGTH ) {
 		to_parse.pop_front();
 		++frame_too_long;
 	}
@@ -310,55 +324,79 @@ void serial_write_nonsense_session::start_write() {
 	bBuff* nonsense = generate_nonsense();
 	mutable_buffers_1 bnonsense = boost::asio::buffer(*nonsense);
 
-	/* log the message to send */
-	FILE * log = fopen((logdir_ + name_.substr(name_.find_last_of("/\\")+1) + ".sent").c_str(),"a");
+	/* debug logging */
+	if(0) {
+	FILE * log = fopen((logdir_ + name_.substr(name_.find_last_of("/\\")+1) + ".sent.prefix").c_str(),"a");
 	stringstream ss;
-	debug(std::make_pair(nonsense->begin(),nonsense->end()),&ss);
+	debug(make_iterator_range(nonsense->begin(),nonsense->begin()+18),&ss);
 	std::fwrite(ss.str().c_str(), sizeof(u8), ss.str().length(), log);
 	fclose(log);
+	}
 
-	//debug(nonsense->begin(),nonsense->end());
 	boost::asio::async_write(port_, bnonsense, boost::bind(
-			&serial_write_nonsense_session::handle_write, this, _1, _2, nonsense->size()));
-
-	delete nonsense;
+			&serial_write_nonsense_session::handle_write, this, _1, _2,
+			nonsense->size(), nonsense));
 }
 void serial_write_nonsense_session::handle_write(
 		const boost::system::error_code& error, std::size_t bytes_transferred,
-		std::size_t message_size) {
+		std::size_t message_size, bBuff* nonsense) {
+	delete nonsense;
+
 	bytes_sent += bytes_transferred;
 	bytes_intended += message_size;
 
-	milliseconds wait (std::rand()%5);
-	dead_ = steady_clock::now() + wait;
-	timer_.expires_at(dead_);
-	timer_.async_wait(
-	//io_service->post(
+	assert(bytes_transferred == 66);
+
+	//milliseconds wait (2 + std::rand()%3);
+	//dead_ = steady_clock::now() + wait;
+  //timer_.expires_at(dead_);
+	//timer_.async_wait(
+	io_ref->post(
 			boost::bind(&serial_write_nonsense_session::start_write,this));
 }
 bBuff* serial_write_nonsense_session::generate_nonsense() {
 		bBuff * msg = new bBuff;
 		bBuff nonce1, nonce2, payload;
-		for(int i=0;i<4;++i) {
-			nonce1.push_back(std::rand()%256);
-			nonce2.push_back(std::rand()%256);
+		u8 byte;
+		for(int i=4;i;--i) {
+			byte = (u8)(mod(std::rand(),256));
+			nonce1.emplace_back(byte);
+			byte = (u8)(mod(std::rand(),256));
+			nonce2.emplace_back(byte);
+			for(int j=12;j;--j) {
+				byte = (u8)(mod(std::rand(),256));
+				payload.emplace_back(byte);
+			}
 		}
 
-		for(int i=8 ; i ; --i)
-			payload.push_back(std::rand()%256);
-
+		/* prefix */
 		msg->push_back(0xff); msg->push_back(0xfe);
+
+		/* nonce 1 add */
 		copy(nonce1.begin(), nonce1.end(), back_inserter(*msg));
+
+		/* nonce2 add */
 		copy(nonce2.begin(), nonce2.end(), back_inserter(*msg));
+
+		/* msg number sequence */
 		msg->push_back(mod(internal_counter,256));
 
 		assert(msg->size()==11);
-		msg->push_back(crc8(&*msg->begin(),msg->size()));
+		u8 crc = crc8(make_iterator_range(msg->begin(),msg->begin()+11));
 
+		/* crc byte */
+		msg->push_back(crc);
 
+		/* message (unencrypted) */
 		copy(payload.begin(), payload.end(), back_inserter(*msg));
+
+		/* second copy of nonce1 */
 		copy(nonce1.begin(), nonce1.end(), back_inserter(*msg));
+
+		/* postfix */
 		msg->push_back(0xfe); msg->push_back(0xff);
+
+		assert(msg->size()==66);
 
 		return msg;
 }
