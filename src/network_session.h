@@ -66,7 +66,7 @@ protected:
 class network_acceptor_session : public network_session {
 public:
 	network_acceptor_session(
-			io_service& io_in, string log_in, dispatcher* ref_in, tcp::endpoint ep_in) :
+			io_service& io_in, string log_in, dispatcher* ref_in, tcp::endpoint& ep_in) :
 				network_session(io_in, log_in, ref_in, ep_in),
 				acceptor_(*io_ref, endpoint_)
 	{

@@ -61,6 +61,7 @@ using ::std::is_same;
 using ::std::copy;
 using ::std::ostream_iterator;
 using ::std::cout;
+using ::std::endl;
 using ::std::isgraph;
 
 /*
@@ -119,14 +120,14 @@ template<typename Range>
 void debug (Range rng) {
 	// typedef typename Range::first_type::value_type T;
 	boost::transform (rng, ostream_iterator<string> (cout), filter_unprintable);
-	cout << '\n';
+	cout << endl;
 }
 
 template<typename Range>
 void debug (Range rng, std::iostream* ios) {
 	// typedef typename Range::first_type::value_type T;
 	boost::transform (rng, ostream_iterator<string> (*ios), filter_unprintable);
-	*ios << '\n';
+	*ios << endl;
 }
 
 template<typename Range>

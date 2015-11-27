@@ -253,6 +253,9 @@ void serial_read_parse_session::check_the_deque() {
 		fclose(log);
 		}
 
+		if(0)
+		debug(make_iterator_range(to_send->begin(),to_send->begin()+18));
+
 		io_ref->post(
 				[this,to_send](){
 					dis_ref->forward(this,to_send);
@@ -340,10 +343,12 @@ void serial_write_nonsense_session::start_write() {
 void serial_write_nonsense_session::handle_write(
 		const boost::system::error_code& error, std::size_t bytes_transferred,
 		std::size_t message_size, bBuff* nonsense) {
-	delete nonsense;
+
 
 	bytes_sent += bytes_transferred;
 	bytes_intended += message_size;
+
+  assert(!error);
 
 	assert(bytes_transferred == 66);
 
@@ -353,6 +358,8 @@ void serial_write_nonsense_session::handle_write(
 	//timer_.async_wait(
 	io_ref->post(
 			boost::bind(&serial_write_nonsense_session::start_write,this));
+
+	delete nonsense;
 }
 bBuff* serial_write_nonsense_session::generate_nonsense() {
 		bBuff * msg = new bBuff;

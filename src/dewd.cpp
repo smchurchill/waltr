@@ -3,6 +3,8 @@
  *
  */
 
+#define AJS_HACK
+
 #include <ctime>
 #include <iostream>
 #include <fstream>
@@ -127,7 +129,7 @@ int main(int argc, char** argv) {
 
 			if(vmap.count("help") ||
 				 !(vmap.count("test")||
-					 vmap.count("fp-comm")||
+					 vmap.count("sp-comm")||
 					 vmap.count("fp-em")||
 					 vmap.count("net-comm"))) {
 				cout << "The dewd DewDrop daemon.\n" << cmdline_options << '\n';
@@ -143,7 +145,7 @@ int main(int argc, char** argv) {
 			return ERROR_UNHANDLED_EXCEPTION;
 		}
 
-		assert(vmap.count("test")||vmap.count("fp-comm")||vmap.count("fp-em")||vmap.count("net-comm"));
+		assert(vmap.count("test")||vmap.count("sp-comm")||vmap.count("fp-em")||vmap.count("net-comm"));
 
 
 		/* The first thing we'll do is set a port number for network communications
@@ -201,18 +203,17 @@ int main(int argc, char** argv) {
 			set_endpoints(&ends,&addr,port_number);
 
 
-		basic_session* session;
-
 		if(vmap.count("sp-comm")){
 			for(auto it : rdev)
-				session = new serial_read_parse_session(*service, logging_directory, dis, it);
+				new serial_read_parse_session(*service, logging_directory, dis, it);
 			for(auto it : wdev)
-				session = new serial_write_nonsense_session(*service,	logging_directory, dis, it);
+				new serial_write_nonsense_session(*service,	logging_directory, dis, it);
 		}
 
 		if(vmap.count("net-comm"))
 			for(auto it : ends)
-				session = new network_acceptor_session(*service, logging_directory, dis, it);
+				new network_acceptor_session(*service, logging_directory, dis, it);
+
 
 		/*
 		 * Set signals to catch for graceful termination.
