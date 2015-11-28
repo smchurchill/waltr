@@ -131,9 +131,9 @@ void debug (Range rng, std::iostream* ios) {
 }
 
 template<typename Range>
-void stream_xfer (Range rng, std::iostream* ios) {
+void debug_noline (Range rng) {
 	// typedef typename Range::first_type::value_type T;
-	boost::transform (rng, ostream_iterator<string> (*ios), filter_unprintable);
+	boost::transform (rng, ostream_iterator<string> (cout), filter_unprintable);
 }
 
  /*

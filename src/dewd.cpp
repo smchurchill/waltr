@@ -97,7 +97,7 @@ int main(int argc, char** argv) {
 						" mode.")
 				("write-test,w", "Start serial ports as specified in --test in write"
 						" mode.")
-				("network-test,n", "Bind tcp endpoints specified in --test.")
+				("network-test,i", "Bind tcp endpoints specified in --test.")
 				;
 
 		po::options_description general("General options");

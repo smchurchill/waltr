@@ -32,6 +32,8 @@ public:
 	{
 	}
 
+	~network_session() {};
+
 	string print();
 
 protected:

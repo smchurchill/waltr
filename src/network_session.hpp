@@ -21,6 +21,7 @@
 #include <boost/chrono.hpp>
 #include <boost/chrono/time_point.hpp>
 
+#include "utils.h"
 #include "session.hpp"
 #include "network_session.h"
 
@@ -107,30 +108,50 @@ void network_socket_iface_session::do_read() {
 	socket_.async_read_some(boost::asio::buffer(request_),
 			[this](boost::system::error_code ec, size_t in_length)
 			{
-				if(ec){ delete this; return; }
+				if(ec){ return; }
+
+				debug(make_iterator_range(request_.begin(), request_.begin()+in_length));
 
 				size_t out_length = 0;
 
 				if(valid_request(in_length)) {
 					out_length = process_request(in_length);
 				}
+				else if (in_length >= BUFFER_LENGTH) {
+					string exceeds ("Request exceeds length.\r\n");
+					out_length = exceeds.size();
+					copy(exceeds.begin(),exceeds.end(),reply_.begin());
+				}
+				else if (in_length <= 2) {
+					string nomsg ("No request received.\r\n");
+					out_length = nomsg.size();
+					copy(nomsg.begin(), nomsg.end(),reply_.begin());
+				}
 				else {
 					string invalid_message;
 					stringstream ss;
-					bBuff::iterator iter;
-					stream_xfer(make_iterator_range(request_.begin(),request_.begin()+in_length),&ss);
+					bBuff::iterator otter = request_.begin();
+					bBuff badend = {'\r','\n'};
 
-					if(ss.str().size()>BUFFER_LENGTH)
-						invalid_message = string( "Request exceeds length.");
+					if((otter = search(request_.begin(),request_.begin()+in_length,badend.begin(),badend.end()))
+							== request_.begin()+in_length)
+						otter = find(request_.begin(),request_.begin()+in_length,'\n');
 
-					reply_[0] = '"';
-					iter = copy(ss.str().begin(),ss.str().end(),reply_.begin()+1);
-					iter = copy_n(reply_.begin(), 1, iter);
+					ss << "From " << socket_.local_endpoint() << ": " << '"';
+					for(auto c : make_iterator_range(request_.begin(),otter))
+						ss << filter_unprintable(c);
+					ss<< '"';
 
-					string msg = string (" is not a valid request.");
-					iter = copy(msg.begin(),msg.end(),iter);
-					out_length = iter - reply_.begin();
+					string command = ss.str();
+
+					otter = copy(command.begin(),command.end(),reply_.begin());
+
+					string msg = string (" is not a valid request.\n");
+					otter = copy(msg.begin(),msg.end(),otter);
+					out_length = otter - reply_.begin();
 				}
+
+				debug(make_iterator_range(reply_.begin(), reply_.begin()+out_length));
 
 				boost::asio::async_write(socket_,boost::asio::buffer(reply_,out_length),
 						[this](boost::system::error_code ec, size_t)
