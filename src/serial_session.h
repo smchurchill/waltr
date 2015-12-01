@@ -34,20 +34,25 @@ public:
 				basic_session(io_in, log_in, ref_in),
 				name_(device_in),	port_(*io_ref, name_)
 	{
+		fd = port_.native_handle();
 	}
 
 	string print() { return name_; }
 	string get_type() { return string("serial"); }
 
-	int get_tx() { pop_counters(); return counters.tx; }
-	int get_rx() { pop_counters(); return counters.rx; }
+	string get_tx();
+	string get_rx();
 
 
 protected:
-	int pop_counters() { return ioctl(port_.native_handle(), TIOCGICOUNT, counters);}
+	int pop_counters() {
+		memset(&counters, 0, sizeof(serial_icounter_struct));
+		return ioctl(fd, TIOCGICOUNT, &counters);
+	}
 
 	string name_;
 	serial_port port_;
+	int fd;
 	struct serial_icounter_struct counters;
 };
 
@@ -63,6 +68,8 @@ public:
 	}
 
 	virtual ~serial_read_session() {}
+
+	string get_type() { return string("serial-read"); }
 
 protected:
 	/* November 18, 2015
@@ -222,6 +229,8 @@ public:
 				serial_session(io_in, log_in, ref_in, device_in)
 	{
 	}
+
+	string get_type() { return string("serial-write"); }
 };
 
 /*-----------------------------------------------------------------------------

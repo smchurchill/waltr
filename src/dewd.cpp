@@ -212,7 +212,6 @@ int main(int argc, char** argv) {
 		}
 
 		if(vmap.count("net-comm")) {
-			dis->init_net_cmd();
 			for(auto it : ends)
 				new network_acceptor_session(*service, logging_directory, dis, it);
 		}

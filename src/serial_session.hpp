@@ -19,6 +19,7 @@
 #include <time.h>
 #include <iterator>
 
+#include <termios.h>
 #include <linux/ioctl.h>
 #include <linux/serial.h>
 
@@ -52,6 +53,7 @@ using ::boost::asio::mutable_buffers_1;
 
 using ::boost::make_iterator_range;
 
+using ::std::to_string;
 using ::std::string;
 using ::std::vector;
 using ::std::deque;
@@ -65,6 +67,18 @@ using ::std::copy;
 /*-----------------------------------------------------------------------------
  * November 20, 2015 :: base methods
  */
+
+string serial_session::get_tx() {
+	pop_counters();
+	long int tx = (unsigned)counters.tx;
+	return to_string(tx);
+}
+
+string serial_session::get_rx() {
+	pop_counters();
+	long int rx = (unsigned)counters.rx;
+	return to_string(rx);
+}
 
 /*-----------------------------------------------------------------------------
  * November 20, 2015 :: _read_ methods

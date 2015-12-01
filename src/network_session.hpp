@@ -56,6 +56,7 @@ string network_session::print() {
 		return ss.str();
 }
 
+
 /*-----------------------------------------------------------------------------
  * November 20, 2015 :: _socket_ methods
  */
@@ -126,13 +127,7 @@ void network_socket_iface_session::handle_read(
 					string exceeds ("Request exceeds length.\r\n");
 					out_length = exceeds.size();
 					copy(exceeds.begin(),exceeds.end(),reply_.begin());
-				}
-				else if (in_length < 2) {
-					string nomsg ("No request received.\r\n");
-					out_length = nomsg.size();
-					copy(nomsg.begin(), nomsg.end(),reply_.begin());
-				}
-				else {
+				} else {
 					stringstream ss;
 					bBuff::iterator otter = request_.begin();
 					bBuff badend = {'\r','\n'};
@@ -143,10 +138,12 @@ void network_socket_iface_session::handle_read(
 
 					for(auto c : make_iterator_range(request_.begin(),otter))
 						ss << filter_unprintable(c);
-					string cmd = ss.str();
-					ss.flush();
+					vector<string> cmds;
+					string in;
+					while(ss >> in)
+						cmds.push_back(in);
 
-					string msg = process_request(cmd);
+					string msg = dis_ref->call_net(cmds);
 					out_length = msg.size();
 
 					copy(msg.begin(),msg.end(),reply_.begin());
@@ -157,26 +154,6 @@ void network_socket_iface_session::handle_read(
 						{
 							do_read();
 						});
-}
-
-string network_socket_iface_session::process_request(string cmd) {
-	if(dis_ref->check_net(cmd)) {
-		string msg = dis_ref->call_net(cmd);
-		return msg;
-	}
-	else
-		return invalid_request(cmd);
-}
-
-string network_socket_iface_session::invalid_request(string cmd) {
-	stringstream ss;
-
-	ss << "From " << socket_.local_endpoint() << ": " << '"';
-	ss << cmd;
-	ss << '"';
-	string msg = ss.str() + " is not a valid request.\n";
-
-	return msg;
 }
 
 

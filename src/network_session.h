@@ -39,6 +39,9 @@ public:
 	string print();
 	string get_type() { return string("network"); }
 
+	string get_rx() { return string("Not supported"); }
+	string get_tx()  { return string("Not supported"); }
+
 protected:
 	tcp::endpoint endpoint_;
 };
@@ -127,8 +130,6 @@ protected:
 	void do_read();
 	void handle_read( boost::system::error_code ec, size_t in_length);
 
-	string process_request(string cmd);
-	string invalid_request(string cmd);
 };
 
 } // dew namespace
