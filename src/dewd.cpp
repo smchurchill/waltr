@@ -142,7 +142,7 @@ int main(int argc, char** argv) {
 		}
 		catch(po::error& poe) {
 
-			cerr << "Exception:" << poe.what() << ".\nExiting.\n";
+			cerr << "Exception: " << poe.what() << ".\nExiting.\n";
 			return ERROR_UNHANDLED_EXCEPTION;
 		}
 

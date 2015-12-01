@@ -37,6 +37,7 @@ public:
 	~network_session() {};
 
 	string print();
+	string get_type() { return string("network"); }
 
 protected:
 	tcp::endpoint endpoint_;

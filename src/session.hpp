@@ -59,20 +59,11 @@ void dispatcher::forget_(basic_session* ex_comrade) {
 		comrades.erase(position);
 }
 
-string dispatcher::brag() {
-	stringstream ss;
-	for(auto comrade : comrades)
-		ss << comrade->print() << '\n';
-	return ss.str();
-}
-
-
 dispatcher::~dispatcher() {
 	for(auto comrade : comrades) {
 		delete comrade;
 	}
 }
-
 string dispatcher::check_connect() {
 	return "privyet\n";
 }
@@ -80,6 +71,29 @@ string dispatcher::check_connect() {
 string dispatcher::close_connection() {
 	return string("goodbye\n");
 }
+string dispatcher::brag() {
+	stringstream ss;
+	for(auto comrade : comrades)
+		ss << comrade->print() << '\n';
+	return ss.str();
+}
+string dispatcher::zabbix_ports() {
+	string json ("{\"data\":[");
+	int not_first = 0;
+	for(auto comrade : comrades) {
+		if(comrade->get_type() == string("serial")) {
+			if(not_first)
+				json += ",";
+			json += "{\"{#DEWDSP}\":\"";
+			json += comrade->print();
+			json += "\"}";
+		}
+	}
+	json += "]}";
+	return json;
+}
+
+
 
 string dispatcher::call_net(string cmd) {
 	string reply = network_cmd[cmd]();
@@ -93,8 +107,11 @@ void dispatcher::init_net_cmd () {
 			string("goodbye"),boost::bind(&dispatcher::close_connection,this)));
 	network_cmd.insert(make_pair(
 			string("greetings"),boost::bind(&dispatcher::brag,this)));
+
 	network_cmd.insert(make_pair(
-			string("tx"),boost::bind(&dispatcher::brag,this)));
+			string("zabbix-ports"),boost::bind(&dispatcher::zabbix_ports,this)));
+	network_cmd.insert(make_pair(
+			string("zabbix-")))
 
 
 	return;

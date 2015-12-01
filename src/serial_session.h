@@ -37,6 +37,7 @@ public:
 	}
 
 	string print() { return name_; }
+	string get_type() { return string("serial"); }
 
 	int get_tx() { pop_counters(); return counters.tx; }
 	int get_rx() { pop_counters(); return counters.rx; }

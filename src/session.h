@@ -29,6 +29,7 @@ public:
 	basic_session( io_service& io_in, string log_in, dispatcher* ref_in);
 	virtual string print() =0;
 	virtual ~basic_session() {};
+	virtual string get_type() =0;
 
 protected:
   time_point<steady_clock> start_ = steady_clock::now();
@@ -51,6 +52,8 @@ private:
 
 	string check_connect();
 	string close_connection();
+	string brag();
+	string zabbix_ports();
 
 	std::map<std::string, std::function<std::string()> > network_cmd;
 
@@ -58,7 +61,7 @@ public:
 	dispatcher() {};
 	~dispatcher();
 
-	string brag();
+
 
 	string call_net(string cmd);
 	bool check_net(string cmd) {return (network_cmd.find(cmd) != network_cmd.end());}
