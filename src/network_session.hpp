@@ -21,6 +21,8 @@
 #include <boost/chrono.hpp>
 #include <boost/chrono/time_point.hpp>
 
+#include <boost/function.hpp>
+
 #include "utils.h"
 #include "session.hpp"
 #include "network_session.h"
@@ -32,10 +34,13 @@ using ::boost::asio::io_service;
 using ::boost::asio::ip::tcp;
 using ::boost::chrono::steady_clock;
 
+using ::std::istream;
 using ::std::stringstream;
 using ::std::string;
 using ::std::vector;
 using ::std::deque;
+using ::std::map;
+using ::std::pair;
 
 using ::std::size_t;
 
@@ -106,70 +111,74 @@ void network_socket_echo_session::do_write(size_t length)
  */
 void network_socket_iface_session::do_read() {
 	socket_.async_read_some(boost::asio::buffer(request_),
-			[this](boost::system::error_code ec, size_t in_length)
-			{
-				if(ec){ return; }
+			boost::bind(&network_socket_iface_session::handle_read,this,_1,_2));
+}
 
-				debug(make_iterator_range(request_.begin(), request_.begin()+in_length));
+void network_socket_iface_session::handle_read(
+		boost::system::error_code ec, size_t in_length) {
+
+				if(ec){ dis_ref->forget_(this); delete this; return; }
 
 				size_t out_length = 0;
 
-				if(valid_request(in_length)) {
-					out_length = process_request(in_length);
-				}
-				else if (in_length >= BUFFER_LENGTH) {
+				/* Cut out edge cases */
+				if (in_length >= BUFFER_LENGTH) {
 					string exceeds ("Request exceeds length.\r\n");
 					out_length = exceeds.size();
 					copy(exceeds.begin(),exceeds.end(),reply_.begin());
 				}
-				else if (in_length <= 2) {
+				else if (in_length < 2) {
 					string nomsg ("No request received.\r\n");
 					out_length = nomsg.size();
 					copy(nomsg.begin(), nomsg.end(),reply_.begin());
 				}
 				else {
-					string invalid_message;
 					stringstream ss;
 					bBuff::iterator otter = request_.begin();
 					bBuff badend = {'\r','\n'};
 
 					if((otter = search(request_.begin(),request_.begin()+in_length,badend.begin(),badend.end()))
-							== request_.begin()+in_length)
-						otter = find(request_.begin(),request_.begin()+in_length,'\n');
+								== request_.begin()+in_length)
+							otter = find(request_.begin(),request_.begin()+in_length,'\n');
 
-					ss << "From " << socket_.local_endpoint() << ": " << '"';
 					for(auto c : make_iterator_range(request_.begin(),otter))
 						ss << filter_unprintable(c);
-					ss<< '"';
+					string cmd = ss.str();
+					ss.flush();
 
-					string command = ss.str();
+					string msg = process_request(cmd);
+					out_length = msg.size();
 
-					otter = copy(command.begin(),command.end(),reply_.begin());
-
-					string msg = string (" is not a valid request.\n");
-					otter = copy(msg.begin(),msg.end(),otter);
-					out_length = otter - reply_.begin();
+					copy(msg.begin(),msg.end(),reply_.begin());
 				}
-
-				debug(make_iterator_range(reply_.begin(), reply_.begin()+out_length));
 
 				boost::asio::async_write(socket_,boost::asio::buffer(reply_,out_length),
 						[this](boost::system::error_code ec, size_t)
 						{
 							do_read();
 						});
-			});
 }
 
-
-void network_socket_iface_session::do_write(size_t length){
-
-
+string network_socket_iface_session::process_request(string cmd) {
+	if(dis_ref->check_net(cmd)) {
+		string msg = dis_ref->call_net(cmd);
+		return msg;
+	}
+	else
+		return invalid_request(cmd);
 }
 
-bool network_socket_iface_session::valid_request(size_t length){ return false;}
+string network_socket_iface_session::invalid_request(string cmd) {
+	stringstream ss;
 
-size_t network_socket_iface_session::process_request(size_t length) { return 0;}
+	ss << "From " << socket_.local_endpoint() << ": " << '"';
+	ss << cmd;
+	ss << '"';
+	string msg = ss.str() + " is not a valid request.\n";
+
+	return msg;
+}
+
 
 
 

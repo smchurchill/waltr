@@ -15,6 +15,8 @@ typedef uint16_t u16;
 typedef std::deque<u8> pBuff;
 typedef std::vector<u8> bBuff;
 
+typedef std::map<std::string, std::function<std::string()> > cmd_map;
+
 
 }; // namespace dew
 

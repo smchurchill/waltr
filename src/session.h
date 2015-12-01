@@ -17,6 +17,9 @@ using ::boost::chrono::time_point;
 using ::std::string;
 using ::std::vector;
 using ::std::deque;
+using ::std::map;
+using ::std::pair;
+using ::std::make_pair;
 
 class basic_session;
 class dispatcher;
@@ -39,15 +42,27 @@ private:
 
 class dispatcher {
 	friend class basic_session;
+	friend class network_socket_iface_session;
 
 private:
-	vector<basic_session*> comrades;
 	void hello(basic_session* new_comrade);
+	void forget_(basic_session* ex_comrade);
+	vector<basic_session*> comrades;
+
+	string check_connect();
+	string close_connection();
+
+	std::map<std::string, std::function<std::string()> > network_cmd;
 
 public:
 	dispatcher() {};
 	~dispatcher();
-	void brag();
+
+	string brag();
+
+	string call_net(string cmd);
+	bool check_net(string cmd) {return (network_cmd.find(cmd) != network_cmd.end());}
+	void init_net_cmd ();
 
 	template<class container_type>
 	void forward(basic_session* msg_from, container_type* msg) {delete msg;}

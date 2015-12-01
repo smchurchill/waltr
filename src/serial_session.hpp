@@ -19,6 +19,9 @@
 #include <time.h>
 #include <iterator>
 
+#include <linux/ioctl.h>
+#include <linux/serial.h>
+
 #include <boost/asio.hpp>
 #include <boost/bind.hpp>
 

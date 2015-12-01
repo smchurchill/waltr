@@ -17,6 +17,8 @@ using ::boost::chrono::steady_clock;
 using ::std::string;
 using ::std::vector;
 using ::std::deque;
+using ::std::map;
+using ::std::pair;
 
 using ::std::size_t;
 
@@ -122,9 +124,10 @@ public:
 protected:
 
 	void do_read();
-	void do_write(size_t length);
-	bool valid_request(size_t length);
-	size_t process_request(size_t length);
+	void handle_read( boost::system::error_code ec, size_t in_length);
+
+	string process_request(string cmd);
+	string invalid_request(string cmd);
 };
 
 } // dew namespace

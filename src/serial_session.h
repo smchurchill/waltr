@@ -38,9 +38,16 @@ public:
 
 	string print() { return name_; }
 
+	int get_tx() { pop_counters(); return counters.tx; }
+	int get_rx() { pop_counters(); return counters.rx; }
+
+
 protected:
+	int pop_counters() { return ioctl(port_.native_handle(), TIOCGICOUNT, counters);}
+
 	string name_;
 	serial_port port_;
+	struct serial_icounter_struct counters;
 };
 
 /*-----------------------------------------------------------------------------

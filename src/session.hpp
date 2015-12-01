@@ -13,7 +13,12 @@
 #include <string>
 #include <sstream>
 #include <vector>
+#include <map>
 #include <cstdio>
+#include <algorithm>
+#include <functional>
+#include <utility>
+
 #include <boost/asio.hpp>
 #include <boost/bind.hpp>
 
@@ -28,8 +33,14 @@ using ::boost::asio::io_service;
 using ::boost::chrono::steady_clock;
 
 using ::std::string;
+using ::std::stringstream;
 using ::std::vector;
 using ::std::deque;
+using ::std::map;
+using ::std::make_pair;
+using ::std::pair;
+
+using ::std::find;
 
 using ::std::cout;
 
@@ -38,19 +49,55 @@ using ::std::cout;
  * November 25, 2015 :: dispatcher methods
  */
 void dispatcher::hello(basic_session* new_comrade) {
-		comrades.push_back(new_comrade);
+	comrades.push_back(new_comrade);
 }
 
-void dispatcher::brag() {
-		for(vector<basic_session*>::iterator
-				it = comrades.begin() ; it != comrades.end() ; ++it )
-			cout << (**it).print() << '\n';
+void dispatcher::forget_(basic_session* ex_comrade) {
+	vector<basic_session*>::iterator position = find(
+				comrades.begin(), comrades.end(), ex_comrade);
+	if(position != comrades.end())
+		comrades.erase(position);
 }
+
+string dispatcher::brag() {
+	stringstream ss;
+	for(auto comrade : comrades)
+		ss << comrade->print() << '\n';
+	return ss.str();
+}
+
 
 dispatcher::~dispatcher() {
 	for(auto comrade : comrades) {
 		delete comrade;
 	}
+}
+
+string dispatcher::check_connect() {
+	return "privyet\n";
+}
+
+string dispatcher::close_connection() {
+	return string("goodbye\n");
+}
+
+string dispatcher::call_net(string cmd) {
+	string reply = network_cmd[cmd]();
+	return reply;
+}
+
+void dispatcher::init_net_cmd () {
+	network_cmd.insert(make_pair(
+			string("hello"),boost::bind(&dispatcher::check_connect,this)));
+	network_cmd.insert(make_pair(
+			string("goodbye"),boost::bind(&dispatcher::close_connection,this)));
+	network_cmd.insert(make_pair(
+			string("greetings"),boost::bind(&dispatcher::brag,this)));
+	network_cmd.insert(make_pair(
+			string("tx"),boost::bind(&dispatcher::brag,this)));
+
+
+	return;
 }
 
 /*-----------------------------------------------------------------------------
