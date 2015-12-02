@@ -111,7 +111,7 @@ string dispatcher::zbx_sp_x(string ident, int io) {
 		}
 	}
 
-	return string("Port not found\n");
+	return string("Port \"" + ident + "\" not found\n");
 }
 
 

@@ -118,6 +118,20 @@ void serial_read_parse_session::start_read() {
 	boost::asio::async_read(port_,Buffer_,boost::bind(
 			&serial_read_parse_session::handle_read, this, _1, _2, buffer_));
 }
+inline void serial_read_parse_session::handle_timeout_extra() {
+	/* if the first character in to_parse is too old, we pop it. */
+	++tenths_count;
+	if(!(tenths_count%5)) {
+		if(
+				front_last <= steady_clock::now()-milliseconds(500)
+					&&
+				!to_parse.empty()
+			) {
+			++frame_too_old;
+			to_parse.pop_front();
+		}
+	}
+}
 void serial_read_parse_session::handle_read(boost::system::error_code ec,
 		size_t length, bBuff* buffer_) {
 
@@ -126,15 +140,12 @@ void serial_read_parse_session::handle_read(boost::system::error_code ec,
 	if(!buffer_->empty()) {
 		if(to_parse.empty())
 			front_last = steady_clock::now();
-		for(bBuff::iterator
-				it = buffer_->begin(); it - buffer_->begin() < (signed)length ; ++it)
-			to_parse.emplace_back(*it);
+		copy(buffer_->begin(),buffer_->begin()+length, back_inserter(to_parse));
 	}
 	delete buffer_;
 
 	io_ref->post(boost::bind(&serial_read_parse_session::check_the_deque,this));
 	start_read();
-
 }
 void serial_read_parse_session::check_the_deque() {
 	/* every time we check the deque, we first scrub to an 'FF' or empty the
@@ -285,20 +296,7 @@ void serial_read_parse_session::check_the_deque() {
 		++frame_too_long;
 	}
 }
-inline void serial_read_parse_session::handle_timeout_extra() {
-	/* if the first character in to_parse is too old, we pop it. */
-	++tenths_count;
-	if(!(tenths_count%5)) {
-		if(
-				front_last <= steady_clock::now()-milliseconds(500)
-					&&
-				!to_parse.empty()
-			) {
-			++frame_too_old;
-			to_parse.pop_front();
-		}
-	}
-}
+
 
 /*-----------------------------------------------------------------------------
  * November 20, 2015 :: _read_log_ methods
