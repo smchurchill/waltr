@@ -76,8 +76,9 @@ private:
 	void forget_(basic_session* ex_comrade);
 	vector<basic_session*> comrades;
 
-	string rx_name;
-	string tx_name;
+	string qt;
+	string qs;
+	string qo;
 
 	string brag();
 	string zabbix_ports();
@@ -92,6 +93,9 @@ public:
 	~dispatcher();
 
 
+	po::options_description root;
+	po::options_description query;
+	po::options_description zabbix;
 	po::options_description cmd_options;
 	string call_net(vector<string> cmds);
 

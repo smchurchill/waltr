@@ -124,15 +124,17 @@ string dispatcher::call_net(vector<string> cmds) {
 	bclp.options(cmd_options);
 	try{
 		po::store(bclp.run(), vmap);
-		if(vmap.count("help")) {
-			stringstream ss;
-			ss << cmd_options;
-			return ss.str();
-		}
 		po::notify(vmap);
 	}
 	catch (po::error& poe) {
+		cout << poe.what() << '\n';
 		return string(poe.what()+ '\n');
+	}
+
+	if(vmap.count("help")) {
+		stringstream ss;
+		ss << cmd_options;
+		return ss.str();
 	}
 
 	string reply;
@@ -159,7 +161,48 @@ string dispatcher::call_net(vector<string> cmds) {
 }
 
 void dispatcher::init_net_cmd () {
-	/* program options stuff goes here */
+
+	root.add_options()
+		("query-type", po::value<string>(&qt), "Determines the type of query that"
+				" we are handling. Positional option 1.")
+		("query-subtype", po::value<string>(&qs), "Determines the subtype of query"
+				" that we are handling.  Positional option 2.")
+		("query-option", po::value<string>(&qo), "Determines the option to pass to"
+				" our query-subtype.  Positional option 3."
+				" Not all subtypes take options.")
+		;
+
+	root_map
+
+
+
+	query.add_options()
+			("hello", "Replies with standard greeting.")
+			("ep-list", "Replies with all of dewd's endpoints")
+			;
+
+	zabbix.add_options()
+			("ports,p", "Returns a JSON list of serial ports that the dewd is"
+					" listening to.")
+			("tx", po::value<string>(&tx_name), "Returns the total bytes transmitted"
+					" through the given serial port since last reboot as a 64-bit integer.")
+			("rx", po::value<string>(&rx_name),	"Returns the total bytes received"
+					" through the given serial port since last reboot as a 64-bit integer.")
+			("")
+			;
+
+
+
+			("help,h", "Access \"* help\" message.  Usually a list of commands")
+			("query", "Access human-readable queries.")
+			("zabbix,z", "Access zabbix-readable queries.")
+			;
+
+
+
+
+
+
 
 
 	cmd_options.add_options()
