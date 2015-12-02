@@ -36,6 +36,25 @@ public:
 	virtual string get_rx() =0;
 	virtual string get_tx() =0;
 
+	struct counter_struct {
+		/* For the serial_read_parse_session class */
+		int msg_tot;
+		int bytes_received;
+
+		int last_msg;
+		int curr_msg;
+		int lost_msg_count;
+
+		int frame_too_long;
+		int frame_too_old;
+		int bad_prefix;
+		int bad_crc;
+
+		int msg_bytes_tot;
+		int garbage;
+	};
+	struct counter_struct counts {0};
+
 protected:
   time_point<steady_clock> start_ = steady_clock::now();
 	io_service* io_ref;
@@ -75,8 +94,6 @@ public:
 
 	po::options_description cmd_options;
 	string call_net(vector<string> cmds);
-	bool check_net(string cmd) {return (network_cmd.find(cmd) != network_cmd.end());}
-
 
 	template<class container_type>
 	void forward(basic_session* msg_from, container_type* msg) {delete msg;}

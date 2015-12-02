@@ -28,6 +28,7 @@ using ::std::size_t;
  * November 20, 2015 :: base class
  */
 class serial_session : public basic_session{
+	friend class dispatcher;
 public:
 	serial_session(
 			io_service& io_in, string log_in, dispatcher* ref_in, string device_in) :
@@ -53,13 +54,14 @@ protected:
 	string name_;
 	serial_port port_;
 	int fd;
-	struct serial_icounter_struct counters;
+	struct serial_icounter_struct counters {0};
 };
 
 /*-----------------------------------------------------------------------------
  * November 20, 2015 :: _read_ class
  */
 class serial_read_session :	public serial_session {
+	friend class dispatcher;
 public:
 	serial_read_session(
 			io_service& io_in, string log_in, dispatcher* ref_in, string device_in) :
@@ -76,7 +78,7 @@ protected:
 	 * AJS says that pang has a 4k kernel buffer.  We want our buffer to be
 	 * bigger than that, and we can be greedy with what "bigger" means.
 	 */
-	const long BUFFER_LENGTH = 16384;
+	const size_t BUFFER_LENGTH = 16384;
 
 	/* Timer specific members/methods */
 
@@ -116,13 +118,13 @@ protected:
 	 */
 	void set_timer();
 	void handle_timeout(boost::system::error_code ec);
-	inline virtual void handle_timeout_extra() {}
 };
 
 /*-----------------------------------------------------------------------------
  * November 20, 2015 :: _read_parse_ class
  */
 class serial_read_parse_session :	public serial_read_session {
+	friend class dispatcher;
 public:
 	serial_read_parse_session(
 			io_service& io_in, string log_in, dispatcher* ref_in, string device_in) :
@@ -130,23 +132,7 @@ public:
 	{
 		this->start();
 	}
-	~serial_read_parse_session() {
-		FILE * log = fopen((logdir_ + name_.substr(name_.find_last_of("/\\")+1) + ".garbage").c_str(),"a");
-		stringstream ss;
-		ss  << "Port " << name_ << " read totals::\n"
-				<< "\tMessages received: " << msg_tot << '\n'
-				<< "\tMessages lost: " << lost_msg_count << '\n'
-				<< "Messages destroyed ::\n"
-				<< "\tFrame too old: " << frame_too_old << '\n'
-				<< "\tFrame too long: " << frame_too_long << '\n'
-				<< "\tBad prefix: " << bad_prefix << '\n'
-				<< "\tBad CRC: " << bad_crc << '\n'
-				<< "\tScrubbed: " << scrubbed_count << '\n'
-				<< "Total bytes received:\n" << bytes_received << '\n' << '\n';
-		std::fwrite(ss.str().c_str(), sizeof(u8), ss.str().length(), log);
-		fclose(log);
-	}
-
+	~serial_read_parse_session() {}
 
 	void start();
 
@@ -155,26 +141,11 @@ private:
 	void handle_read(boost::system::error_code ec, size_t length,
 			bBuff* buffer_);
 	void check_the_deque();
-	inline void handle_timeout_extra();
+	int scrub(pBuff::iterator iter);
 
 	time_point<steady_clock> front_last = steady_clock::now();
 
-	//const int MAX_FRAME_LENGTH = 2048;
-	long int tenths_count = 0;
-
-	int msg_tot = 0;
-	int bytes_received = 0;
-
-	int last_msg = 0;
-	int curr_msg = 0;
-	int lost_msg_count = 0;
-
-	int frame_too_long = 0;
-	int frame_too_old = 0;
-	int bad_prefix = 0;
-	int bad_crc = 0;
-	int scrubbed_count = 0;
-
+	const size_t MAX_FRAME_LENGTH = 4096;
 	pBuff to_parse;
 
 

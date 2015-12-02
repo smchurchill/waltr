@@ -62,7 +62,9 @@ using ::std::srand;
 using ::std::rand;
 
 using ::std::search;
+using ::std::find;
 using ::std::copy;
+using ::std::reverse_copy;
 
 /*-----------------------------------------------------------------------------
  * November 20, 2015 :: base methods
@@ -79,6 +81,8 @@ string serial_session::get_rx() {
 	long int rx = (unsigned)counters.rx;
 	return to_string(rx);
 }
+
+
 
 /*-----------------------------------------------------------------------------
  * November 20, 2015 :: _read_ methods
@@ -97,9 +101,6 @@ void serial_read_session::set_timer() {
 void serial_read_session::handle_timeout(boost::system::error_code ec) {
 	if(!ec)
 		port_.cancel();
-
-	handle_timeout_extra();
-
 	set_timer();
 }
 
@@ -112,20 +113,15 @@ void serial_read_parse_session::start() {
 	set_timer();
 }
 void serial_read_parse_session::start_read() {
-	bBuff* buffer_ = new bBuff;
-	buffer_->assign (BUFFER_LENGTH,0);
+	bBuff* buffer_ = new bBuff (BUFFER_LENGTH);
 	mutable_buffers_1 Buffer_ = boost::asio::buffer(*buffer_);
 	boost::asio::async_read(port_,Buffer_,boost::bind(
 			&serial_read_parse_session::handle_read, this, _1, _2, buffer_));
 }
-inline void serial_read_parse_session::handle_timeout_extra() {
-	++tenths_count;
-	tenths_count %= 5;
-}
 void serial_read_parse_session::handle_read(boost::system::error_code ec,
 		size_t length, bBuff* buffer_) {
 
-	bytes_received += length;
+	counts.bytes_received += length;
 
 	if(!buffer_->empty()) {
 		if(to_parse.empty())
@@ -137,24 +133,35 @@ void serial_read_parse_session::handle_read(boost::system::error_code ec,
 	io_ref->post(boost::bind(&serial_read_parse_session::check_the_deque,this));
 	start_read();
 }
+
+int serial_read_parse_session::scrub(pBuff::iterator iter) {
+	pBuff::iterator oter = find(iter,to_parse.end(),0xff);
+	int bytes = oter - to_parse.begin();
+	to_parse.erase(to_parse.begin(), oter);
+	front_last = steady_clock::now();
+	return bytes;
+}
 void serial_read_parse_session::check_the_deque() {
-
-
-	/* every time we check the deque, we first scrub to an 'FF' or empty the
-	 * deque if no 'FF' exists.
+	/* The deque to check is d. From least restrictive to most restrictive, we
+	 * check that:
+	 * 1. size(d) > 0
+	 * 2. size(d) >= min.size(message)
+	 * 3. d[0] == FF
+	 * 4. d[1] == FE
+	 * 5. CRC matches
 	 *
+	 * If d fails 1. or 2., then there's nothing we can do.  We just need to wait
+	 * for more characters.  We exit.
 	 *
+	 * If d fails on 3., 4., or 5., then we need to scrub.  As the test fails, we
+	 * call scrub to tell the appropriate failure counter how many bytes it ate.
+	 *
+	 * If d passes all 5, then we have a valid prefix and search for a message.
+	 * If no message is found, we check whether d is too large to contain a frame
+	 * matching our prefix or whether the prefix is deemed too old to ever be
+	 * completed.  In either case, we scrub to the next available FF.
 	 */
-	bool scrubbed = false;
-	while(!to_parse.empty() && to_parse.front()!=0xff) {
-		++scrubbed_count;
-		to_parse.pop_front();
-		scrubbed = true;
-	}
 
-	if(scrubbed) {
-		front_last = steady_clock::now();
-	}
 
 	/* the prefix delimiter of a frame takes up
 	 * FF + FE + nonce1(4) + nonce2(4) + seq + crc = 12 characters.
@@ -168,19 +175,18 @@ void serial_read_parse_session::check_the_deque() {
 	if(to_parse.size() < 18)
 		return;
 
-	/* Guaranteed at this point that to_parse has at least 18 characters and the
-	 * first character is 'FF'.
-	 *
-	 * First, we make sure that our 'FF' is part of a valid prefix 'FF' 'FE'.
-	 * if not, we get rid of the first 'FF' and try again.
-	 */
+	assert(to_parse.size()>=18);
 
-	if(to_parse[1]!=0xfe) {
-		++bad_prefix;
-		to_parse.pop_front();
+
+	if(to_parse[0]!=0xff || to_parse[1]!=0xfe) {
+		counts.bad_prefix += scrub(to_parse.begin()+3);
+
 		io_ref->post(boost::bind(&serial_read_parse_session::check_the_deque,this));
 		return;
 	}
+
+	assert(to_parse[0]==0xff);
+	assert(to_parse[1]==0xfe);
 
 	/* GATP that to_parse has at least 18 characters and the first two characters
 	 * are 'FF' then 'FE'.
@@ -188,23 +194,11 @@ void serial_read_parse_session::check_the_deque() {
 	 * The last check of whether we have a valid prefix is to compute the crc.
 	 * The crc is located at byte location 11, counting from 0, of to_parse.
 	 */
-	assert(to_parse.size()>=18);
-	assert(to_parse[0]==0xff);
-	assert(to_parse[1]==0xfe);
-
-	//cout << "Computing CRC at " << name_ << " for:\n";
-	//debug(std::make_pair(to_parse.begin(),to_parse.begin()+11));
 
 	u8 crc_comp = crc8(make_iterator_range(to_parse.begin(),to_parse.begin()+11));
-	if(crc_comp==to_parse[11]) {
-		//cout << "CRC matches." << " Sent: " << filter_unprintable(to_parse[11]) << " :: Comp: " << filter_unprintable(crc_comp) << '\n';
-	}
-	else {
-		cout << "At " << name_ << " in message:\n";
-		debug(make_iterator_range(to_parse.begin(),to_parse.begin()+19));
-		cout << "Bad CRC. " << " Sent: " << filter_unprintable(to_parse[11]) << " :: Comp: " << filter_unprintable(crc_comp) << '\n';
-		++bad_crc;
-		to_parse.pop_front();
+	if(crc_comp!=to_parse[11]) {
+		counts.bad_crc += scrub(to_parse.begin()+12);
+
 		io_ref->post(boost::bind(&serial_read_parse_session::check_the_deque,this));
 		return;
 	}
@@ -216,7 +210,7 @@ void serial_read_parse_session::check_the_deque() {
 	 * to_parse.
 	 *
 	 * the matching delimiter we search for is:
-	 * 	<nonce> + 'FE' + 'FF'
+	 * 	<ecnon> + 'FE' + 'FF'
 	 *
 	 * We search to_parse for a matching delimiter and, if found, cut it away
 	 * from the rest of to_parse and ...
@@ -226,8 +220,8 @@ void serial_read_parse_session::check_the_deque() {
 
 
 
-	pBuff delim (to_parse.begin()+2, to_parse.begin()+6);
-	delim.push_back(0xfe); delim.push_back(0xff);
+	pBuff delim (6);
+	reverse_copy(to_parse.begin(),to_parse.begin()+6,delim.begin());
 
 	/* matching nonce1 to nonce1 would be very bad, so we starting searching
 	 * after the first 12 characters.  We've already asserted that to_parse has
@@ -236,9 +230,29 @@ void serial_read_parse_session::check_the_deque() {
 	pBuff::iterator match_point =
 			search(to_parse.begin()+12, to_parse.end(), delim.begin(), delim.end());
 
-	if(match_point!=to_parse.end()) {
+	/* if we've reached the end of the deque without finding a match, then we
+	 * need to check if the prefix is too old or if the deque is too large to
+	 * contain a valid message.  In either case we would need to scrub, and in
+	 * either case all we know is that a valid prefix failed to find a message.
+	 * Corner cases require us to discard only the first element, as there may be
+	 * the beginning of a valid prefix lurking within our prefix to discard.
+	 */
+	if(match_point == to_parse.end()) {
+		if(to_parse.size()>MAX_FRAME_LENGTH) {
+			counts.frame_too_long += scrub(to_parse.begin()+1);
 
-		/* Dispatcher forward() function promises to release this memory once the
+			io_ref->post(boost::bind(&serial_read_parse_session::check_the_deque,this));
+			return;
+		} else if (steady_clock::now() - front_last > milliseconds(500)) {
+			counts.frame_too_old += scrub(to_parse.begin()+1);
+
+			io_ref->post(boost::bind(&serial_read_parse_session::check_the_deque,this));
+			return;
+		}
+	} else if(match_point!=to_parse.end()) { /* We have a message */
+		++counts.msg_tot;
+
+		/* dispatcher::forward() function promises to release this memory once the
 		 * message has been processed.
 		 */
 		pBuff* to_send = new pBuff;
@@ -249,20 +263,19 @@ void serial_read_parse_session::check_the_deque() {
 		 */
 		assert(match_point+6 <= to_parse.end());
 		copy(to_parse.begin(), match_point+6, back_inserter(*to_send));
-		to_parse.erase(to_parse.begin(), match_point+6);
-		front_last = steady_clock::now();
+		counts.msg_bytes_tot += to_send->size();
+		counts.garbage += scrub(match_point+6);
+		counts.garbage -= to_send->size();
 
 		assert(to_send->size()>=11);
-		curr_msg = (int)(to_send->at(10));
-		if(last_msg > curr_msg )
-			last_msg -= 256;
-		while(last_msg < curr_msg - 1){
-			//cout << last_msg << " : " << curr_msg << '\n';
-			++last_msg;
-			++lost_msg_count;
+		counts.curr_msg = (int)(to_send->at(10));
+		if(counts.last_msg > counts.curr_msg )
+			counts.last_msg -= 256;
+		while(counts.last_msg < counts.curr_msg - 1){
+			++counts.last_msg;
+			++counts.lost_msg_count;
 		}
-		++last_msg;
-		++msg_tot;
+		counts.last_msg=counts.curr_msg;
 
 		/* debug logging */
 		if(0) {
@@ -273,19 +286,14 @@ void serial_read_parse_session::check_the_deque() {
 		fclose(log);
 		}
 
-		if(0)
-		debug(make_iterator_range(to_send->begin(),to_send->begin()+18));
-
 		io_ref->post(
 				[this,to_send](){
 					dis_ref->forward(this,to_send);
 				}
 			);
+
 		/* Loop checks until to_parse has no more messages waiting for us. */
 		io_ref->post(boost::bind(&serial_read_parse_session::check_the_deque,this));
-	} else if (0) { //to_parse.size() > MAX_FRAME_LENGTH ) {
-		to_parse.pop_front();
-		++frame_too_long;
 	}
 }
 

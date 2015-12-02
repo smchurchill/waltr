@@ -129,14 +129,7 @@ void network_socket_iface_session::handle_read(
 					copy(exceeds.begin(),exceeds.end(),reply_.begin());
 				} else {
 					stringstream ss;
-					bBuff::iterator otter = request_.begin();
-					bBuff badend = {'\r','\n'};
-
-					if((otter = search(request_.begin(),request_.begin()+in_length,badend.begin(),badend.end()))
-								== request_.begin()+in_length)
-							otter = find(request_.begin(),request_.begin()+in_length,'\n');
-
-					for(auto c : make_iterator_range(request_.begin(),otter))
+					for(auto c : make_iterator_range(request_.begin(),request_.begin()+in_length))
 						ss << filter_unprintable(c);
 					vector<string> cmds;
 					string in;

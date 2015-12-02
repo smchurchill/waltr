@@ -190,6 +190,7 @@ basic_session::basic_session( io_service& io_in, string log_in, dispatcher* ref_
 
 
 
+
 } //namespace
 
 #endif /* SESSION_HPP_ */
