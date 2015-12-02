@@ -119,18 +119,8 @@ void serial_read_parse_session::start_read() {
 			&serial_read_parse_session::handle_read, this, _1, _2, buffer_));
 }
 inline void serial_read_parse_session::handle_timeout_extra() {
-	/* if the first character in to_parse is too old, we pop it. */
 	++tenths_count;
-	if(!(tenths_count%5)) {
-		if(
-				front_last <= steady_clock::now()-milliseconds(500)
-					&&
-				!to_parse.empty()
-			) {
-			++frame_too_old;
-			to_parse.pop_front();
-		}
-	}
+	tenths_count %= 5;
 }
 void serial_read_parse_session::handle_read(boost::system::error_code ec,
 		size_t length, bBuff* buffer_) {
@@ -148,6 +138,8 @@ void serial_read_parse_session::handle_read(boost::system::error_code ec,
 	start_read();
 }
 void serial_read_parse_session::check_the_deque() {
+
+
 	/* every time we check the deque, we first scrub to an 'FF' or empty the
 	 * deque if no 'FF' exists.
 	 *
