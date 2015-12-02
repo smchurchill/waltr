@@ -136,7 +136,13 @@ void network_socket_iface_session::handle_read(
 					while(ss >> in)
 						cmds.push_back(in);
 
-					string msg = dis_ref->call_net(cmds);
+					string msg;
+					if(cmds.size() && cmds.size() < 4)
+						msg = dis_ref->call_net(cmds);
+					else
+						msg = "Adhere to command format: query-type query-subtype query-option.";
+
+
 					out_length = msg.size();
 
 					copy(msg.begin(),msg.end(),reply_.begin());

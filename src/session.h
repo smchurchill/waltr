@@ -17,6 +17,7 @@ using ::boost::chrono::steady_clock;
 using ::boost::chrono::time_point;
 
 using ::std::string;
+using ::std::to_string;
 using ::std::vector;
 using ::std::deque;
 using ::std::map;
@@ -35,6 +36,18 @@ public:
 	virtual string get_type() =0;
 	virtual string get_rx() =0;
 	virtual string get_tx() =0;
+
+	virtual string get(string value) =0;
+
+	string get_msg_tot() { return to_string(counts.msg_tot); }
+	string get_lost_msg_count() { return to_string(counts.lost_msg_count); }
+	string get_frame_too_old() { return to_string(counts.frame_too_old); }
+	string get_frame_too_long() { return to_string(counts.frame_too_long); }
+	string get_bad_prefix() { return to_string(counts.bad_prefix); }
+	string get_bad_crc() { return to_string(counts.bad_crc); }
+	string get_bytes_received() { return to_string(counts.bytes_received); }
+	string get_msg_bytes_tot() { return to_string(counts.msg_bytes_tot); }
+	string get_garbage() { return to_string(counts.garbage); }
 
 	struct counter_struct {
 		/* For the serial_read_parse_session class */
@@ -70,39 +83,41 @@ class dispatcher {
 	friend class network_socket_iface_session;
 
 private:
+	string h_tree(string type, );
+	string q_tree(vector<string> cmds);
+	string z_tree(vector<string> cmds);
+	string d_tree(vector<string> cmds);
+
+
 	void init_net_cmd ();
 
 	void hello(basic_session* new_comrade);
 	void forget_(basic_session* ex_comrade);
 	vector<basic_session*> comrades;
-
-	string qt;
-	string qs;
-	string qo;
+	map<string, basic_session*> port_directory;
 
 	string brag();
 	string zabbix_ports();
 	string zbx_sp_x(string ident, int io);
 
-	std::map<std::string, std::function<std::string()> > network_cmd;
+	map<string, std::function<string(string, string)> > root_map;
+	map<string, std::function<string()> > query_map;
+	map<string, std::function<string()> > zabbix_map;
+	map<string, std::function<string()> > dut_map;
+
+	po::options_description root;
+	po::positional_options_description root_pos;
 
 public:
-	dispatcher() : cmd_options("Network Command Options") {
+	dispatcher() {
 		init_net_cmd();
 	}
 	~dispatcher();
 
-
-	po::options_description root;
-	po::options_description query;
-	po::options_description zabbix;
-	po::options_description cmd_options;
 	string call_net(vector<string> cmds);
 
 	template<class container_type>
 	void forward(basic_session* msg_from, container_type* msg) {delete msg;}
-
-
 };
 
 
