@@ -122,7 +122,7 @@ string dispatcher::call_net(vector<string> cmds) {
 	if(root_map.count(cmds[0]))
 		return root_map.at(cmds[0])(cmds[1],cmds[2]);
 	else
-		return "Query type not supported.  Type \"help\" to view supported queries.\n";
+		return "Query not supported.  \"help\" is also not yet supported.\n";
 
 }
 

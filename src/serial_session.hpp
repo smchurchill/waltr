@@ -198,6 +198,7 @@ void serial_read_parse_session::check_the_deque() {
 
 	u8 crc_comp = crc8(make_iterator_range(to_parse.begin(),to_parse.begin()+11));
 	if(crc_comp!=to_parse[11]) {
+		if(0)
 		cout << "Bad CRC:\n" <<
 				"\tMessage:" << debug_str(make_iterator_range(to_parse.begin(),to_parse.begin()+13)) <<
 				'\n' << "\t Computed CRC: " << filter_unprintable(crc_comp) << '\n';
@@ -392,7 +393,7 @@ bBuff* serial_write_nonsense_session::generate_nonsense() {
 			//byte = (u8)(mod(std::rand(),256));
 			//nonce2.emplace_back(byte);
 			for(int j=12;j;--j) {
-				byte = (u8)(mod(std::rand(),256));
+				byte = 0x99;
 				payload.emplace_back(byte);
 			}
 		}

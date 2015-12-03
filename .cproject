@@ -51,10 +51,12 @@
 							<tool command="clang++" id="cdt.managedbuild.tool.gnu.c.linker.exe.debug.1975957002" name="GCC C Linker" superClass="cdt.managedbuild.tool.gnu.c.linker.exe.debug"/>
 							<tool command="clang++" id="cdt.managedbuild.tool.gnu.cpp.linker.exe.debug.1781014838" name="GCC C++ Linker" superClass="cdt.managedbuild.tool.gnu.cpp.linker.exe.debug">
 								<option id="gnu.cpp.link.option.libs.1491647454" name="Libraries (-l)" superClass="gnu.cpp.link.option.libs" valueType="libs">
-									<listOptionValue builtIn="false" value="boost_program_options"/>
 									<listOptionValue builtIn="false" value="pthread"/>
-									<listOptionValue builtIn="false" value="boost_chrono"/>
-									<listOptionValue builtIn="false" value="boost_system"/>
+								</option>
+								<option id="gnu.cpp.link.option.userobjs.853840998" superClass="gnu.cpp.link.option.userobjs" valueType="userObjs">
+									<listOptionValue builtIn="false" value="/boost/stage/lib/libboost_chrono.a"/>
+									<listOptionValue builtIn="false" value="/boost/stage/lib/libboost_system.a"/>
+									<listOptionValue builtIn="false" value="/boost/stage/lib/libboost_program_options.a"/>
 								</option>
 								<inputType id="cdt.managedbuild.tool.gnu.cpp.linker.input.442390429" superClass="cdt.managedbuild.tool.gnu.cpp.linker.input">
 									<additionalInput kind="additionalinputdependency" paths="$(USER_OBJS)"/>

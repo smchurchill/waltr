@@ -47,6 +47,8 @@ using ::std::cerr;
 using ::std::to_string;
 using ::std::endl;
 
+using ::std::ifstream;
+
 
 
 
@@ -82,7 +84,7 @@ int main(int argc, char** argv) {
 					"Specify local ip4 addresses to bind to. It is assumed that these ip"
 					" addresses can be bound to by dewd." )
 				("port-number,P",po::value<int>()->default_value(2023),
-					"Give a port number to bind to.  Used with --network flag.  It is"
+					"Give a port number to bind to.  Used with --net-comm flag.  It is"
 					" assumed that dewd can bind to the given port.")
 				;
 
@@ -110,6 +112,8 @@ int main(int argc, char** argv) {
 						" trailing '/'.  Default is /tmp/dewd/. Permissions are not"
 						" checked before logging begins -- it is assumed that dewd can"
 						" write to the given directory.")
+				("config,c",po::value<string>(&conf)->default_value(
+						"/usr/local/etc/dewd/dewd.conf"), "Specify a configuration file.")
 				;
 
 		po::options_description cmdline_options;
@@ -127,12 +131,10 @@ int main(int argc, char** argv) {
 		po::variables_map vmap;
 		try {
 			po::store(po::parse_command_line(argc,argv,cmdline_options), vmap);
+			ifstream ifs {vmap["config"].as<string>().c_str()};
+			po::store(po::parse_config_file(ifs, cmdline_options),vmap);
 
-			if(vmap.count("help") ||
-				 !(vmap.count("test")||
-					 vmap.count("sp-comm")||
-					 vmap.count("fp-em")||
-					 vmap.count("net-comm"))) {
+			if(vmap.count("help")) {
 				cout << "The dewd DewDrop daemon.\n" << cmdline_options << '\n';
 
 				return SUCCESS;
@@ -145,8 +147,6 @@ int main(int argc, char** argv) {
 			cerr << "Exception: " << poe.what() << ".\nExiting.\n";
 			return ERROR_UNHANDLED_EXCEPTION;
 		}
-
-		assert(vmap.count("test")||vmap.count("sp-comm")||vmap.count("fp-em")||vmap.count("net-comm"));
 
 
 		/* The first thing we'll do is set a port number for network communications
