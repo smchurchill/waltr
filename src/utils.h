@@ -136,6 +136,13 @@ void debug_noline (Range rng) {
 	boost::transform (rng, ostream_iterator<string> (cout), filter_unprintable);
 }
 
+template<typename Range>
+string debug_str (Range rng) {
+	stringstream ss;
+	// typedef typename Range::first_type::value_type T;
+	boost::transform (rng, ostream_iterator<string> (ss), filter_unprintable);
+	return ss.str();
+}
  /*
 void test_range (void)
 {

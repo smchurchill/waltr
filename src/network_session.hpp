@@ -50,11 +50,6 @@ using ::std::copy_n;
 /*-----------------------------------------------------------------------------
  * November 20, 2015 :: base methods
  */
-string network_session::print() {
-		stringstream ss;
-		ss << endpoint_;
-		return ss.str();
-}
 
 
 /*-----------------------------------------------------------------------------
@@ -130,18 +125,20 @@ void network_socket_iface_session::handle_read(
 				} else {
 					stringstream ss;
 					for(auto c : make_iterator_range(request_.begin(),request_.begin()+in_length))
-						ss << filter_unprintable(c);
+						ss << c;
 					vector<string> cmds;
 					string in;
 					while(ss >> in)
 						cmds.push_back(in);
 
 					string msg;
-					if(cmds.size() && cmds.size() < 4)
+					if(cmds.size() && cmds.size() < 4) {
+						while(cmds.size() < 3)
+							cmds.push_back("0");
 						msg = dis_ref->call_net(cmds);
-					else
-						msg = "Adhere to command format: query-type query-subtype query-option.";
-
+					} else {
+						msg = "Adhere to command format: query-type query-subtype query-option.\n";
+					}
 
 					out_length = msg.size();
 

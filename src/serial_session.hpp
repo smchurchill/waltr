@@ -13,6 +13,7 @@
 #include <string>
 #include <sstream>
 #include <vector>
+#include <utility>
 #include <deque>
 #include <cstdio>
 #include <algorithm>
@@ -197,6 +198,10 @@ void serial_read_parse_session::check_the_deque() {
 
 	u8 crc_comp = crc8(make_iterator_range(to_parse.begin(),to_parse.begin()+11));
 	if(crc_comp!=to_parse[11]) {
+		cout << "Bad CRC:\n" <<
+				"\tMessage:" << debug_str(make_iterator_range(to_parse.begin(),to_parse.begin()+13)) <<
+				'\n' << "\t Computed CRC: " << filter_unprintable(crc_comp) << '\n';
+
 		counts.bad_crc += scrub(to_parse.begin()+12);
 
 		io_ref->post(boost::bind(&serial_read_parse_session::check_the_deque,this));
@@ -378,13 +383,14 @@ void serial_write_nonsense_session::handle_write(
 }
 bBuff* serial_write_nonsense_session::generate_nonsense() {
 		bBuff * msg = new bBuff;
-		bBuff nonce1, nonce2, payload;
+		bBuff nonce1 {0x42,0x43,0x44,0x45}, nonce2 {0x53,0x54,0x55,0x56}, payload;
 		u8 byte;
+
 		for(int i=4;i;--i) {
-			byte = (u8)(mod(std::rand(),256));
-			nonce1.emplace_back(byte);
-			byte = (u8)(mod(std::rand(),256));
-			nonce2.emplace_back(byte);
+			//byte = (u8)(mod(std::rand(),256));
+			//nonce1.emplace_back(byte);
+			//byte = (u8)(mod(std::rand(),256));
+			//nonce2.emplace_back(byte);
 			for(int j=12;j;--j) {
 				byte = (u8)(mod(std::rand(),256));
 				payload.emplace_back(byte);
@@ -413,7 +419,7 @@ bBuff* serial_write_nonsense_session::generate_nonsense() {
 		copy(payload.begin(), payload.end(), back_inserter(*msg));
 
 		/* second copy of nonce1 */
-		copy(nonce1.begin(), nonce1.end(), back_inserter(*msg));
+		reverse_copy(nonce1.begin(),nonce1.end(),back_inserter(*msg));
 
 		/* postfix */
 		msg->push_back(0xfe); msg->push_back(0xff);

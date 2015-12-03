@@ -216,6 +216,8 @@ int main(int argc, char** argv) {
 				new network_acceptor_session(*service, logging_directory, dis, it);
 		}
 
+		dis->build_lists();
+
 		/*
 		 * Set signals to catch for graceful termination.
 		 */

@@ -32,17 +32,20 @@ public:
 			io_service& io_in, string log_in, dispatcher* ref_in, tcp::endpoint ep_in) :
 				basic_session(io_in, log_in, ref_in), endpoint_(ep_in)
 	{
+		map<string,std::function<string()> > tmp_map
+			{
+				{"name", bind(&network_session::get_name,this)},
+				{"type", bind(&network_session::get_type,this)}
+			};
+		get_map.insert(tmp_map.begin(),tmp_map.end());
 	}
 
 	~network_session() {};
 
-	string print();
-	string get_type() { return string("network"); }
-
-	string get_rx() { return string("Not supported"); }
-	string get_tx()  { return string("Not supported"); }
-
 protected:
+
+	string get_name() { stringstream ss; ss << endpoint_; return ss.str(); }
+	string get_type() { return string("network"); }
 	tcp::endpoint endpoint_;
 };
 
@@ -57,10 +60,17 @@ public:
 			io_service& io_in, string log_in, dispatcher* ref_in, tcp::endpoint ep_in) :
 				network_session(io_in, log_in, ref_in, ep_in), socket_(*io_ref)
 	{
+		map<string,std::function<string()> > tmp_map
+			{
+				{"subtype", bind(&network_socket_session::get_subtype,this)}
+			};
+		get_map.insert(tmp_map.begin(),tmp_map.end());
 	}
 
 protected:
 	tcp::socket* get_sock() { return &socket_; }
+	string get_subtype() { return "socket"; }
+
 
 	const long BUFFER_LENGTH = 8192;
 	bBuff request_ = vector<u8>(BUFFER_LENGTH,0);
@@ -78,13 +88,23 @@ public:
 				network_session(io_in, log_in, ref_in, ep_in),
 				acceptor_(*io_ref, endpoint_)
 	{
+		map<string,std::function<string()> > tmp_map
+			{
+				{"subtype", bind(&network_acceptor_session::get_subtype,this)}
+			};
+		get_map.insert(tmp_map.begin(),tmp_map.end());
+
+
 		start();
 	}
 
 	void start() { do_accept(); }
 
+
 private:
 	void do_accept();
+
+	string get_subtype() { return "acceptor"; }
 
 	tcp::acceptor acceptor_;
 };

@@ -19,13 +19,16 @@ using ::boost::chrono::milliseconds;
 
 using ::boost::asio::serial_port;
 
+using ::boost::bind;
+
 using ::std::string;
 using ::std::vector;
+using ::std::pair;
 using ::std::deque;
 using ::std::size_t;
 
 /*-----------------------------------------------------------------------------
- * November 20, 2015 :: base class
+ * December 2, 2015 :: base class
  */
 class serial_session : public basic_session{
 	friend class dispatcher;
@@ -35,17 +38,25 @@ public:
 				basic_session(io_in, log_in, ref_in),
 				name_(device_in),	port_(*io_ref, name_)
 	{
+		map<string,std::function<string()> > tmp_map {
+			{"name", bind(&serial_session::get_name,this)},
+			{"type", bind(&serial_session::get_type,this)},
+			{"tx",bind(&serial_session::get_tx,this)},
+			{"rx",bind(&serial_session::get_rx,this)}
+		};
+		get_map.insert(tmp_map.begin(),tmp_map.end());
 		fd = port_.native_handle();
 	}
 
-	string print() { return name_; }
+//	string get(string value) {return get_map[value]();}
+
+protected:
+	string get_name() { return name_; }
 	string get_type() { return string("serial"); }
 
 	string get_tx();
 	string get_rx();
 
-
-protected:
 	int pop_counters() {
 		memset(&counters, 0, sizeof(serial_icounter_struct));
 		return ioctl(fd, TIOCGICOUNT, &counters);
@@ -67,13 +78,19 @@ public:
 			io_service& io_in, string log_in, dispatcher* ref_in, string device_in) :
 				serial_session(io_in, log_in, ref_in, device_in), timer_(*io_ref)
 	{
+		map<string,std::function<string()> > tmp_map
+			{
+				{"subtype", bind(&serial_read_session::get_subtype,this)}
+			};
+		get_map.insert(tmp_map.begin(),tmp_map.end());
 	}
 
 	virtual ~serial_read_session() {}
 
-	string get_type() { return string("serial-read"); }
-
 protected:
+
+	string get_subtype() { return string("serial-read"); }
+
 	/* November 18, 2015
 	 * AJS says that pang has a 4k kernel buffer.  We want our buffer to be
 	 * bigger than that, and we can be greedy with what "bigger" means.
@@ -130,6 +147,20 @@ public:
 			io_service& io_in, string log_in, dispatcher* ref_in, string device_in) :
 				serial_read_session(io_in, log_in, ref_in, device_in)
 	{
+		map<string,std::function<string()> > tmp_map {
+				{"msg_tot",bind(&serial_read_parse_session::get_msg_tot,this)},
+				{"lost_msg_count",bind(&serial_read_parse_session::get_lost_msg_count,this)},
+				{"frame_too_old", bind(&serial_read_parse_session::get_frame_too_old,this)},
+				{"frame_too_long", bind(&serial_read_parse_session::get_frame_too_long,this)},
+				{"bad_prefix", bind(&serial_read_parse_session::get_bad_prefix,this)},
+				{"bad_crc", bind(&serial_read_parse_session::get_bad_crc,this)},
+				{"bytes_received", bind(&serial_read_parse_session::get_bytes_received,this)},
+				{"msg_bytes_tot", bind(&serial_read_parse_session::get_msg_bytes_tot,this)},
+				{"garbage", bind(&serial_read_parse_session::get_garbage,this)}
+		};
+
+		get_map.insert(tmp_map.begin(),tmp_map.end());
+
 		this->start();
 	}
 	~serial_read_parse_session() {}
@@ -148,7 +179,34 @@ private:
 	const size_t MAX_FRAME_LENGTH = 4096;
 	pBuff to_parse;
 
+	struct counter_struct {
+		/* For the serial_read_parse_session class */
+		int msg_tot;
+		int bytes_received;
 
+		int last_msg;
+		int curr_msg;
+		int lost_msg_count;
+
+		int frame_too_long;
+		int frame_too_old;
+		int bad_prefix;
+		int bad_crc;
+
+		int msg_bytes_tot;
+		int garbage;
+	};
+	struct counter_struct counts {0};
+
+	string get_msg_tot() { return to_string(counts.msg_tot); }
+	string get_lost_msg_count() { return to_string(counts.lost_msg_count); }
+	string get_frame_too_old() { return to_string(counts.frame_too_old); }
+	string get_frame_too_long() { return to_string(counts.frame_too_long); }
+	string get_bad_prefix() { return to_string(counts.bad_prefix); }
+	string get_bad_crc() { return to_string(counts.bad_crc); }
+	string get_bytes_received() { return to_string(counts.bytes_received); }
+	string get_msg_bytes_tot() { return to_string(counts.msg_bytes_tot); }
+	string get_garbage() { return to_string(counts.garbage); }
 };
 
 /*-----------------------------------------------------------------------------
