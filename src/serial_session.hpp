@@ -343,9 +343,8 @@ void serial_write_nonsense_session::start() {
 	start_write();
 }
 void serial_write_nonsense_session::start_write() {
-	++internal_counter;
-
 	bBuff* nonsense = generate_nonsense();
+
 	mutable_buffers_1 bnonsense = boost::asio::buffer(*nonsense);
 
 	/* debug logging */
@@ -369,10 +368,6 @@ void serial_write_nonsense_session::handle_write(
 	bytes_sent += bytes_transferred;
 	bytes_intended += message_size;
 
-  assert(!error);
-
-	assert(bytes_transferred == 66);
-
 	//milliseconds wait (2 + std::rand()%3);
 	//dead_ = steady_clock::now() + wait;
   //timer_.expires_at(dead_);
@@ -384,22 +379,24 @@ void serial_write_nonsense_session::handle_write(
 }
 bBuff* serial_write_nonsense_session::generate_nonsense() {
 		bBuff * msg = new bBuff;
-		bBuff nonce1 {0x42,0x43,0x44,0x45}, nonce2 {0x53,0x54,0x55,0x56}, payload;
+
+		for(int i = 10; i ; --i){
+
+		++internal_counter;
+
+		bBuff nonce1 = {0xff, 0xfe}, nonce2, payload;
 		u8 byte;
 
 		for(int i=4;i;--i) {
-			//byte = (u8)(mod(std::rand(),256));
-			//nonce1.emplace_back(byte);
-			//byte = (u8)(mod(std::rand(),256));
-			//nonce2.emplace_back(byte);
+			byte = (u8)(mod(std::rand(),256));
+			nonce1.emplace_back(byte);
+			byte = (u8)(mod(std::rand(),256));
+			nonce2.emplace_back(byte);
 			for(int j=12;j;--j) {
-				byte = 0x99;
+				byte = (u8)(mod(std::rand(),256));
 				payload.emplace_back(byte);
 			}
 		}
-
-		/* prefix */
-		msg->push_back(0xff); msg->push_back(0xfe);
 
 		/* nonce 1 add */
 		copy(nonce1.begin(), nonce1.end(), back_inserter(*msg));
@@ -410,8 +407,8 @@ bBuff* serial_write_nonsense_session::generate_nonsense() {
 		/* msg number sequence */
 		msg->push_back(mod(internal_counter,256));
 
-		assert(msg->size()==11);
-		u8 crc = crc8(make_iterator_range(msg->begin(),msg->begin()+11));
+		assert(msg->size()>=11);
+		u8 crc = crc8(make_iterator_range(msg->end()-11,msg->end()));
 
 		/* crc byte */
 		msg->push_back(crc);
@@ -422,10 +419,7 @@ bBuff* serial_write_nonsense_session::generate_nonsense() {
 		/* second copy of nonce1 */
 		reverse_copy(nonce1.begin(),nonce1.end(),back_inserter(*msg));
 
-		/* postfix */
-		msg->push_back(0xfe); msg->push_back(0xff);
-
-		assert(msg->size()==66);
+		}
 
 		return msg;
 }

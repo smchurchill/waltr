@@ -273,15 +273,7 @@ public:
 	{
 		this->start();
 	}
-	~serial_write_nonsense_session(){
-	FILE * log = fopen((logdir_ + name_.substr(name_.find_last_of("/\\")+1) + ".garbage").c_str(),"a");
-	stringstream ss;
-	ss  << "Port " << name_ << " write totals::\n"
-			<< "Total bytes sent: " << bytes_sent << '\n'
-			<< "Total bytes intended: " << bytes_intended << '\n' << '\n';
-	std::fwrite(ss.str().c_str(), sizeof(u8), ss.str().length(), log);
-	fclose(log);
-	}
+	~serial_write_nonsense_session(){}
 
 	void start();
 

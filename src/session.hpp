@@ -80,6 +80,27 @@ dispatcher::~dispatcher() {
 	}
 }
 
+/*-----------------------------------------------------------------------------
+ * December 3, 2015
+ *
+ * Network commands.  The dispatcher class receives its network commands from
+ * a network_socket_iface_session.  A network command is a vector<string> that
+ * contains exactly 3 strings in the order Super-Type Request-Type Option. For
+ * example, zabbix rx /dev/ttyS5 will obtain the rx count from port /dev/ttyS5
+ * provided there is a serial_read_*_session running on that port.
+ *
+ * A loose description of how network commands currently work:
+ *  1.  There is a root_map from ST to a function that deals with the RT and O
+ *  		supplied.
+ *  2.  For a RT and O that just requests a specific value, ie everything that
+ *  		zabbix does, we usually just invoke a request like:
+ *  			port_directory.at(option)->get(request-type)
+ *  3.  The super types could tell the dewd to format the output in a certain
+ *  		way, eg zabbix supertype, or could just be handy classification for
+ *  		command types, eg device-under-test commands.
+ *
+ */
+
 
 string dispatcher::brag() {
 	stringstream ss;
