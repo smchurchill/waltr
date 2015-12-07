@@ -123,6 +123,8 @@ string dispatcher::bark() {
 	}
 	return ss.str();
 }
+/* Supplies a string to be returned to `zabbix ports` network command.
+ * list of ports is delivered in JSON format for zabbix discovery capability. */
 string dispatcher::zabbix_ports() {
 	string json ("{\"data\":[");
 	int not_first = 0;
