@@ -77,8 +77,11 @@ private:
 	string raw(string item, string host);
 	string hr(string item, string host);
 
+	bool local_logging_enabled = false;
+	string logdir_;
+
 public:
-	dispatcher() :
+	dispatcher(string log_in) :
 		root_map(
 			{
 				{"help", bind(&dispatcher::help,this,_1,_2)},
@@ -96,7 +99,8 @@ public:
 				{"comrades", bind(&dispatcher::brag, this)},
 				{"map", bind(&dispatcher::bark,this)}
 			}
-		)
+		),
+		logdir_(log_in)
 	{
 	}
 	~dispatcher();
@@ -105,8 +109,7 @@ public:
 
 	void build_lists();
 
-	template<class container_type>
-	void forward(basic_session* msg_from, container_type* msg) {delete msg;}
+	void forward(basic_session* msg_from, string* msg);
 };
 
 

@@ -155,6 +155,7 @@ public:
 				{"bad_prefix", bind(&serial_read_parse_session::get_bad_prefix,this)},
 				{"bad_crc", bind(&serial_read_parse_session::get_bad_crc,this)},
 				{"bytes_received", bind(&serial_read_parse_session::get_bytes_received,this)},
+				{"wrapper_bytes_tot", bind(&serial_read_parse_session::get_wrapper_bytes_tot,this)},
 				{"msg_bytes_tot", bind(&serial_read_parse_session::get_msg_bytes_tot,this)},
 				{"garbage", bind(&serial_read_parse_session::get_garbage,this)}
 		};
@@ -193,6 +194,7 @@ private:
 		int bad_prefix;
 		int bad_crc;
 
+		int wrapper_bytes_tot;
 		int msg_bytes_tot;
 		int garbage;
 	};
@@ -206,6 +208,7 @@ private:
 	string get_bad_crc() { return to_string(counts.bad_crc); }
 	string get_bytes_received() { return to_string(counts.bytes_received); }
 	string get_msg_bytes_tot() { return to_string(counts.msg_bytes_tot); }
+	string get_wrapper_bytes_tot() {return to_string(counts.wrapper_bytes_tot); }
 	string get_garbage() { return to_string(counts.garbage); }
 };
 
@@ -260,6 +263,32 @@ public:
 	}
 
 	string get_type() { return string("serial-write"); }
+};
+
+/*=============================================================================
+ * December 7, 2015 :: _write_pb_ class
+ */
+
+class serial_write_pb_session : public serial_write_session {
+public:
+	serial_write_pb_session(
+			io_service& io_in, string log_in, dispatcher* ref_in, string device_in) :
+				serial_write_session(io_in, log_in, ref_in, device_in)
+	{
+		this->start();
+	}
+	~serial_write_pb_session(){}
+
+	void start();
+
+private:
+	void start_write();
+	void handle_write(
+			const boost::system::error_code& error, size_t bytes_transferred,
+			bBuff* message);
+	bBuff* generate_message();
+
+	int internal_counter = 0;
 };
 
 /*-----------------------------------------------------------------------------

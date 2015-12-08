@@ -25,6 +25,7 @@
 #include "serial_session.hpp"
 #include "network_session.hpp"
 
+
 namespace
 {
 	const size_t SUCCESS = 0;
@@ -189,7 +190,7 @@ int main(int argc, char** argv) {
 		 * the future.
 		 */
 
-		dispatcher* dis = new dispatcher;
+		dispatcher* dis = new dispatcher (logging_directory);
 		vector<tcp::endpoint> ends;
 
 		if(vmap.count("test")||vmap.count("read-test"))
@@ -208,7 +209,7 @@ int main(int argc, char** argv) {
 			for(auto it : rdev)
 				new serial_read_parse_session(*service, logging_directory, dis, it);
 			for(auto it : wdev)
-				new serial_write_nonsense_session(*service,	logging_directory, dis, it);
+				new serial_write_pb_session(*service,	logging_directory, dis, it);
 		}
 
 		if(vmap.count("net-comm")) {

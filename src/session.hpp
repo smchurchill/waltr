@@ -173,6 +173,30 @@ void dispatcher::build_lists() {
 
 }
 
+
+void dispatcher::forward(basic_session* msg_from, string* msg) {
+	flopointpb::FloPointWaveform fpwf;
+
+	if(local_logging_enabled){
+		if(!(fpwf.ParseFromString(*msg))) {
+			FILE * log = fopen((logdir_ + "dispatch.failure.log").c_str(),"a");
+			string s (to_string(steady_clock::now()) + ": Could not parse string.\n");
+			std::fwrite(s.c_str(), sizeof(u8), s.length(), log);
+			fclose(log);
+		} else {
+			FILE * log = fopen((logdir_ + "dispatch.message.log").c_str(),"a");
+			string s (to_string(steady_clock::now()) + ": Message received:\n");
+			s += "\tName: " + fpwf.name() + '\n';
+			s += "\tWaveform: ";
+			for(int i = 0; i < fpwf.waveform().wheight().size(); ++i)
+				s += to_string(fpwf.waveform().wheight(i)) + '\n';
+			std::fwrite(s.c_str(), sizeof(u8), s.length(), log);
+			fclose(log);
+		}
+	}
+	delete msg;
+}
+
 /*-----------------------------------------------------------------------------
  * November 25, 2015 :: basic_session methods
  */

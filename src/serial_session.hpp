@@ -17,7 +17,8 @@
 #include <deque>
 #include <cstdio>
 #include <algorithm>
-#include <time.h>
+#include <ctime>
+#include <cmath>
 #include <iterator>
 
 #include <termios.h>
@@ -38,7 +39,6 @@
 
 #include "session.hpp"
 #include "serial_session.h"
-
 
 namespace dew {
 
@@ -66,6 +66,8 @@ using ::std::search;
 using ::std::find;
 using ::std::copy;
 using ::std::reverse_copy;
+using ::std::floor;
+using ::std::exp;
 
 /*-----------------------------------------------------------------------------
  * November 20, 2015 :: base methods
@@ -180,7 +182,8 @@ void serial_read_parse_session::check_the_deque() {
 
 
 	if(to_parse[0]!=0xff || to_parse[1]!=0xfe) {
-		counts.bad_prefix += scrub(to_parse.begin()+3);
+
+		counts.bad_prefix += scrub(to_parse.begin()+2);
 
 		io_ref->post(boost::bind(&serial_read_parse_session::check_the_deque,this));
 		return;
@@ -261,20 +264,25 @@ void serial_read_parse_session::check_the_deque() {
 		/* dispatcher::forward() function promises to release this memory once the
 		 * message has been processed.
 		 */
-		pBuff* to_send = new pBuff;
+		string* to_send = new string;
+		pBuff xfix;
 
 		/* We have a match and match_point points to the beginning of the endframe
 		 * delimiter.  endframe delimiter is 6 characters long, so match_point + 6
 		 * is less than to_parse.end().
 		 */
 		assert(match_point+6 <= to_parse.end());
-		copy(to_parse.begin(), match_point+6, back_inserter(*to_send));
+		copy(to_parse.begin(),to_parse.begin()+12,back_inserter(xfix));
+		copy(to_parse.begin()+12, match_point, back_inserter(*to_send));
+		copy(match_point, match_point+6, back_inserter(xfix));
+
+		counts.wrapper_bytes_tot += xfix.size();
 		counts.msg_bytes_tot += to_send->size();
 		counts.garbage += scrub(match_point+6);
 		counts.garbage -= to_send->size();
 
-		assert(to_send->size()>=11);
-		counts.curr_msg = (int)(to_send->at(10));
+		assert(xfix.size()>=11);
+		counts.curr_msg = (int)(xfix.at(10));
 		if(counts.last_msg > counts.curr_msg )
 			counts.last_msg -= 256;
 		while(counts.last_msg < counts.curr_msg - 1){
@@ -332,11 +340,106 @@ void serial_read_log_session::handle_read(boost::system::error_code ec,
 }
 
 /*-----------------------------------------------------------------------------
- * November 20, 2015 :: _write_methods
+ * November 20, 2015 :: _write_ methods
  */
 
+/*=============================================================================
+ * December 7, 2015 :: _write_pb_ methods
+ */
+
+void serial_write_pb_session::start() {
+	srand(time(0));
+	start_write();
+}
+
+void serial_write_pb_session::start_write() {
+	bBuff* message = generate_message();
+	mutable_buffers_1 bMessage = boost::asio::buffer(*message);
+	boost::asio::async_write(port_, bMessage, bind(
+			&serial_write_pb_session::handle_write, this, _1, _2, message));
+}
+
+void serial_write_pb_session::handle_write(
+			const boost::system::error_code& error, size_t bytes_transferred,
+			bBuff* message) {
+	io_ref->post(
+			boost::bind(&serial_write_pb_session::start_write,this));
+	delete message;
+}
+
+bBuff* serial_write_pb_session::generate_message() {
+	/* Caller accepts the responsibility of freeing this memory */
+	bBuff* msg = new bBuff;
+
+	while(msg->size() < 1024) {
+		++internal_counter;
+		bBuff nonce1 = {0xff, 0xfe}, nonce2;
+		u8 byte;
+
+		for(int i=4;i;--i) {
+			byte = (u8)(mod(rand(),256));
+			nonce1.emplace_back(byte);
+			byte = (u8)(mod(rand(),256));
+			nonce2.emplace_back(byte);
+		}
+		/* nonce 1 add */
+		copy(nonce1.begin(), nonce1.end(), back_inserter(*msg));
+
+		/* nonce2 add */
+		copy(nonce2.begin(), nonce2.end(), back_inserter(*msg));
+
+		/* msg number sequence */
+		msg->push_back(mod(internal_counter,256));
+
+		assert(msg->size()>=11);
+		u8 crc = crc8(make_iterator_range(msg->end()-11,msg->end()));
+
+		/* crc byte */
+		msg->push_back(crc);
+
+		int num = mod(rand(),9);
+		string name = to_string(num) + "of09";
+
+		flopointpb::FloPointWaveform fpwf;
+		fpwf.set_name(name);
+
+
+		/*=========================================================================
+		 * Waveform generated is Gompertz function samples at x = 0 .. 63
+		 * with parameters a=2^32-1, b=rand(1), c=rand(2)
+		 */
+		flopointpb::FloPointWaveform_Waveform* wf = new flopointpb::FloPointWaveform_Waveform;
+
+		double gomp_b = 1 - (static_cast<double>(rand())/RAND_MAX);
+		double gomp_c = 1 - (static_cast<double>(rand())/RAND_MAX);
+
+
+		for(int i = 0  ; i<64 ; ++i) {
+			wf->add_wheight(
+					static_cast<int>(65000*exp((-1)*gomp_b*exp((-1)*gomp_c)))*i);
+		}
+
+		fpwf.set_allocated_waveform(wf);
+
+		string fpwf_str;
+		if(!(fpwf.SerializeToString(&fpwf_str))) {
+			FILE * log = fopen((logdir_ + name_.substr(name_.find_last_of("/\\")+1) + ".message_generation").c_str(),"a");
+			string s (to_string(steady_clock::now()) + ": Could not serialize message to string.\n");
+			std::fwrite(s.c_str(), sizeof(u8), s.length(), log);
+			fclose(log);
+		}
+		copy(fpwf_str.begin(), fpwf_str.end(), back_inserter(*msg));
+
+		reverse_copy(nonce1.begin(),nonce1.end(),back_inserter(*msg));
+	}
+
+	//debug(make_iterator_range(msg->begin(),msg->end()));
+
+	return msg;
+}
+
 /*-----------------------------------------------------------------------------
- * November 24, 2015 :: _write_nonsense_methods
+ * November 24, 2015 :: _write_nonsense_ methods
  */
 void serial_write_nonsense_session::start() {
 	srand(0);
@@ -356,7 +459,7 @@ void serial_write_nonsense_session::start_write() {
 	fclose(log);
 	}
 
-	boost::asio::async_write(port_, bnonsense, boost::bind(
+	boost::asio::async_write(port_, bnonsense, bind(
 			&serial_write_nonsense_session::handle_write, this, _1, _2,
 			nonsense->size(), nonsense));
 }
