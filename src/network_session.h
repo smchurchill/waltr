@@ -14,6 +14,7 @@ using ::boost::asio::io_service;
 using ::boost::asio::ip::tcp;
 using ::boost::chrono::steady_clock;
 
+using ::std::stringstream;
 using ::std::string;
 using ::std::vector;
 using ::std::deque;
@@ -29,8 +30,8 @@ using ::std::size_t;
 class network_session : public basic_session{
 public:
 	network_session(
-			io_service& io_in, string log_in, dispatcher* ref_in, tcp::endpoint ep_in) :
-				basic_session(io_in, log_in, ref_in), endpoint_(ep_in)
+			shared_ptr<io_service> io_in, tcp::endpoint const ep_in) :
+				basic_session(io_in), endpoint_(ep_in)
 	{
 		map<string,std::function<string()> > tmp_map
 			{
@@ -50,15 +51,15 @@ protected:
 };
 
 /*-----------------------------------------------------------------------------
- * November 20, 2015 :: _socket_ class
+ * December 8, 2015 :: _socket_ class
  */
 class network_socket_session : public network_session {
 	friend class network_acceptor_session;
 
 public:
 	network_socket_session(
-			io_service& io_in, string log_in, dispatcher* ref_in, tcp::endpoint ep_in) :
-				network_session(io_in, log_in, ref_in, ep_in), socket_(*io_ref)
+			shared_ptr<io_service> io_in, tcp::socket sock_in) :
+			network_session(io_in, sock_in.local_endpoint()), socket_(move(sock_in))
 	{
 		map<string,std::function<string()> > tmp_map
 			{
@@ -67,10 +68,13 @@ public:
 		get_map.insert(tmp_map.begin(),tmp_map.end());
 	}
 
-protected:
-	tcp::socket* get_sock() { return &socket_; }
-	string get_subtype() { return "socket"; }
+	void start() { do_read(); }
 
+protected:
+	void do_read();
+	void handle_read( boost::system::error_code ec, size_t in_length);
+
+	string get_subtype() { return "socket"; }
 
 	const long BUFFER_LENGTH = 8192;
 	bBuff request_ = vector<u8>(BUFFER_LENGTH,0);
@@ -84,29 +88,29 @@ protected:
 class network_acceptor_session : public network_session {
 public:
 	network_acceptor_session(
-			io_service& io_in, string log_in, dispatcher* ref_in, tcp::endpoint& ep_in) :
-				network_session(io_in, log_in, ref_in, ep_in),
-				acceptor_(*io_ref, endpoint_)
+			shared_ptr<io_service> io_in, tcp::endpoint & ep_in) :
+			network_session(io_in, ep_in),
+			acceptor_(*io_ref, endpoint_),
+			socket_(*io_ref)
 	{
 		map<string,std::function<string()> > tmp_map
 			{
 				{"subtype", bind(&network_acceptor_session::get_subtype,this)}
 			};
 		get_map.insert(tmp_map.begin(),tmp_map.end());
-
-
-		start();
 	}
 
 	void start() { do_accept(); }
 
 
 private:
+
 	void do_accept();
 
 	string get_subtype() { return "acceptor"; }
 
 	tcp::acceptor acceptor_;
+	tcp::socket socket_;
 };
 
 /*-----------------------------------------------------------------------------
@@ -119,8 +123,8 @@ class network_socket_echo_session :	public network_socket_session {
 
 public:
 	network_socket_echo_session(
-			io_service& io_in, string log_in, dispatcher* ref_in, tcp::endpoint ep_in) :
-				network_socket_session(io_in, log_in, ref_in, ep_in)
+			shared_ptr<io_service> io_in, tcp::socket sock_in) :
+				network_socket_session(io_in, move(sock_in))
 	{
 	}
 
@@ -129,27 +133,6 @@ public:
 private:
 	void do_read();
 	void do_write(size_t length);
-};
-
-/*-----------------------------------------------------------------------------
- * November 27, 2015 :: _socket_iface_ class
- */
-
-class network_socket_iface_session : public network_socket_session {
-public:
-	network_socket_iface_session(
-			io_service& io_in, string log_in, dispatcher* ref_in, tcp::endpoint ep_in) :
-				network_socket_session(io_in, log_in, ref_in, ep_in)
-	{
-	}
-
-	void start() { do_read(); }
-
-protected:
-
-	void do_read();
-	void handle_read( boost::system::error_code ec, size_t in_length);
-
 };
 
 } // dew namespace

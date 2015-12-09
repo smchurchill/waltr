@@ -34,9 +34,9 @@ class serial_session : public basic_session{
 	friend class dispatcher;
 public:
 	serial_session(
-			io_service& io_in, string log_in, dispatcher* ref_in, string device_in) :
-				basic_session(io_in, log_in, ref_in),
-				name_(device_in),	port_(*io_ref, name_)
+			shared_ptr<io_service> io_in, string device_in) :
+				basic_session(io_in),
+				name_(device_in),	port_(*io_ref, device_in)
 	{
 		map<string,std::function<string()> > tmp_map {
 			{"name", bind(&serial_session::get_name,this)},
@@ -65,7 +65,13 @@ protected:
 	string name_;
 	serial_port port_;
 	int fd;
-	struct serial_icounter_struct counters {0};
+	struct serial_icounter_struct {
+    int cts, dsr, rng, dcd;
+    int rx, tx;
+    int frame, overrun, parity, brk;
+    int buf_overrun;
+    int reserved[9];
+	} counters {0};
 };
 
 /*-----------------------------------------------------------------------------
@@ -75,8 +81,8 @@ class serial_read_session :	public serial_session {
 	friend class dispatcher;
 public:
 	serial_read_session(
-			io_service& io_in, string log_in, dispatcher* ref_in, string device_in) :
-				serial_session(io_in, log_in, ref_in, device_in), timer_(*io_ref)
+			shared_ptr<io_service> io_in, string device_in) :
+				serial_session(io_in, device_in), timer_(*io_ref)
 	{
 		map<string,std::function<string()> > tmp_map
 			{
@@ -144,8 +150,8 @@ class serial_read_parse_session :	public serial_read_session {
 	friend class dispatcher;
 public:
 	serial_read_parse_session(
-			io_service& io_in, string log_in, dispatcher* ref_in, string device_in) :
-				serial_read_session(io_in, log_in, ref_in, device_in)
+			shared_ptr<io_service> io_in, string device_in) :
+				serial_read_session(io_in, device_in)
 	{
 		map<string,std::function<string()> > tmp_map {
 				{"msg_tot",bind(&serial_read_parse_session::get_msg_tot,this)},
@@ -218,10 +224,10 @@ private:
 class serial_read_log_session :	public serial_read_session {
 public:
 		serial_read_log_session(
-			io_service& io_in, string log_in,	dispatcher* ref_in,	string device_in) :
-				serial_read_session(io_in, log_in, ref_in, device_in)
+				shared_ptr<io_service> io_in, string device_in) :
+				serial_read_session(io_in, device_in)
 	{
-		filename_ = logdir_ + name_.substr(name_.find_last_of("/\\")+1);
+		filename_ = dis_ref->get_logdir() + name_.substr(name_.find_last_of("/\\")+1);
 		this->start();
 	}
 
@@ -257,12 +263,17 @@ private:
 class serial_write_session : public serial_session {
 public:
 	serial_write_session(
-			io_service& io_in, string log_in,	dispatcher* ref_in,	string device_in) :
-				serial_session(io_in, log_in, ref_in, device_in)
+			shared_ptr<io_service> io_in, string device_in) :
+				serial_session(io_in, device_in)
 	{
+		map<string,std::function<string()> > tmp_map
+			{
+				{"subtype", bind(&serial_write_session::get_subtype,this)}
+			};
+		get_map.insert(tmp_map.begin(),tmp_map.end());
 	}
 
-	string get_type() { return string("serial-write"); }
+	string get_subtype() { return string("serial-write"); }
 };
 
 /*=============================================================================
@@ -272,8 +283,8 @@ public:
 class serial_write_pb_session : public serial_write_session {
 public:
 	serial_write_pb_session(
-			io_service& io_in, string log_in, dispatcher* ref_in, string device_in) :
-				serial_write_session(io_in, log_in, ref_in, device_in)
+			shared_ptr<io_service> io_in, string device_in) :
+				serial_write_session(io_in, device_in)
 	{
 		this->start();
 	}
@@ -289,38 +300,6 @@ private:
 	bBuff* generate_message();
 
 	int internal_counter = 0;
-};
-
-/*-----------------------------------------------------------------------------
- * November 24, 2015 :: _write_nonsense_ class
- */
-class serial_write_nonsense_session : public serial_write_session {
-public:
-	serial_write_nonsense_session(
-			io_service& io_in, string log_in, dispatcher* ref_in, string device_in) :
-				serial_write_session(io_in, log_in, ref_in, device_in), timer_(*io_ref)
-	{
-		this->start();
-	}
-	~serial_write_nonsense_session(){}
-
-	void start();
-
-private:
-	void start_write();
-	void handle_write(
-			const boost::system::error_code& error, size_t bytes_transferred,
-			std::size_t message_size, bBuff* nonsense);
-	bBuff* generate_nonsense();
-	bBuff generate_some_sense(bBuff payload);
-
-  time_point<steady_clock> dead_ = steady_clock::now();
-  basic_waitable_timer<steady_clock> timer_;
-
-  int internal_counter = 0;
-  long int bytes_sent = 0;
-  long int bytes_intended = 0;
-
 };
 
 } // dew namespace

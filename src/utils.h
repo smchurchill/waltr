@@ -190,9 +190,8 @@ u8 crc8( Range rng ) {
  * Shuffling some mode code away from main()
  */
 
-void graceful_exit(const boost::system::error_code& error, int signal_number, dispatcher* dis)
+void graceful_exit(const boost::system::error_code& error, int signal_number)
 {
-	delete dis;
 	exit(0);
 }
 

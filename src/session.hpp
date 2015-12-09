@@ -8,6 +8,7 @@
 #ifndef SESSION_HPP_
 #define SESSION_HPP_
 
+
 #include <iostream>
 #include <fstream>
 #include <string>
@@ -17,7 +18,9 @@
 #include <cstdio>
 #include <algorithm>
 #include <functional>
+
 #include <utility>
+#include <memory>
 
 #include <boost/asio.hpp>
 #include <boost/bind.hpp>
@@ -31,6 +34,8 @@
 #include "utils.h"
 
 #include "session.h"
+#include "serial_session.h"
+#include "network_session.h"
 
 namespace po = boost::program_options;
 
@@ -58,27 +63,19 @@ using ::std::swap;
 using ::std::cout;
 using ::std::count;
 
+using ::std::unique_ptr;
+using ::std::shared_ptr;
+using ::std::make_shared;
+using ::std::move;
+
+using ::std::enable_shared_from_this;
+
+
+
 
 /*-----------------------------------------------------------------------------
  * December 1, 2015 :: dispatcher methods
  */
-
-void dispatcher::hello(basic_session* new_comrade) {
-	comrades.push_back(new_comrade);
-}
-
-void dispatcher::forget_(basic_session* ex_comrade) {
-	vector<basic_session*>::iterator position = find(
-				comrades.begin(), comrades.end(), ex_comrade);
-	if(position != comrades.end())
-		comrades.erase(position);
-}
-
-dispatcher::~dispatcher() {
-	for(auto comrade : comrades) {
-		delete comrade;
-	}
-}
 
 /*-----------------------------------------------------------------------------
  * December 3, 2015
@@ -107,9 +104,6 @@ string dispatcher::brag() {
 	ss << "All comrades:\r\n";
 	for(auto comrade : comrades)
 		ss << '\t' << comrade->get("name") << endl;
-	ss << "Port comrades:\r\n";
-	for(auto comrade : port_directory)
-		ss << '\t' << comrade.first << endl;
 	return ss.str();
 }
 string dispatcher::bark() {
@@ -128,13 +122,15 @@ string dispatcher::bark() {
 string dispatcher::zabbix_ports() {
 	string json ("{\"data\":[");
 	int not_first = 0;
-	for(auto comrade : port_directory) {
+	for(auto comrade : comrades) {
+		if(!comrade->get("subtype").compare("serial-read")) {
 			if(not_first)
 				json += ",";
 			json += "{\"{#DEWDSP}\":\"";
-			json += comrade.first;
+			json += comrade->get("name");
 			json += "\"}";
 			++not_first;
+		}
 	}
 	json += "]}";
 	return json;
@@ -151,28 +147,21 @@ string dispatcher::call_net(vector<string> cmds) {
 
 string dispatcher::help(string type, string item) {return "nyet\n";}
 string dispatcher::raw(string item, string host) {
-	if(port_directory.count(host))
-		return port_directory.at(host)->get(item);
+	for(auto comrade : comrades)
+		if(!comrade->get("name").compare(host))
+			return comrade->get(item);
 	else if(raw_map.count(item))
 		return raw_map.at(item)();
-	else
-		return "-1";
+
+	return "-1";
 }
+
 string dispatcher::hr(string item, string host) {
 	if(hr_map.count(item))
 		return hr_map.at(item)();
 	else
 		return "nyet\n";
 }
-
-void dispatcher::build_lists() {
-	for(auto comrade : comrades)
-		if(!comrade->get("subtype").compare(string("serial-read"))) {
-			port_directory.insert(make_pair(comrade->get("name"), comrade));
-	}
-
-}
-
 
 void dispatcher::forward(basic_session* msg_from, string* msg) {
 	flopointpb::FloPointWaveform fpwf;
@@ -197,14 +186,52 @@ void dispatcher::forward(basic_session* msg_from, string* msg) {
 	delete msg;
 }
 
+void dispatcher::make_session (tcp::endpoint& ep_in) {
+	auto pt = make_shared<network_acceptor_session>(io_ref, ep_in);
+
+	pt->set_ref(shared_from_this());
+	pt->start();
+
+	comrades.push_back(move(pt));
+}
+
+void dispatcher::make_session (tcp::socket sock_in) {
+	auto pt = make_shared<network_socket_session>(io_ref, move(sock_in));
+
+	pt->set_ref(shared_from_this());
+	pt->start();
+
+	comrades.push_back(move(pt));
+
+	for(auto comrade = comrades.begin() ; comrade != comrades.end() ; ++comrade )
+		if((*comrade)->is_dead()) {
+			comrades.erase(comrade);
+		}
+}
+
+
+void dispatcher::make_session (string device_name, string type) {
+	if(type.compare("read")) {
+		auto pt = make_shared<serial_read_parse_session>(io_ref, device_name);
+
+		pt->set_ref(shared_from_this());
+		pt->start();
+
+		comrades.push_back(move(pt));
+	}	else if(type.compare("write-test")) {
+		auto pt = make_shared<serial_write_pb_session>(io_ref, device_name);
+
+		pt->set_ref(shared_from_this());
+		pt->start();
+
+		comrades.push_back(move(pt));
+	}
+}
+
+
 /*-----------------------------------------------------------------------------
  * November 25, 2015 :: basic_session methods
  */
-basic_session::basic_session( io_service& io_in, string log_in, dispatcher* ref_in) :
-		io_ref(&io_in), logdir_(log_in), dis_ref(ref_in)
-{
-	dis_ref->hello(this);
-}
 
 
 

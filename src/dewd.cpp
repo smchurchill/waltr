@@ -13,6 +13,7 @@
 #include <deque>
 #include <cstdio>
 #include <functional>
+#include <memory>
 
 #include <boost/version.hpp>
 #include <boost/asio.hpp>
@@ -49,6 +50,8 @@ using ::std::to_string;
 using ::std::endl;
 
 using ::std::ifstream;
+using ::std::shared_ptr;
+using ::std::unique_ptr;
 
 
 
@@ -164,7 +167,7 @@ int main(int argc, char** argv) {
 		 *
 		 */
 
-		boost::shared_ptr<io_service> service(new io_service);
+		shared_ptr<io_service> service(new io_service);
 
 		/* If a log-directory was specified, we set it now.  Otherwise, we use the
 		 * default log-directory.
@@ -190,7 +193,9 @@ int main(int argc, char** argv) {
 		 * the future.
 		 */
 
-		dispatcher* dis = new dispatcher (logging_directory);
+		cout << "1" << endl;
+
+		auto dis = make_shared<dispatcher>(service, logging_directory);
 		vector<tcp::endpoint> ends;
 
 		if(vmap.count("test")||vmap.count("read-test"))
@@ -205,30 +210,32 @@ int main(int argc, char** argv) {
 			set_endpoints(&ends,&addr,port_number);
 
 
+		cout << "2" << endl;
+
 		if(vmap.count("sp-comm")){
 			for(auto it : rdev)
-				new serial_read_parse_session(*service, logging_directory, dis, it);
+				dis->make_session(it, "read");
 			for(auto it : wdev)
-				new serial_write_pb_session(*service,	logging_directory, dis, it);
+				dis->make_session(it, "write-test");
 		}
 
 		if(vmap.count("net-comm")) {
 			for(auto it : ends)
-				new network_acceptor_session(*service, logging_directory, dis, it);
+				dis->make_session(it);
 		}
 
-		dis->build_lists();
+		cout << "3" << endl;
 
 		/*
 		 * Set signals to catch for graceful termination.
 		 */
 
 		boost::asio::signal_set signals(*service, SIGINT, SIGTERM);
-		signals.async_wait(boost::bind(&graceful_exit,_1,_2, dis));
+		signals.async_wait(boost::bind(&graceful_exit,_1,_2));
 
 		/*
-		 * io_service.run() will run the io_service until there are no jobs or han-
-		 * dlers left to be invoked.  Because the handlers as written invoke new
+		 * io_service::run() will run the io_service until there are no jobs or
+		 * handlers left to be invoked.  Because the handlers as written invoke new
 		 * work, run() should never terminate.
 		 *
 		 */
@@ -236,7 +243,8 @@ int main(int argc, char** argv) {
 		service->run();
 
 
-
+	} catch (std::bad_weak_ptr& e) {
+		cout << e.what() << endl;
 	} catch (std::exception& e) {
 		cerr << e.what() << endl;
 	}

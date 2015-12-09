@@ -15,6 +15,9 @@
 #include <vector>
 #include <cstdio>
 
+#include <memory>
+#include <utility>
+
 #include <boost/asio.hpp>
 #include <boost/bind.hpp>
 
@@ -47,73 +50,29 @@ using ::std::size_t;
 using ::std::copy;
 using ::std::copy_n;
 
+using ::std::make_shared;
+
 /*-----------------------------------------------------------------------------
  * November 20, 2015 :: base methods
  */
 
 
-/*-----------------------------------------------------------------------------
- * November 20, 2015 :: _socket_ methods
+/*=============================================================================
+ * December 8, 2015 :: _socket_ methods
  */
-
-/*-----------------------------------------------------------------------------
- * November 20, 2015 :: _acceptor_ methods
- */
-void network_acceptor_session::do_accept() {
-	network_socket_iface_session* sock_ =	new network_socket_iface_session(
-			*io_ref, logdir_, dis_ref, endpoint_);
-
-	acceptor_.async_accept(*(sock_->get_sock()), endpoint_,
-			[this,sock_](boost::system::error_code ec)
-			{
-				if(!ec) {
-					sock_->start();
-				}
-				this->start();
-			});
-}
-
-/*-----------------------------------------------------------------------------
- * November 20, 2015 :: _socket_echo_ methods
- */
-void network_socket_echo_session::do_read() {
-	socket_.async_read_some(boost::asio::buffer(request_),
-			[this](boost::system::error_code ec, size_t length)
-			{
-				if(!ec)
-					do_write(length);
-				else {
-					delete this;
-				}
-			});
-}
-
-void network_socket_echo_session::do_write(size_t length)
-{
-	boost::asio::async_write(socket_,boost::asio::buffer(request_,length),
-			[this](boost::system::error_code ec, size_t)
-			{
-				do_read();
-			});
-}
-
-/*-----------------------------------------------------------------------------
- * November 27, 2015 :: _socket_iface_ methods
- */
-
 
 /* Currently implemented using asyc_read_some. May need to switch to async_read
  * with timeouts if partial commands are being processed.
  */
-void network_socket_iface_session::do_read() {
+void network_socket_session::do_read() {
 	socket_.async_read_some(boost::asio::buffer(request_),
-			boost::bind(&network_socket_iface_session::handle_read,this,_1,_2));
+			boost::bind(&network_socket_session::handle_read,this,_1,_2));
 }
 
-void network_socket_iface_session::handle_read(
+void network_socket_session::handle_read(
 		boost::system::error_code ec, size_t in_length) {
 
-				if(ec){ dis_ref->forget_(this); delete this; return; }
+				if(ec){ die(); }
 
 				size_t out_length = 0;
 
@@ -151,6 +110,48 @@ void network_socket_iface_session::handle_read(
 							do_read();
 						});
 }
+
+
+/*-----------------------------------------------------------------------------
+ * November 20, 2015 :: _acceptor_ methods
+ */
+void network_acceptor_session::do_accept() {
+	acceptor_.async_accept(socket_,
+			[this](boost::system::error_code ec)
+			{
+				if(!ec) {
+					dis_ref->make_session((move(socket_)));
+				}
+				this->start();
+			});
+}
+
+/*-----------------------------------------------------------------------------
+ * November 20, 2015 :: _socket_echo_ methods
+ */
+void network_socket_echo_session::do_read() {
+	socket_.async_read_some(boost::asio::buffer(request_),
+			[this](boost::system::error_code ec, size_t length)
+			{
+				if(!ec)
+					do_write(length);
+				else {
+					delete this;
+				}
+			});
+}
+
+void network_socket_echo_session::do_write(size_t length)
+{
+	boost::asio::async_write(socket_,boost::asio::buffer(request_,length),
+			[this](boost::system::error_code ec, size_t)
+			{
+				do_read();
+			});
+}
+
+
+
 
 
 
