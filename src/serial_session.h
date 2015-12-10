@@ -74,28 +74,79 @@ protected:
 	} counters {0};
 };
 
-/*-----------------------------------------------------------------------------
- * November 20, 2015 :: _read_ class
+/*=============================================================================
+ * December 9, 2015 :: _read_ class
+ *
+ * _read_ class cannibalized _read_parse_ class as of December 9, 2015.
  */
-class serial_read_session :	public serial_session {
+class serial_read_session :	public serial_session,
+	public enable_shared_from_this<serial_read_session>
+{
 	friend class dispatcher;
 public:
 	serial_read_session(
 			shared_ptr<io_service> io_in, string device_in) :
 				serial_session(io_in, device_in), timer_(*io_ref)
-	{
-		map<string,std::function<string()> > tmp_map
-			{
-				{"subtype", bind(&serial_read_session::get_subtype,this)}
+		{
+			map<string,std::function<string()> > tmp_map {
+					{"subtype", bind(&srs::get_subtype,this)},
+					{"msg_tot",bind(&srs::get_msg_tot,this)},
+					{"lost_msg_count",bind(&srs::get_lost_msg_count,this)},
+					{"frame_too_old", bind(&srs::get_frame_too_old,this)},
+					{"frame_too_long", bind(&srs::get_frame_too_long,this)},
+					{"bad_prefix", bind(&srs::get_bad_prefix,this)},
+					{"bad_crc", bind(&srs::get_bad_crc,this)},
+					{"bytes_received", bind(&srs::get_bytes_received,this)},
+					{"wrapper_bytes_tot", bind(&srs::get_wrapper_bytes_tot,this)},
+					{"msg_bytes_tot", bind(&srs::get_msg_bytes_tot,this)},
+					{"garbage", bind(&srs::get_garbage,this)}
 			};
-		get_map.insert(tmp_map.begin(),tmp_map.end());
-	}
 
-	virtual ~serial_read_session() {}
+			get_map.insert(tmp_map.begin(),tmp_map.end());
+		}
+	~serial_read_session() {}
 
-protected:
+	void start();
 
-	string get_subtype() { return string("serial-read"); }
+private:
+	void start_read();
+	void handle_read(boost::system::error_code ec, size_t length,
+			bBuff* buffer_);
+	int scrub(pBuff::iterator iter);
+	void check_the_deque();
+	void forward(string* msg);
+	time_point<steady_clock> front_last = steady_clock::now();
+	const size_t MAX_FRAME_LENGTH = 4096;
+	pBuff to_parse;
+
+	struct counter_struct {
+		/* For the serial_read_parse_session class */
+		int msg_tot;
+		int bytes_received;
+		int last_msg;
+		int curr_msg;
+		int lost_msg_count;
+		int frame_too_long;
+		int frame_too_old;
+		int bad_prefix;
+		int bad_crc;
+		int wrapper_bytes_tot;
+		int msg_bytes_tot;
+		int garbage;
+	};
+	struct counter_struct counts {0};
+
+  string get_subtype() { return string("serial-read"); }
+	string get_msg_tot() { return to_string(counts.msg_tot); }
+	string get_lost_msg_count() { return to_string(counts.lost_msg_count); }
+	string get_frame_too_old() { return to_string(counts.frame_too_old); }
+	string get_frame_too_long() { return to_string(counts.frame_too_long); }
+	string get_bad_prefix() { return to_string(counts.bad_prefix); }
+	string get_bad_crc() { return to_string(counts.bad_crc); }
+	string get_bytes_received() { return to_string(counts.bytes_received); }
+	string get_msg_bytes_tot() { return to_string(counts.msg_bytes_tot); }
+	string get_wrapper_bytes_tot() {return to_string(counts.wrapper_bytes_tot); }
+	string get_garbage() { return to_string(counts.garbage); }
 
 	/* November 18, 2015
 	 * AJS says that pang has a 4k kernel buffer.  We want our buffer to be
@@ -143,119 +194,6 @@ protected:
 	void handle_timeout(boost::system::error_code ec);
 };
 
-/*-----------------------------------------------------------------------------
- * November 20, 2015 :: _read_parse_ class
- */
-class serial_read_parse_session :	public serial_read_session {
-	friend class dispatcher;
-public:
-	serial_read_parse_session(
-			shared_ptr<io_service> io_in, string device_in) :
-				serial_read_session(io_in, device_in)
-	{
-		map<string,std::function<string()> > tmp_map {
-				{"msg_tot",bind(&serial_read_parse_session::get_msg_tot,this)},
-				{"lost_msg_count",bind(&serial_read_parse_session::get_lost_msg_count,this)},
-				{"frame_too_old", bind(&serial_read_parse_session::get_frame_too_old,this)},
-				{"frame_too_long", bind(&serial_read_parse_session::get_frame_too_long,this)},
-				{"bad_prefix", bind(&serial_read_parse_session::get_bad_prefix,this)},
-				{"bad_crc", bind(&serial_read_parse_session::get_bad_crc,this)},
-				{"bytes_received", bind(&serial_read_parse_session::get_bytes_received,this)},
-				{"wrapper_bytes_tot", bind(&serial_read_parse_session::get_wrapper_bytes_tot,this)},
-				{"msg_bytes_tot", bind(&serial_read_parse_session::get_msg_bytes_tot,this)},
-				{"garbage", bind(&serial_read_parse_session::get_garbage,this)}
-		};
-
-		get_map.insert(tmp_map.begin(),tmp_map.end());
-
-		this->start();
-	}
-	~serial_read_parse_session() {}
-
-	void start();
-
-private:
-	void start_read();
-	void handle_read(boost::system::error_code ec, size_t length,
-			bBuff* buffer_);
-	void check_the_deque();
-	int scrub(pBuff::iterator iter);
-
-	time_point<steady_clock> front_last = steady_clock::now();
-
-	const size_t MAX_FRAME_LENGTH = 4096;
-	pBuff to_parse;
-
-	struct counter_struct {
-		/* For the serial_read_parse_session class */
-		int msg_tot;
-		int bytes_received;
-
-		int last_msg;
-		int curr_msg;
-		int lost_msg_count;
-
-		int frame_too_long;
-		int frame_too_old;
-		int bad_prefix;
-		int bad_crc;
-
-		int wrapper_bytes_tot;
-		int msg_bytes_tot;
-		int garbage;
-	};
-	struct counter_struct counts {0};
-
-	string get_msg_tot() { return to_string(counts.msg_tot); }
-	string get_lost_msg_count() { return to_string(counts.lost_msg_count); }
-	string get_frame_too_old() { return to_string(counts.frame_too_old); }
-	string get_frame_too_long() { return to_string(counts.frame_too_long); }
-	string get_bad_prefix() { return to_string(counts.bad_prefix); }
-	string get_bad_crc() { return to_string(counts.bad_crc); }
-	string get_bytes_received() { return to_string(counts.bytes_received); }
-	string get_msg_bytes_tot() { return to_string(counts.msg_bytes_tot); }
-	string get_wrapper_bytes_tot() {return to_string(counts.wrapper_bytes_tot); }
-	string get_garbage() { return to_string(counts.garbage); }
-};
-
-/*-----------------------------------------------------------------------------
- * November 20, 2015 :: _read_log_ class
- */
-class serial_read_log_session :	public serial_read_session {
-public:
-		serial_read_log_session(
-				shared_ptr<io_service> io_in, string device_in) :
-				serial_read_session(io_in, device_in)
-	{
-		filename_ = dis_ref->get_logdir() + name_.substr(name_.find_last_of("/\\")+1);
-		this->start();
-	}
-
-	void start();
-
-	/* November 20, 2015
-	 * This kicks off the reading work loop, and the loop returns here every time
-	 * through.  This is the only place that the asyc_read work is added to the
-	 * io_service.
-	 *
-	 * The new vector made in this method is freed when handle_read is called,
-	 * once the async_read work breaks.
-	 */
-	void start_read();
-
-	/* November 20, 2015
-	 * The first thing we do is kick off another read work cycle by calling the
-	 * start_read() method. If $length > 0 then there are characters to write, so
-	 * we write $length characters from buffer_ to file_.  Otherwise, $length=0
-	 * and there are no characters ready to write in buffer_.
-	 */
-	void handle_read(boost::system::error_code ec, size_t length,
-		bBuff* buffer_);
-
-private:
-		string filename_;
-
-};
 
 /*-----------------------------------------------------------------------------
  * November 20, 2015 :: _write_ class
@@ -280,13 +218,13 @@ public:
  * December 7, 2015 :: _write_pb_ class
  */
 
-class serial_write_pb_session : public serial_write_session {
+class serial_write_pb_session : public serial_write_session,
+	public enable_shared_from_this<serial_write_pb_session> {
 public:
 	serial_write_pb_session(
 			shared_ptr<io_service> io_in, string device_in) :
 				serial_write_session(io_in, device_in)
 	{
-		this->start();
 	}
 	~serial_write_pb_session(){}
 

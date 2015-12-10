@@ -23,6 +23,8 @@ using ::std::pair;
 
 using ::std::size_t;
 
+using ::std::enable_shared_from_this;
+
 
 /*-----------------------------------------------------------------------------
  * November 20, 2015 :: base class
@@ -53,7 +55,8 @@ protected:
 /*-----------------------------------------------------------------------------
  * December 8, 2015 :: _socket_ class
  */
-class network_socket_session : public network_session {
+class network_socket_session : public network_session,
+	public enable_shared_from_this<network_socket_session> {
 	friend class network_acceptor_session;
 
 public:
@@ -85,7 +88,8 @@ protected:
 /*-----------------------------------------------------------------------------
  * November 20, 2015 :: _acceptor_ class
  */
-class network_acceptor_session : public network_session {
+class network_acceptor_session : public network_session,
+	public enable_shared_from_this<network_acceptor_session> {
 public:
 	network_acceptor_session(
 			shared_ptr<io_service> io_in, tcp::endpoint & ep_in) :

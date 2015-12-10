@@ -193,8 +193,6 @@ int main(int argc, char** argv) {
 		 * the future.
 		 */
 
-		cout << "1" << endl;
-
 		auto dis = make_shared<dispatcher>(service, logging_directory);
 		vector<tcp::endpoint> ends;
 
@@ -210,8 +208,6 @@ int main(int argc, char** argv) {
 			set_endpoints(&ends,&addr,port_number);
 
 
-		cout << "2" << endl;
-
 		if(vmap.count("sp-comm")){
 			for(auto it : rdev)
 				dis->make_session(it, "read");
@@ -224,7 +220,6 @@ int main(int argc, char** argv) {
 				dis->make_session(it);
 		}
 
-		cout << "3" << endl;
 
 		/*
 		 * Set signals to catch for graceful termination.

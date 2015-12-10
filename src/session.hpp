@@ -163,7 +163,7 @@ string dispatcher::hr(string item, string host) {
 		return "nyet\n";
 }
 
-void dispatcher::forward(basic_session* msg_from, string* msg) {
+void dispatcher::forward(string* msg) {
 	flopointpb::FloPointWaveform fpwf;
 
 	if(local_logging_enabled){
@@ -187,7 +187,7 @@ void dispatcher::forward(basic_session* msg_from, string* msg) {
 }
 
 void dispatcher::make_session (tcp::endpoint& ep_in) {
-	auto pt = make_shared<network_acceptor_session>(io_ref, ep_in);
+	auto pt = make_shared<nas>(io_ref, ep_in);
 
 	pt->set_ref(shared_from_this());
 	pt->start();
@@ -196,7 +196,7 @@ void dispatcher::make_session (tcp::endpoint& ep_in) {
 }
 
 void dispatcher::make_session (tcp::socket sock_in) {
-	auto pt = make_shared<network_socket_session>(io_ref, move(sock_in));
+	auto pt = make_shared<nss>(io_ref, move(sock_in));
 
 	pt->set_ref(shared_from_this());
 	pt->start();
@@ -212,14 +212,14 @@ void dispatcher::make_session (tcp::socket sock_in) {
 
 void dispatcher::make_session (string device_name, string type) {
 	if(type.compare("read")) {
-		auto pt = make_shared<serial_read_parse_session>(io_ref, device_name);
+		auto pt = make_shared<srs>(io_ref, device_name);
 
 		pt->set_ref(shared_from_this());
 		pt->start();
 
 		comrades.push_back(move(pt));
 	}	else if(type.compare("write-test")) {
-		auto pt = make_shared<serial_write_pb_session>(io_ref, device_name);
+		auto pt = make_shared<swps>(io_ref, device_name);
 
 		pt->set_ref(shared_from_this());
 		pt->start();

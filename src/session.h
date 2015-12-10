@@ -41,7 +41,7 @@ class serial_read_parse_session;
 class serial_write_pb_session;
 
 
-class basic_session{
+class basic_session {
 	friend class dispatcher;
 public:
 	basic_session( shared_ptr<io_service> io_in ) :
@@ -124,7 +124,7 @@ public:
 	string get_logdir() { return logdir_; }
 	void set_logdir(string logdir_in) { logdir_ = logdir_in; }
 
-	void forward(basic_session* msg_from, string* msg);
+	void forward(string* msg);
 
 	void make_session (tcp::endpoint& ep_in);
 	void make_session (tcp::socket sock_in);

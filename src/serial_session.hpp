@@ -54,6 +54,8 @@ using ::boost::asio::mutable_buffers_1;
 
 using ::boost::make_iterator_range;
 
+using ::boost::bind;
+
 using ::std::to_string;
 using ::std::string;
 using ::std::vector;
@@ -87,10 +89,13 @@ string serial_session::get_rx() {
 
 
 
-/*-----------------------------------------------------------------------------
- * November 20, 2015 :: _read_ methods
+/*=============================================================================
+ * December 9, 2015 :: _read_ methods
+ *
+ * _read_ class cannibalized _read_parse_ class as of December 9, 2015.
  */
-void serial_read_session::set_timer() {
+void srs::set_timer() {
+	srsp self (shared_from_this());
 	time_point<steady_clock> now_ =	steady_clock::now();
 
 	while(dead_< now_)
@@ -98,32 +103,29 @@ void serial_read_session::set_timer() {
 
 	timer_.expires_at(dead_);
 	timer_.async_wait(
-  	boost::bind(&serial_read_session::handle_timeout, this, _1));
+  	boost::bind(&srs::handle_timeout, self, _1));
 }
 
-void serial_read_session::handle_timeout(boost::system::error_code ec) {
+void srs::handle_timeout(boost::system::error_code ec) {
 	if(!ec)
 		port_.cancel();
 	set_timer();
 }
 
-/*-----------------------------------------------------------------------------
- * November 24, 2015 :: _read_parse_ methods
- */
-void serial_read_parse_session::start() {
+void srs::start() {
 	start_read();
 	dead_ = steady_clock::now() + timeout_;
 	set_timer();
 }
-void serial_read_parse_session::start_read() {
+void srs::start_read() {
 	bBuff* buffer_ = new bBuff (BUFFER_LENGTH);
 	mutable_buffers_1 Buffer_ = boost::asio::buffer(*buffer_);
 	boost::asio::async_read(port_,Buffer_,boost::bind(
-			&serial_read_parse_session::handle_read, this, _1, _2, buffer_));
+			&srs::handle_read, this, _1, _2, buffer_));
 }
-void serial_read_parse_session::handle_read(boost::system::error_code ec,
+void srs::handle_read(boost::system::error_code ec,
 		size_t length, bBuff* buffer_) {
-
+	srsp self (shared_from_this());
 	counts.bytes_received += length;
 
 	if(!buffer_->empty()) {
@@ -133,18 +135,20 @@ void serial_read_parse_session::handle_read(boost::system::error_code ec,
 	}
 	delete buffer_;
 
-	io_ref->post(boost::bind(&serial_read_parse_session::check_the_deque,this));
+	io_ref->post(
+			bind(&srs::check_the_deque,self));
 	start_read();
 }
 
-int serial_read_parse_session::scrub(pBuff::iterator iter) {
+int srs::scrub(pBuff::iterator iter) {
 	pBuff::iterator oter = find(iter,to_parse.end(),0xff);
 	int bytes = oter - to_parse.begin();
 	to_parse.erase(to_parse.begin(), oter);
 	front_last = steady_clock::now();
 	return bytes;
 }
-void serial_read_parse_session::check_the_deque() {
+void srs::check_the_deque() {
+	srsp self (shared_from_this());
 	/* The deque to check is d. From least restrictive to most restrictive, we
 	 * check that:
 	 * 1. size(d) > 0
@@ -185,7 +189,7 @@ void serial_read_parse_session::check_the_deque() {
 
 		counts.bad_prefix += scrub(to_parse.begin()+2);
 
-		io_ref->post(boost::bind(&serial_read_parse_session::check_the_deque,this));
+		io_ref->post(boost::bind(&srs::check_the_deque,this));
 		return;
 	}
 
@@ -208,7 +212,7 @@ void serial_read_parse_session::check_the_deque() {
 
 		counts.bad_crc += scrub(to_parse.begin()+12);
 
-		io_ref->post(boost::bind(&serial_read_parse_session::check_the_deque,this));
+		io_ref->post(boost::bind(&srs::check_the_deque,this));
 		return;
 	}
 
@@ -250,12 +254,12 @@ void serial_read_parse_session::check_the_deque() {
 		if(to_parse.size()>MAX_FRAME_LENGTH) {
 			counts.frame_too_long += scrub(to_parse.begin()+1);
 
-			io_ref->post(boost::bind(&serial_read_parse_session::check_the_deque,this));
+			io_ref->post(bind(&srs::check_the_deque,this));
 			return;
 		} else if (steady_clock::now() - front_last > milliseconds(500)) {
 			counts.frame_too_old += scrub(to_parse.begin()+1);
 
-			io_ref->post(boost::bind(&serial_read_parse_session::check_the_deque,this));
+			io_ref->post(boost::bind(&srs::check_the_deque,this));
 			return;
 		}
 	} else if(match_point!=to_parse.end()) { /* We have a message */
@@ -301,44 +305,17 @@ void serial_read_parse_session::check_the_deque() {
 		fclose(log);
 		}
 
-		io_ref->post(
-				[this,to_send](){
-					dis_ref->forward(this,to_send);
-				}
-			);
+		io_ref->post(bind(&srs::forward,this,to_send));
 
 		/* Loop checks until to_parse has no more messages waiting for us. */
-		io_ref->post(boost::bind(&serial_read_parse_session::check_the_deque,this));
+		io_ref->post(bind(&srs::check_the_deque,this));
 	}
 }
 
-
-/*-----------------------------------------------------------------------------
- * November 20, 2015 :: _read_log_ methods
- */
-void serial_read_log_session::start() {
-	start_read();
-	dead_ = steady_clock::now() + timeout_;
-	set_timer();
+void srs::forward(string* to_send) {
+	dis_ref->forward(to_send);
 }
 
-void serial_read_log_session::start_read() {
-	bBuff* buffer_ = new bBuff;
-	buffer_->assign (BUFFER_LENGTH,0);
-	mutable_buffers_1 Buffer_ = boost::asio::buffer(*buffer_);
-	boost::asio::async_read(port_,Buffer_,boost::bind(
-			&serial_read_log_session::handle_read, this, _1, _2, buffer_));
-}
-void serial_read_log_session::handle_read(boost::system::error_code ec,
-		size_t length,	bBuff* buffer_) {
-	this->start_read();
-	if (length > 0) {
-		FILE* file_ = fopen(filename_.c_str(), "a");
-		std::fwrite(buffer_->data(), sizeof(u8), length, file_);
-		fclose(file_);
-	}
-	delete buffer_;
-}
 
 /*-----------------------------------------------------------------------------
  * November 20, 2015 :: _write_ methods
@@ -348,27 +325,29 @@ void serial_read_log_session::handle_read(boost::system::error_code ec,
  * December 7, 2015 :: _write_pb_ methods
  */
 
-void serial_write_pb_session::start() {
+void swps::start() {
 	srand(time(0));
 	start_write();
 }
 
-void serial_write_pb_session::start_write() {
+void swps::start_write() {
+	swpsp self (shared_from_this());
 	bBuff* message = generate_message();
 	mutable_buffers_1 bMessage = boost::asio::buffer(*message);
 	boost::asio::async_write(port_, bMessage, bind(
-			&serial_write_pb_session::handle_write, this, _1, _2, message));
+			&swps::handle_write, self, _1, _2, message));
 }
 
-void serial_write_pb_session::handle_write(
+void swps::handle_write(
 			const boost::system::error_code& error, size_t bytes_transferred,
 			bBuff* message) {
+	swpsp self (shared_from_this());
 	io_ref->post(
-			boost::bind(&serial_write_pb_session::start_write,this));
+			boost::bind(&swps::start_write,self));
 	delete message;
 }
 
-bBuff* serial_write_pb_session::generate_message() {
+bBuff* swps::generate_message() {
 	/* Caller accepts the responsibility of freeing this memory */
 	bBuff* msg = new bBuff;
 
