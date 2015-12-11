@@ -41,6 +41,10 @@ using ::boost::asio::io_service;
 using ::boost::asio::ip::tcp;
 using ::boost::asio::ip::address_v4;
 
+using ::boost::chrono::steady_clock;
+using ::boost::chrono::time_point;
+using ::boost::chrono::nanoseconds;
+
 using ::std::string;
 using ::std::vector;
 
@@ -168,6 +172,7 @@ int main(int argc, char** argv) {
 		 */
 
 		shared_ptr<io_service> service(new io_service);
+
 
 		/* If a log-directory was specified, we set it now.  Otherwise, we use the
 		 * default log-directory.

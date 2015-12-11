@@ -31,11 +31,16 @@
 #include <boost/program_options.hpp>
 #include <boost/range/iterator_range.hpp>
 
-#include "utils.h"
 
+
+
+#include "utils.h"
 #include "session.h"
+
 #include "serial_session.h"
 #include "network_session.h"
+
+
 
 namespace po = boost::program_options;
 
@@ -122,15 +127,14 @@ string dispatcher::bark() {
 string dispatcher::zabbix_ports() {
 	string json ("{\"data\":[");
 	int not_first = 0;
-	for(auto comrade : comrades) {
-		if(!comrade->get("subtype").compare("serial-read")) {
+	for(auto wp : srs_map) {
+		auto sp = wp.second.lock();
 			if(not_first)
 				json += ",";
 			json += "{\"{#DEWDSP}\":\"";
-			json += comrade->get("name");
+			json += sp->get("name");
 			json += "\"}";
 			++not_first;
-		}
 	}
 	json += "]}";
 	return json;
@@ -138,8 +142,9 @@ string dispatcher::zabbix_ports() {
 
 string dispatcher::call_net(vector<string> cmds) {
 	/* command parsing goes here */
-	if(root_map.count(cmds[0]))
-		return root_map.at(cmds[0])(cmds[1],cmds[2]);
+	auto iter = root_map.find(cmds[0]);
+	if(iter != root_map.end())
+		return iter->second(cmds[1],cmds[2]);
 	else
 		return "Query not supported.  \"help\" is also not yet supported.\n";
 
@@ -147,11 +152,15 @@ string dispatcher::call_net(vector<string> cmds) {
 
 string dispatcher::help(string type, string item) {return "nyet\n";}
 string dispatcher::raw(string item, string host) {
-	for(auto comrade : comrades)
-		if(!comrade->get("name").compare(host))
-			return comrade->get(item);
-	else if(raw_map.count(item))
-		return raw_map.at(item)();
+	auto iter = srs_map.find(host);
+	auto oter = raw_map.find(item);
+	if(iter != srs_map.end()){
+		auto sp = iter->second.lock();
+		return sp->get(item);
+	}
+	else if(oter != raw_map.end()) {
+		return oter->second();
+	}
 
 	return "-1";
 }
@@ -195,17 +204,31 @@ void dispatcher::make_session (tcp::endpoint& ep_in) {
 	comrades.push_back(move(pt));
 }
 
-void dispatcher::make_session (tcp::socket sock_in) {
-	auto pt = make_shared<nss>(io_ref, move(sock_in));
+void dispatcher::make_session (tcp::socket& sock_in) {
+
+	time_point<steady_clock> time = steady_clock::now();
+	if(0) {
+	//auto p = nss_pool.construct(io_ref,sock_in);
+	cout << "O(ms): " << (steady_clock::now() - time).count()/1000 << endl;
+
+	time = steady_clock::now();
+	//auto ss = new network_socket_session(io_ref, p->get_sock());
+	cout << "R(ms): " << (steady_clock::now() - time).count()/1000 << endl;
+	}
+
+	//time = steady_clock::now();
+	auto pt = make_shared<network_socket_session>(io_ref, sock_in);
+	//cout << "S(ms): " << (steady_clock::now() - time).count()/1000 << endl;
+	//auto pt = make_shared<nss>(io_ref, move(sock_in));
 
 	pt->set_ref(shared_from_this());
 	pt->start();
 
-	comrades.push_back(move(pt));
+	nss_map.insert({pt->get("name"),pt});
 
-	for(auto comrade = comrades.begin() ; comrade != comrades.end() ; ++comrade )
-		if((*comrade)->is_dead()) {
-			comrades.erase(comrade);
+	for(auto s : nss_map )
+		if(s.second->is_dead()) {
+			nss_map.erase(s.first);
 		}
 }
 
@@ -217,6 +240,7 @@ void dispatcher::make_session (string device_name, string type) {
 		pt->set_ref(shared_from_this());
 		pt->start();
 
+		srs_map.insert({pt->get("name"), pt});
 		comrades.push_back(move(pt));
 	}	else if(type.compare("write-test")) {
 		auto pt = make_shared<swps>(io_ref, device_name);

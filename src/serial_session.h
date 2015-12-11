@@ -85,7 +85,7 @@ class serial_read_session :	public serial_session,
 	friend class dispatcher;
 public:
 	serial_read_session(
-			shared_ptr<io_service> io_in, string device_in) :
+			shared_ptr<io_service> const& io_in, string device_in) :
 				serial_session(io_in, device_in), timer_(*io_ref)
 		{
 			map<string,std::function<string()> > tmp_map {
@@ -201,7 +201,7 @@ private:
 class serial_write_session : public serial_session {
 public:
 	serial_write_session(
-			shared_ptr<io_service> io_in, string device_in) :
+			shared_ptr<io_service> const& io_in, string device_in) :
 				serial_session(io_in, device_in)
 	{
 		map<string,std::function<string()> > tmp_map
@@ -222,7 +222,7 @@ class serial_write_pb_session : public serial_write_session,
 	public enable_shared_from_this<serial_write_pb_session> {
 public:
 	serial_write_pb_session(
-			shared_ptr<io_service> io_in, string device_in) :
+			shared_ptr<io_service> const& io_in, string device_in) :
 				serial_write_session(io_in, device_in)
 	{
 	}

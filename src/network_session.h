@@ -13,6 +13,7 @@ namespace dew {
 using ::boost::asio::io_service;
 using ::boost::asio::ip::tcp;
 using ::boost::chrono::steady_clock;
+using ::boost::chrono::milliseconds;
 
 using ::std::stringstream;
 using ::std::string;
@@ -31,8 +32,10 @@ using ::std::enable_shared_from_this;
  */
 class network_session : public basic_session{
 public:
+	network_session() : basic_session() {}
+
 	network_session(
-			shared_ptr<io_service> io_in, tcp::endpoint const ep_in) :
+			shared_ptr<io_service> const& io_in, tcp::endpoint const& ep_in) :
 				basic_session(io_in), endpoint_(ep_in)
 	{
 		map<string,std::function<string()> > tmp_map
@@ -58,10 +61,10 @@ protected:
 class network_socket_session : public network_session,
 	public enable_shared_from_this<network_socket_session> {
 	friend class network_acceptor_session;
-
+	friend class dispatcher;
 public:
 	network_socket_session(
-			shared_ptr<io_service> io_in, tcp::socket sock_in) :
+			shared_ptr<io_service> const& io_in, tcp::socket& sock_in) :
 			network_session(io_in, sock_in.local_endpoint()), socket_(move(sock_in))
 	{
 		map<string,std::function<string()> > tmp_map
@@ -83,6 +86,8 @@ protected:
 	bBuff request_ = vector<u8>(BUFFER_LENGTH,0);
 	bBuff reply_ = vector<u8>(2*BUFFER_LENGTH,0);
 	tcp::socket socket_;
+
+	tcp::socket& get_sock() { return socket_; }
 };
 
 /*-----------------------------------------------------------------------------
@@ -92,7 +97,7 @@ class network_acceptor_session : public network_session,
 	public enable_shared_from_this<network_acceptor_session> {
 public:
 	network_acceptor_session(
-			shared_ptr<io_service> io_in, tcp::endpoint & ep_in) :
+			shared_ptr<io_service> const& io_in, tcp::endpoint const& ep_in) :
 			network_session(io_in, ep_in),
 			acceptor_(*io_ref, endpoint_),
 			socket_(*io_ref)
@@ -117,27 +122,6 @@ private:
 	tcp::socket socket_;
 };
 
-/*-----------------------------------------------------------------------------
- * November 20, 2015 :: _socket_echo_ class
- *
- * Simple echoing protocol modeled on the tcp echo server example in boost asio
- * library.
- */
-class network_socket_echo_session :	public network_socket_session {
-
-public:
-	network_socket_echo_session(
-			shared_ptr<io_service> io_in, tcp::socket sock_in) :
-				network_socket_session(io_in, move(sock_in))
-	{
-	}
-
-	void start() { do_read();	}
-
-private:
-	void do_read();
-	void do_write(size_t length);
-};
 
 } // dew namespace
 

@@ -37,7 +37,7 @@
 
 #include "utils.h"
 
-#include "session.hpp"
+#include "session.h"
 #include "serial_session.h"
 
 namespace dew {

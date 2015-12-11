@@ -8,6 +8,9 @@
 #ifndef TYPES_H_
 #define TYPES_H_
 
+#include <boost/chrono.hpp>
+#include <boost/chrono/time_point.hpp>
+
 namespace dew {
 
 class serial_read_session;
@@ -32,6 +35,9 @@ typedef std::shared_ptr<srs> srsp;
 typedef std::shared_ptr<swps> swpsp;
 typedef std::shared_ptr<nss> nssp;
 typedef std::shared_ptr<nas> nasp;
+
+typedef boost::chrono::time_point<boost::chrono::steady_clock> stime;
+typedef boost::chrono::steady_clock sc;
 
 }; // namespace dew
 

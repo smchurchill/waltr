@@ -8,6 +8,8 @@
 #ifndef SESSION_H_
 #define SESSION_H_
 
+#include <boost/pool/pool.hpp>
+
 namespace po = boost::program_options;
 
 namespace dew {
@@ -31,20 +33,22 @@ using ::std::move;
 
 using ::std::unique_ptr;
 using ::std::shared_ptr;
+using ::std::weak_ptr;
 using ::std::enable_shared_from_this;
 
 class basic_session;
 class dispatcher;
 class network_acceptor_session;
 class network_socket_session;
-class serial_read_parse_session;
+class serial_read_session;
 class serial_write_pb_session;
 
 
 class basic_session {
 	friend class dispatcher;
 public:
-	basic_session( shared_ptr<io_service> io_in ) :
+	basic_session() {}
+	basic_session( shared_ptr<io_service> const& io_in ) :
 		io_ref(io_in) {}
 	virtual ~basic_session() {}
 
@@ -52,7 +56,7 @@ public:
 		if (get_map.count(value))
 				return get_map.at(value)();
 		else
-			return string("Value not found");
+			return string("Value \"" + value +"\" not found");
 	};
 
 protected:
@@ -89,13 +93,18 @@ private:
 	map<string, std::function<string()> > raw_map;
 	map<string, std::function<string()> > hr_map;
 
+	map<string, weak_ptr<srs> > srs_map;
+	map<string, weak_ptr<swps> > sws_map;
+	map<string, weak_ptr<nas> > nas_map;
+	map<string, nssp > nss_map;
+
 	bool local_logging_enabled = false;
 	shared_ptr<io_service> io_ref;
 	vector<shared_ptr<basic_session> > comrades;
 	string logdir_;
 
 public:
-	dispatcher(shared_ptr<io_service> io_in, string log_in) :
+	dispatcher(shared_ptr<io_service> const& io_in, string log_in) :
 		root_map(
 			{
 				{"help", bind(&dispatcher::help,this,_1,_2)},
@@ -127,7 +136,7 @@ public:
 	void forward(string* msg);
 
 	void make_session (tcp::endpoint& ep_in);
-	void make_session (tcp::socket sock_in);
+	void make_session (tcp::socket& sock_in);
 	void make_session (string device_name, string type);
 
 };

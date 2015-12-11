@@ -27,7 +27,7 @@
 #include <boost/function.hpp>
 
 #include "utils.h"
-#include "session.hpp"
+#include "session.h"
 #include "network_session.h"
 
 
@@ -36,7 +36,10 @@ namespace dew {
 using ::boost::asio::io_service;
 using ::boost::asio::ip::tcp;
 using ::boost::chrono::steady_clock;
+using ::boost::chrono::milliseconds;
+using ::boost::chrono::nanoseconds;
 using ::boost::bind;
+using ::boost::make_iterator_range;
 
 using ::std::istream;
 using ::std::stringstream;
@@ -74,9 +77,22 @@ void nss::do_read() {
 
 void nss::handle_read(
 		boost::system::error_code ec, size_t in_length) {
-	nssp self (shared_from_this());
-
 	if(ec){ die(); } else {
+
+	stime req_rec = sc::now(); stime postwrite;
+
+
+	stime preproc, postproc;
+	stime presend, postsend;
+	stime precop, postcop;
+	stime prewrite;
+	if(0) {
+	cout << "request: ";
+	debug(make_iterator_range(request_.begin(),request_.begin()+in_length));
+	}
+
+
+
 
 	size_t out_length = 0;
 
@@ -86,6 +102,7 @@ void nss::handle_read(
 		out_length = exceeds.size();
 		copy(exceeds.begin(),exceeds.end(),reply_.begin());
 	} else {
+		preproc = sc::now();
 		stringstream ss;
 		for(auto c : make_iterator_range(request_.begin(),request_.begin()+in_length))
 		ss << c;
@@ -93,7 +110,9 @@ void nss::handle_read(
 		string in;
 		while(ss >> in)
 			cmds.push_back(in);
+		postproc = sc::now();
 
+		presend = sc::now();
 		string msg;
 		if(cmds.size() && cmds.size() < 4) {
 			while(cmds.size() < 3)
@@ -102,16 +121,34 @@ void nss::handle_read(
 		} else {
 			msg = "Adhere to command format: query-type query-subtype query-option.\n";
 		}
-
 		out_length = msg.size();
+		postsend = sc::now();
 
+		precop = sc::now();
 		copy(msg.begin(),msg.end(),reply_.begin());
+		postcop = sc::now();
 	}
 
+
+	prewrite = sc::now();
+	nssp self (shared_from_this());
 	boost::asio::async_write(socket_,boost::asio::buffer(reply_,out_length),
-			[self, this](boost::system::error_code ec, size_t in_length) {
+			[self,this](boost::system::error_code ec, size_t in_length) {
 				do_read();
 			});
+	postwrite = sc::now();
+
+	if(0){
+	cout << "preprocessing: " << (preproc - req_rec).count()/1000 << endl;
+	cout << "processing: " << (postproc - preproc).count()/1000 << endl;
+	cout << "sending: " << (postsend - presend).count()/1000 << endl;
+	cout << "copying: " << (postcop - precop).count()/1000 << endl;
+	cout << "writing: " << (postwrite - prewrite).count()/1000 << endl;
+	cout << "total: " << (postwrite - req_rec).count()/1000 << endl;
+	cout << "response: " << string(reply_.begin(), reply_.begin()+out_length) << endl;
+	}
+	cout << (postwrite - req_rec).count()/1000 << endl;
+
 	}
 }
 
@@ -120,40 +157,17 @@ void nss::handle_read(
  * November 20, 2015 :: _acceptor_ methods
  */
 void nas::do_accept() {
-	nasp self (shared_from_this());
+	assert(is_alive());
 	acceptor_.async_accept(socket_,
-			[self,this](boost::system::error_code ec)
+			[this](boost::system::error_code ec)
 			{
 				if(!ec) {
-					dis_ref->make_session(move(socket_));
+					dis_ref->make_session(socket_);
 				}
 				start();
 			});
 }
 
-/*-----------------------------------------------------------------------------
- * November 20, 2015 :: _socket_echo_ methods
- */
-void network_socket_echo_session::do_read() {
-	socket_.async_read_some(boost::asio::buffer(request_),
-			[this](boost::system::error_code ec, size_t length)
-			{
-				if(!ec)
-					do_write(length);
-				else {
-					delete this;
-				}
-			});
-}
-
-void network_socket_echo_session::do_write(size_t length)
-{
-	boost::asio::async_write(socket_,boost::asio::buffer(request_,length),
-			[this](boost::system::error_code ec, size_t)
-			{
-				do_read();
-			});
-}
 
 
 
