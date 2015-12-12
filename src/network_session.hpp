@@ -26,6 +26,7 @@
 
 #include <boost/function.hpp>
 
+#include "types.h"
 #include "utils.h"
 #include "session.h"
 #include "network_session.h"
@@ -77,22 +78,14 @@ void nss::do_read() {
 
 void nss::handle_read(
 		boost::system::error_code ec, size_t in_length) {
-	if(ec){ die(); } else {
+	if(ec){
+		die();
+		socket_.cancel();
+		socket_.close();
+		return;
+	} else {
 
-	stime req_rec = sc::now(); stime postwrite;
-
-
-	stime preproc, postproc;
-	stime presend, postsend;
-	stime precop, postcop;
-	stime prewrite;
-	if(0) {
-	cout << "request: ";
-	debug(make_iterator_range(request_.begin(),request_.begin()+in_length));
-	}
-
-
-
+	nssp self (shared_from_this());
 
 	size_t out_length = 0;
 
@@ -102,7 +95,7 @@ void nss::handle_read(
 		out_length = exceeds.size();
 		copy(exceeds.begin(),exceeds.end(),reply_.begin());
 	} else {
-		preproc = sc::now();
+
 		stringstream ss;
 		for(auto c : make_iterator_range(request_.begin(),request_.begin()+in_length))
 		ss << c;
@@ -110,44 +103,29 @@ void nss::handle_read(
 		string in;
 		while(ss >> in)
 			cmds.push_back(in);
-		postproc = sc::now();
 
-		presend = sc::now();
+
+
 		string msg;
 		if(cmds.size() && cmds.size() < 4) {
 			while(cmds.size() < 3)
 				cmds.push_back("0");
-				msg = dis_ref->call_net(cmds);
+			msg = dis_ref->call_net(cmds,self);
 		} else {
 			msg = "Adhere to command format: query-type query-subtype query-option.\n";
 		}
 		out_length = msg.size();
-		postsend = sc::now();
 
-		precop = sc::now();
+
 		copy(msg.begin(),msg.end(),reply_.begin());
-		postcop = sc::now();
+
 	}
 
 
-	prewrite = sc::now();
-	nssp self (shared_from_this());
 	boost::asio::async_write(socket_,boost::asio::buffer(reply_,out_length),
-			[self,this](boost::system::error_code ec, size_t in_length) {
-				do_read();
+			[self](boost::system::error_code ec, size_t in_length) {
+				self->do_read();
 			});
-	postwrite = sc::now();
-
-	if(0){
-	cout << "preprocessing: " << (preproc - req_rec).count()/1000 << endl;
-	cout << "processing: " << (postproc - preproc).count()/1000 << endl;
-	cout << "sending: " << (postsend - presend).count()/1000 << endl;
-	cout << "copying: " << (postcop - precop).count()/1000 << endl;
-	cout << "writing: " << (postwrite - prewrite).count()/1000 << endl;
-	cout << "total: " << (postwrite - req_rec).count()/1000 << endl;
-	cout << "response: " << string(reply_.begin(), reply_.begin()+out_length) << endl;
-	}
-	cout << (postwrite - req_rec).count()/1000 << endl;
 
 	}
 }
@@ -157,9 +135,9 @@ void nss::handle_read(
  * November 20, 2015 :: _acceptor_ methods
  */
 void nas::do_accept() {
-	assert(is_alive());
+	auto self (shared_from_this());
 	acceptor_.async_accept(socket_,
-			[this](boost::system::error_code ec)
+			[this,self](boost::system::error_code ec)
 			{
 				if(!ec) {
 					dis_ref->make_session(socket_);

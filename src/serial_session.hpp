@@ -35,8 +35,9 @@
 
 #include <boost/range/iterator_range.hpp>
 
-#include "utils.h"
 
+#include "types.h"
+#include "utils.h"
 #include "session.h"
 #include "serial_session.h"
 
@@ -118,10 +119,11 @@ void srs::start() {
 	set_timer();
 }
 void srs::start_read() {
+	auto self (shared_from_this());
 	bBuff* buffer_ = new bBuff (BUFFER_LENGTH);
 	mutable_buffers_1 Buffer_ = boost::asio::buffer(*buffer_);
 	boost::asio::async_read(port_,Buffer_,boost::bind(
-			&srs::handle_read, this, _1, _2, buffer_));
+			&srs::handle_read, self, _1, _2, buffer_));
 }
 void srs::handle_read(boost::system::error_code ec,
 		size_t length, bBuff* buffer_) {

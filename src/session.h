@@ -8,8 +8,6 @@
 #ifndef SESSION_H_
 #define SESSION_H_
 
-#include <boost/pool/pool.hpp>
-
 namespace po = boost::program_options;
 
 namespace dew {
@@ -25,6 +23,7 @@ using ::std::string;
 using ::std::to_string;
 using ::std::vector;
 using ::std::deque;
+using ::std::list;
 using ::std::map;
 using ::std::pair;
 using ::std::make_pair;
@@ -81,15 +80,19 @@ private:
 class dispatcher : public enable_shared_from_this<dispatcher> {
 
 private:
+	string help(string type, string item, nssp reference);
+	string raw(string item, string host, nssp reference);
+	string hr(string item, string host, nssp reference);
+	string sub(string channel, string output_type, nssp reference);
+
+	string zabbix_ports();
+	string zabbix_help();
+
 	string brag();
 	string bark();
-	string zabbix_ports();
+	string hr_help();
 
-	string help(string type, string item);
-	string raw(string item, string host);
-	string hr(string item, string host);
-
-	map<string, std::function<string(string,string)> > root_map;
+	map<string, std::function<string(string,string,nssp)> > root_map;
 	map<string, std::function<string()> > raw_map;
 	map<string, std::function<string()> > hr_map;
 
@@ -98,29 +101,40 @@ private:
 	map<string, weak_ptr<nas> > nas_map;
 	map<string, nssp > nss_map;
 
+	list<nssw> waveform_raw_subs;
+	map<string, list<nssw> > channel_sub_map = {
+			{"waveform_raw", waveform_raw_subs}
+	};
+
 	bool local_logging_enabled = false;
 	shared_ptr<io_service> io_ref;
 	vector<shared_ptr<basic_session> > comrades;
 	string logdir_;
 
+	void forward_handler(boost::system::error_code ec, size_t in_length,
+			shared_ptr<bBuff> ptr, nssp ptr2);
+
 public:
 	dispatcher(shared_ptr<io_service> const& io_in, string log_in) :
 		root_map(
 			{
-				{"help", bind(&dispatcher::help,this,_1,_2)},
-				{string("zabbix"), bind(&dispatcher::raw,this,_1,_2)},
-				{"query", bind(&dispatcher::hr,this,_1,_2)},
+				{"help", bind(&dispatcher::help,this,_1,_2,_3)},
+				{"zabbix", bind(&dispatcher::raw,this,_1,_2,_3)},
+				{"query", bind(&dispatcher::hr,this,_1,_2,_3)},
+				{"subscribe", bind(&dispatcher::sub,this,_1,_2,_3)}
 			}
 		),
 		raw_map(
 			{
-				{"ports", bind(&dispatcher::zabbix_ports,this)}
+				{"ports", bind(&dispatcher::zabbix_ports,this)},
+				{"help", bind(&dispatcher::zabbix_help,this)}
 			}
 		),
 		hr_map(
 			{
 				{"comrades", bind(&dispatcher::brag, this)},
-				{"map", bind(&dispatcher::bark,this)}
+				{"map", bind(&dispatcher::bark,this)},
+				{"help", bind(&dispatcher::hr_help,this)}
 			}
 		),
 		io_ref(io_in),
@@ -129,7 +143,7 @@ public:
 	}
 	~dispatcher() {}
 
-	string call_net(vector<string> cmds);
+	string call_net(vector<string> cmds, nssp reference);
 	string get_logdir() { return logdir_; }
 	void set_logdir(string logdir_in) { logdir_ = logdir_in; }
 
@@ -138,6 +152,8 @@ public:
 	void make_session (tcp::endpoint& ep_in);
 	void make_session (tcp::socket& sock_in);
 	void make_session (string device_name, string type);
+
+	const time_point<steady_clock> start_ = steady_clock::now();
 
 };
 

@@ -21,7 +21,7 @@ using ::std::vector;
 using ::std::deque;
 using ::std::map;
 using ::std::pair;
-
+using ::std::cout;
 using ::std::size_t;
 
 using ::std::enable_shared_from_this;
@@ -50,7 +50,7 @@ public:
 
 protected:
 
-	string get_name() { stringstream ss; ss << endpoint_; return ss.str(); }
+	virtual string get_name() { stringstream ss; ss << endpoint_; return ss.str(); }
 	string get_type() { return string("network"); }
 	tcp::endpoint endpoint_;
 };
@@ -67,6 +67,10 @@ public:
 			shared_ptr<io_service> const& io_in, tcp::socket& sock_in) :
 			network_session(io_in, sock_in.local_endpoint()), socket_(move(sock_in))
 	{
+		stringstream ss;
+		ss << socket_.remote_endpoint();
+		name_ = ss.str();
+
 		map<string,std::function<string()> > tmp_map
 			{
 				{"subtype", bind(&network_socket_session::get_subtype,this)}
@@ -74,13 +78,15 @@ public:
 		get_map.insert(tmp_map.begin(),tmp_map.end());
 	}
 
+	~network_socket_session() { cout << get_name() << " destructed\n"; }
+
 	void start() { do_read(); }
 
 protected:
 	void do_read();
 	void handle_read( boost::system::error_code ec, size_t in_length);
 
-	string get_subtype() { return "socket"; }
+	string name_;
 
 	const long BUFFER_LENGTH = 8192;
 	bBuff request_ = vector<u8>(BUFFER_LENGTH,0);
@@ -88,6 +94,9 @@ protected:
 	tcp::socket socket_;
 
 	tcp::socket& get_sock() { return socket_; }
+
+	string get_subtype() { return "socket"; }
+	string get_name() { return name_; }
 };
 
 /*-----------------------------------------------------------------------------

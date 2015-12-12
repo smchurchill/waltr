@@ -198,6 +198,8 @@ int main(int argc, char** argv) {
 		 * the future.
 		 */
 
+
+
 		auto dis = make_shared<dispatcher>(service, logging_directory);
 		vector<tcp::endpoint> ends;
 
@@ -224,6 +226,8 @@ int main(int argc, char** argv) {
 			for(auto it : ends)
 				dis->make_session(it);
 		}
+
+
 
 
 		/*

@@ -31,9 +31,12 @@
 #include <boost/program_options.hpp>
 #include <boost/range/iterator_range.hpp>
 
+#include <boost/bimap.hpp>
+#include <boost/bimap/unordered_multiset_of.hpp>
 
 
 
+#include "types.h"
 #include "utils.h"
 #include "session.h"
 
@@ -140,18 +143,27 @@ string dispatcher::zabbix_ports() {
 	return json;
 }
 
-string dispatcher::call_net(vector<string> cmds) {
+string dispatcher::call_net(vector<string> cmds, nssp reference) {
 	/* command parsing goes here */
 	auto iter = root_map.find(cmds[0]);
 	if(iter != root_map.end())
-		return iter->second(cmds[1],cmds[2]);
+		return iter->second(cmds[1],cmds[2],reference);
 	else
-		return "Query not supported.  \"help\" is also not yet supported.\n";
+		return "Query not supported.\n";
 
 }
 
-string dispatcher::help(string type, string item) {return "nyet\n";}
-string dispatcher::raw(string item, string host) {
+string dispatcher::help(string type, string item, nssp reference) {
+	auto iter = root_map.find(type);
+	if((!(type.compare("help"))) || iter==root_map.end())
+		return string(
+				"Usage: \'help type item\' where \'type\' is one of help, zabbix,"
+				" query, subscribe.  Use \'help type\' to see a list of items.\n"
+		);
+	return iter->second(string("help"),item, reference);
+}
+
+string dispatcher::raw(string item, string host, nssp reference) {
 	auto iter = srs_map.find(host);
 	auto oter = raw_map.find(item);
 	if(iter != srs_map.end()){
@@ -165,15 +177,39 @@ string dispatcher::raw(string item, string host) {
 	return "-1";
 }
 
-string dispatcher::hr(string item, string host) {
-	if(hr_map.count(item))
-		return hr_map.at(item)();
+string dispatcher::hr(string item, string host, nssp reference) {
+	auto iter = hr_map.find(item);
+	if(iter != hr_map.end())
+		return iter->second();
 	else
 		return "nyet\n";
 }
+string dispatcher::sub(string channel,string output_type, nssp reference) {
+	if((!(output_type.compare("help"))) || (!channel.compare("help")))
+		return "subscription help\n";
+
+	string channel_name (channel + "_" + output_type);
+	auto iter = channel_sub_map.find(channel_name);
+	if(iter==channel_sub_map.end())
+		return "Channel not recognized.  Use \'help subscribe\' to see a list of"
+				" channels.\n";
+
+	iter->second.emplace_back(nssw(reference));
+
+	if(output_type.compare("raw"))
+		return string("Successfully subscribed to channel "+channel_name+'\n');
+
+	return string("\n");
+}
+
+string dispatcher::zabbix_help() { return "zabbix help\n"; }
+
+string dispatcher::hr_help() { return "human readable help\n"; }
+
 
 void dispatcher::forward(string* msg) {
 	flopointpb::FloPointWaveform fpwf;
+	auto self=shared_from_this();
 
 	if(local_logging_enabled){
 		if(!(fpwf.ParseFromString(*msg))) {
@@ -191,9 +227,48 @@ void dispatcher::forward(string* msg) {
 			std::fwrite(s.c_str(), sizeof(u8), s.length(), log);
 			fclose(log);
 		}
+	} else {
+		if(!(fpwf.ParseFromString(*msg))) {
+			string s (to_string(steady_clock::now()) + ": Could not parse string.\n");
+			cout << s;
+		} else {
+			auto buffer_ = make_shared<bBuff>();
+			for(auto wheight : fpwf.waveform().wheight()) {
+				bBuff bytes_(5);
+				bytes_[0] = '\t';
+				bytes_[1] = (wheight >> 24 ) & 0xFF;
+				bytes_[2] = (wheight >> 16 ) & 0xFF;
+				bytes_[3] = (wheight >> 8 ) & 0xFF;
+				bytes_[4] = wheight & 0xFF;
+				copy(bytes_.begin(),bytes_.end(),back_inserter(*buffer_));
+			}
+			buffer_->push_back('\n');
+
+			for(auto pr : channel_sub_map) {
+				if(pr.first.find("waveform") != string::npos) {
+					for(auto sub = pr.second.begin(); sub != pr.second.end() ; ++sub) {
+						if(sub->expired()) {
+							pr.second.erase(sub);
+						} else {
+							async_write(sub->lock()->get_sock(),
+								boost::asio::buffer(*buffer_, buffer_->size()),
+								bind(&dispatcher::forward_handler,self,_1,_2,
+										buffer_,sub->lock()));
+						}
+					}
+				}
+			}
+		}
 	}
 	delete msg;
 }
+
+void dispatcher::forward_handler(boost::system::error_code ec, size_t in_length,
+		shared_ptr<bBuff> ptr1, nssp ptr2) {
+	ptr2.reset();
+	ptr1.reset();
+}
+
 
 void dispatcher::make_session (tcp::endpoint& ep_in) {
 	auto pt = make_shared<nas>(io_ref, ep_in);
@@ -206,30 +281,20 @@ void dispatcher::make_session (tcp::endpoint& ep_in) {
 
 void dispatcher::make_session (tcp::socket& sock_in) {
 
-	time_point<steady_clock> time = steady_clock::now();
-	if(0) {
-	//auto p = nss_pool.construct(io_ref,sock_in);
-	cout << "O(ms): " << (steady_clock::now() - time).count()/1000 << endl;
-
-	time = steady_clock::now();
-	//auto ss = new network_socket_session(io_ref, p->get_sock());
-	cout << "R(ms): " << (steady_clock::now() - time).count()/1000 << endl;
-	}
-
-	//time = steady_clock::now();
 	auto pt = make_shared<network_socket_session>(io_ref, sock_in);
-	//cout << "S(ms): " << (steady_clock::now() - time).count()/1000 << endl;
-	//auto pt = make_shared<nss>(io_ref, move(sock_in));
 
 	pt->set_ref(shared_from_this());
 	pt->start();
 
 	nss_map.insert({pt->get("name"),pt});
 
-	for(auto s : nss_map )
+	if(0)
+	for(auto s : nss_map ){
 		if(s.second->is_dead()) {
+			s.second.reset();
 			nss_map.erase(s.first);
 		}
+	}
 }
 
 

@@ -11,6 +11,10 @@
 #include <boost/chrono.hpp>
 #include <boost/chrono/time_point.hpp>
 
+#include <boost/bimap.hpp>
+#include <boost/bimap/unordered_multiset_of.hpp>
+
+
 namespace dew {
 
 class serial_read_session;
@@ -36,8 +40,31 @@ typedef std::shared_ptr<swps> swpsp;
 typedef std::shared_ptr<nss> nssp;
 typedef std::shared_ptr<nas> nasp;
 
+typedef std::weak_ptr<nss> nssw;
+
 typedef boost::chrono::time_point<boost::chrono::steady_clock> stime;
 typedef boost::chrono::steady_clock sc;
+
+/*=============================================================================
+ * December 11, 2015
+ *
+ * Needed operator== to compare std::weak_ptr in boost::bimap creation.
+ *
+ */
+
+template< typename PointsTo >
+bool wk_comp (std::weak_ptr<PointsTo> l, std::weak_ptr<PointsTo> r) {
+	if(l.use_count() && r.use_count())
+		return l.lock() == r.lock();
+
+	return false;
+}
+
+
+typedef boost::bimaps::bimap<
+		boost::bimaps::unordered_multiset_of<std::string>,
+		boost::bimaps::unordered_multiset_of<
+			nssp > > channel_subscribers;
 
 }; // namespace dew
 

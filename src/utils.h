@@ -26,7 +26,7 @@
 #include <boost/range/adaptors.hpp>
 #include <boost/range/algorithm.hpp>
 
-#include "session.hpp"
+#include "session.h"
 
 namespace dew {
 
@@ -187,7 +187,7 @@ u8 crc8( Range rng ) {
 /*-----------------------------------------------------------------------------
  * November 27, 2015
  *
- * Shuffling some mode code away from main()
+ * Shuffling some code away from main()
  */
 
 void graceful_exit(const boost::system::error_code& error, int signal_number)
