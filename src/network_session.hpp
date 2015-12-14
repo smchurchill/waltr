@@ -79,9 +79,7 @@ void nss::do_read() {
 void nss::handle_read(
 		boost::system::error_code ec, size_t in_length) {
 	if(ec){
-		die();
-		socket_.cancel();
-		socket_.close();
+		dis_ref->remove_nss(shared_from_this());
 		return;
 	} else {
 

@@ -184,22 +184,55 @@ string dispatcher::hr(string item, string host, nssp reference) {
 	else
 		return "nyet\n";
 }
-string dispatcher::sub(string channel,string output_type, nssp reference) {
-	if((!(output_type.compare("help"))) || (!channel.compare("help")))
-		return "subscription help\n";
+string dispatcher::sub(string channel,string option, nssp reference) {
+	if((!(option.compare("help"))) || (!channel.compare("help"))) {
+		string help("Channels:\n");
+		for(auto channel_pr : channel_sub_map) {
+			help +='\t';
+			help += channel_pr.first;
+			help += '\n';
+		}
+		return help;
+	}
 
-	string channel_name (channel + "_" + output_type);
-	auto iter = channel_sub_map.find(channel_name);
+	auto iter = channel_sub_map.find(channel);
 	if(iter==channel_sub_map.end())
 		return "Channel not recognized.  Use \'help subscribe\' to see a list of"
 				" channels.\n";
 
+	for(auto subscriber : iter->second)
+		if(subscriber.lock() == reference)
+			return string("Already subscribed to " + channel + '\n');
+
 	iter->second.emplace_back(nssw(reference));
 
-	if(output_type.compare("raw"))
-		return string("Successfully subscribed to channel "+channel_name+'\n');
+	return string("Successfully subscribed to channel "+channel+'\n');
+}
 
-	return string("\n");
+string dispatcher::unsub(string channel, string option, nssp reference) {
+	if((!(option.compare("help"))) || (!channel.compare("help")))
+		return "subscription help\n";
+
+	auto iter = channel_sub_map.find(channel);
+	if(iter == channel_sub_map.end())
+		return "Channel not recognized.  Use \'help unsubscribe\' to see a list of"
+				" channels.\n";
+
+	bool removed = false;
+
+	for(auto sub_iter = iter->second.begin() ;
+			sub_iter != iter->second.end() ;)
+		if(sub_iter->lock() == reference){
+			iter->second.erase(sub_iter);
+			sub_iter = iter->second.begin();
+			removed=true;
+		} else
+			 ++sub_iter;
+
+	if(removed)
+		return "Successfully unsubscribed from channel "+channel+'\n';
+	else
+		return "You were not subscribed to channel "+channel+'\n';
 }
 
 string dispatcher::zabbix_help() { return "zabbix help\n"; }
@@ -207,12 +240,14 @@ string dispatcher::zabbix_help() { return "zabbix help\n"; }
 string dispatcher::hr_help() { return "human readable help\n"; }
 
 
-void dispatcher::forward(string* msg) {
+void dispatcher::forward(string* msg_in) {
 	flopointpb::FloPointWaveform fpwf;
 	auto self=shared_from_this();
+	string msg (*msg_in);
+	delete msg_in;
 
 	if(local_logging_enabled){
-		if(!(fpwf.ParseFromString(*msg))) {
+		if(!(fpwf.ParseFromString(msg))) {
 			FILE * log = fopen((logdir_ + "dispatch.failure.log").c_str(),"a");
 			string s (to_string(steady_clock::now()) + ": Could not parse string.\n");
 			std::fwrite(s.c_str(), sizeof(u8), s.length(), log);
@@ -228,7 +263,7 @@ void dispatcher::forward(string* msg) {
 			fclose(log);
 		}
 	} else {
-		if(!(fpwf.ParseFromString(*msg))) {
+		if(!(fpwf.ParseFromString(msg))) {
 			string s (to_string(steady_clock::now()) + ": Could not parse string.\n");
 			cout << s;
 		} else {
@@ -244,23 +279,16 @@ void dispatcher::forward(string* msg) {
 			}
 			buffer_->push_back('\n');
 
-			for(auto pr : channel_sub_map) {
-				if(pr.first.find("waveform") != string::npos) {
-					for(auto sub = pr.second.begin(); sub != pr.second.end() ; ++sub) {
-						if(sub->expired()) {
-							pr.second.erase(sub);
-						} else {
-							async_write(sub->lock()->get_sock(),
+			for(auto pr : channel_sub_map)
+				if(pr.first.find("waveform") != string::npos)
+					for(auto sub : pr.second)
+						async_write(sub.lock()->get_sock(),
 								boost::asio::buffer(*buffer_, buffer_->size()),
 								bind(&dispatcher::forward_handler,self,_1,_2,
-										buffer_,sub->lock()));
-						}
-					}
-				}
+										buffer_,sub.lock()));
+
 			}
-		}
 	}
-	delete msg;
 }
 
 void dispatcher::forward_handler(boost::system::error_code ec, size_t in_length,
@@ -287,14 +315,17 @@ void dispatcher::make_session (tcp::socket& sock_in) {
 	pt->start();
 
 	nss_map.insert({pt->get("name"),pt});
+}
 
-	if(0)
-	for(auto s : nss_map ){
-		if(s.second->is_dead()) {
-			s.second.reset();
-			nss_map.erase(s.first);
-		}
-	}
+void dispatcher::remove_nss (nssp to_remove) {
+
+	to_remove->get_sock().cancel();
+
+	for(auto channel : channel_sub_map)
+		unsub(channel.first, string("disconnect"), to_remove);
+
+	nss_map.erase(to_remove->get("name"));
+
 }
 
 

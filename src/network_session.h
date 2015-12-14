@@ -82,6 +82,7 @@ public:
 
 	void start() { do_read(); }
 
+
 protected:
 	void do_read();
 	void handle_read( boost::system::error_code ec, size_t in_length);

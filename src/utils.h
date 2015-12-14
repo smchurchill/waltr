@@ -143,6 +143,11 @@ string debug_str (Range rng) {
 	boost::transform (rng, ostream_iterator<string> (ss), filter_unprintable);
 	return ss.str();
 }
+
+template<typename Printable>
+void dprint(Printable p) {
+	cout << p << '\n';
+}
  /*
 void test_range (void)
 {

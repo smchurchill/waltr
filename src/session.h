@@ -83,7 +83,8 @@ private:
 	string help(string type, string item, nssp reference);
 	string raw(string item, string host, nssp reference);
 	string hr(string item, string host, nssp reference);
-	string sub(string channel, string output_type, nssp reference);
+	string sub(string channel, string option, nssp reference);
+	string unsub(string channel, string option, nssp reference);
 
 	string zabbix_ports();
 	string zabbix_help();
@@ -101,9 +102,9 @@ private:
 	map<string, weak_ptr<nas> > nas_map;
 	map<string, nssp > nss_map;
 
-	list<nssw> waveform_raw_subs;
+	list<nssw> raw_waveforms;
 	map<string, list<nssw> > channel_sub_map = {
-			{"waveform_raw", waveform_raw_subs}
+			{"waveform_raw", raw_waveforms}
 	};
 
 	bool local_logging_enabled = false;
@@ -121,7 +122,8 @@ public:
 				{"help", bind(&dispatcher::help,this,_1,_2,_3)},
 				{"zabbix", bind(&dispatcher::raw,this,_1,_2,_3)},
 				{"query", bind(&dispatcher::hr,this,_1,_2,_3)},
-				{"subscribe", bind(&dispatcher::sub,this,_1,_2,_3)}
+				{"subscribe", bind(&dispatcher::sub,this,_1,_2,_3)},
+				{"unsubscribe", bind(&dispatcher::unsub,this,_1,_2,_3)}
 			}
 		),
 		raw_map(
@@ -150,7 +152,10 @@ public:
 	void forward(string* msg);
 
 	void make_session (tcp::endpoint& ep_in);
+
 	void make_session (tcp::socket& sock_in);
+	void remove_nss (nssp to_remove);
+
 	void make_session (string device_name, string type);
 
 	const time_point<steady_clock> start_ = steady_clock::now();
