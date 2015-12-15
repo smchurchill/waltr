@@ -120,13 +120,13 @@ void srs::start() {
 }
 void srs::start_read() {
 	auto self (shared_from_this());
-	bBuff* buffer_ = new bBuff (BUFFER_LENGTH);
+	auto buffer_ = make_shared<bBuff> (BUFFER_LENGTH);
 	mutable_buffers_1 Buffer_ = boost::asio::buffer(*buffer_);
 	boost::asio::async_read(port_,Buffer_,boost::bind(
 			&srs::handle_read, self, _1, _2, buffer_));
 }
 void srs::handle_read(boost::system::error_code ec,
-		size_t length, bBuff* buffer_) {
+		size_t length, shared_ptr<bBuff> buffer_) {
 	srsp self (shared_from_this());
 	counts.bytes_received += length;
 
@@ -135,10 +135,8 @@ void srs::handle_read(boost::system::error_code ec,
 			front_last = steady_clock::now();
 		copy(buffer_->begin(),buffer_->begin()+length, back_inserter(to_parse));
 	}
-	delete buffer_;
 
-	io_ref->post(
-			bind(&srs::check_the_deque,self));
+	io_ref->post(bind(&srs::check_the_deque,self));
 	start_read();
 }
 
@@ -191,7 +189,7 @@ void srs::check_the_deque() {
 
 		counts.bad_prefix += scrub(to_parse.begin()+2);
 
-		io_ref->post(boost::bind(&srs::check_the_deque,this));
+		io_ref->post(boost::bind(&srs::check_the_deque,self));
 		return;
 	}
 
@@ -214,7 +212,7 @@ void srs::check_the_deque() {
 
 		counts.bad_crc += scrub(to_parse.begin()+12);
 
-		io_ref->post(boost::bind(&srs::check_the_deque,this));
+		io_ref->post(boost::bind(&srs::check_the_deque,self));
 		return;
 	}
 
@@ -256,21 +254,21 @@ void srs::check_the_deque() {
 		if(to_parse.size()>MAX_FRAME_LENGTH) {
 			counts.frame_too_long += scrub(to_parse.begin()+1);
 
-			io_ref->post(bind(&srs::check_the_deque,this));
+			io_ref->post(bind(&srs::check_the_deque,self));
 			return;
 		} else if (steady_clock::now() - front_last > milliseconds(500)) {
 			counts.frame_too_old += scrub(to_parse.begin()+1);
 
-			io_ref->post(boost::bind(&srs::check_the_deque,this));
+			io_ref->post(boost::bind(&srs::check_the_deque,self));
 			return;
 		}
 	} else if(match_point!=to_parse.end()) { /* We have a message */
 		++counts.msg_tot;
 
-		/* dispatcher::forward() function promises to release this memory once the
-		 * message has been processed.
+		/* With the use of smart pointers, we ~know~ that the memory allocated here
+		 * will be automatically freed when appropriate.  Thanks, C++11!
 		 */
-		string* to_send = new string;
+		auto to_send = make_shared<string>();
 		pBuff xfix;
 
 		/* We have a match and match_point points to the beginning of the endframe
@@ -307,14 +305,14 @@ void srs::check_the_deque() {
 		fclose(log);
 		}
 
-		io_ref->post(bind(&srs::forward,this,to_send));
+		io_ref->post(bind(&srs::forward,self,to_send));
 
 		/* Loop checks until to_parse has no more messages waiting for us. */
-		io_ref->post(bind(&srs::check_the_deque,this));
+		io_ref->post(bind(&srs::check_the_deque,self));
 	}
 }
 
-void srs::forward(string* to_send) {
+void srs::forward(shared_ptr<string> to_send) {
 	dis_ref->forward(to_send);
 }
 

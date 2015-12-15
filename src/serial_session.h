@@ -111,10 +111,10 @@ public:
 private:
 	void start_read();
 	void handle_read(boost::system::error_code ec, size_t length,
-			bBuff* buffer_);
+			shared_ptr<bBuff> buffer_);
 	int scrub(pBuff::iterator iter);
 	void check_the_deque();
-	void forward(string* msg);
+	void forward(shared_ptr<string> msg);
 	time_point<steady_clock> front_last = steady_clock::now();
 	const size_t MAX_FRAME_LENGTH = 4096;
 	pBuff to_parse;

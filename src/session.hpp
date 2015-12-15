@@ -85,26 +85,139 @@ using ::std::enable_shared_from_this;
  * December 1, 2015 :: dispatcher methods
  */
 
-/*-----------------------------------------------------------------------------
- * December 3, 2015
- *
- * Network commands.  The dispatcher class receives its network commands from
- * a network_socket_iface_session.  A network command is a vector<string> that
- * contains exactly 3 strings in the order Super-Type Request-Type Option. For
- * example, zabbix rx /dev/ttyS5 will obtain the rx count from port /dev/ttyS5
- * provided there is a serial_read_*_session running on that port.
- *
- * A loose description of how network commands currently work:
- *  1.  There is a root_map from ST to a function that deals with the RT and O
- *  		supplied.
- *  2.  For a RT and O that just requests a specific value, ie everything that
- *  		zabbix does, we usually just invoke a request like:
- *  			port_directory.at(option)->get(request-type)
- *  3.  The super types could tell the dewd to format the output in a certain
- *  		way, eg zabbix supertype, or could just be handy classification for
- *  		command types, eg device-under-test commands.
- *
+/*=============================================================================
+ * December 14, 2015 :: Network command parsing
  */
+
+string dispatcher::call_net(sentence to_parse, nssp ref) {
+	auto init = make_shared<command>{
+		"get", //Do
+		"help", //WhatTo
+		"dewd", //From
+		"me", //For
+	};
+
+	do_parse(to_parse,init);
+
+}
+
+void dipatcher::do_parse(sentence to_parse, shared_ptr<command> cmd) {
+
+}
+
+
+
+/*-----------------------------------------------------------------------------
+ * December 14, 2015 :: Network communications, Layer 0
+ */
+
+/* December 14, 2015
+ * call_net simply checks whether we may pass to Layer 1 of communications.  It
+ * strips away the first command, and sends the rest through the root map.
+ *
+
+string dispatcher::call_net(sentence c, nssp reference) {
+	auto iter = root_map.find(c[0]);
+	c.pop_front();
+	if(iter != root_map.end())
+		return iter->second(c,reference);
+	else
+		return "Query not supported.\n";
+}*/
+
+string dispatcher::help(sentence c, nssp reference) {
+	auto iter = nullptr;
+	if(c.empty() ||
+		 ((iter = root_map.find(c[0])) == root_map.end()) ||
+		 !c[0].compare("help")) {
+		string msg ("List of commands:\n");
+		for(auto opt : root_map) {
+			msg+='\t';
+			msg+=opt.first;
+			msg+='\n';
+		}
+		msg+="Pair \'help\' with any of the above for more information.\n";
+		return msg;
+	} else {
+		c.push_front(c[0]);
+		c[1]="help";
+		return root_map.find(c[0])->second(c, reference);
+	}
+}
+
+string dispatcher::raw(sentence c, nssp reference) {
+	auto iter = srs_map.find(host);
+	auto oter = raw_map.find(item);
+	if(iter != srs_map.end()){
+		auto sp = iter->second.lock();
+		return sp->get(item);
+	}
+	else if(oter != raw_map.end()) {
+		return oter->second();
+	}
+
+	return "-1";
+}
+
+string dispatcher::hr(sentence vec, nssp reference) {
+	auto iter = hr_map.find(item);
+	if(iter != hr_map.end())
+		return iter->second();
+	else
+		return "nyet\n";
+}
+string dispatcher::sub(sentence vec, nssp reference) {
+	if((!(option.compare("help"))) || (!channel.compare("help"))) {
+		string help("Channels:\n");
+		for(auto channel_pr : channel_sub_map) {
+			help +='\t';
+			help += channel_pr.first;
+			help += '\n';
+		}
+		return help;
+	}
+
+	auto iter = channel_sub_map.find(channel);
+	if(iter==channel_sub_map.end())
+		return "Channel not recognized.  Use \'help subscribe\' to see a list of"
+				" channels.\n";
+
+	for(auto subscriber : iter->second)
+		if(subscriber.lock() == reference)
+			return string("Already subscribed to " + channel + '\n');
+
+	iter->second.emplace_back(nssw(reference));
+
+	return string("Successfully subscribed to channel "+channel+'\n');
+}
+
+string dispatcher::unsub(sentence vec, nssp reference) {
+	if((!(option.compare("help"))) || (!channel.compare("help")))
+		return "subscription help\n";
+
+	auto iter = channel_sub_map.find(channel);
+	if(iter == channel_sub_map.end())
+		return "Channel not recognized.  Use \'help unsubscribe\' to see a list of"
+				" channels.\n";
+
+	bool removed = false;
+
+	for(auto sub_iter = iter->second.begin() ;
+			sub_iter != iter->second.end() ;)
+		if(sub_iter->lock() == reference){
+			iter->second.erase(sub_iter);
+			sub_iter = iter->second.begin();
+			removed=true;
+		} else
+			 ++sub_iter;
+
+	if(removed)
+		return "Successfully unsubscribed from channel "+channel+'\n';
+	else
+		return "You were not subscribed to channel "+channel+'\n';
+}
+
+
 
 
 string dispatcher::brag() {
@@ -143,111 +256,25 @@ string dispatcher::zabbix_ports() {
 	return json;
 }
 
-string dispatcher::call_net(vector<string> cmds, nssp reference) {
-	/* command parsing goes here */
-	auto iter = root_map.find(cmds[0]);
-	if(iter != root_map.end())
-		return iter->second(cmds[1],cmds[2],reference);
-	else
-		return "Query not supported.\n";
 
+
+
+
+string dispatcher::zabbix_help(vector<string> vec, nssp reference) {
+	return "zabbix help\n";
 }
 
-string dispatcher::help(string type, string item, nssp reference) {
-	auto iter = root_map.find(type);
-	if((!(type.compare("help"))) || iter==root_map.end())
-		return string(
-				"Usage: \'help type item\' where \'type\' is one of help, zabbix,"
-				" query, subscribe.  Use \'help type\' to see a list of items.\n"
-		);
-	return iter->second(string("help"),item, reference);
+string dispatcher::hr_help(vector<string> vec, nssp reference) {
+	return "human readable help\n";
 }
 
-string dispatcher::raw(string item, string host, nssp reference) {
-	auto iter = srs_map.find(host);
-	auto oter = raw_map.find(item);
-	if(iter != srs_map.end()){
-		auto sp = iter->second.lock();
-		return sp->get(item);
-	}
-	else if(oter != raw_map.end()) {
-		return oter->second();
-	}
 
-	return "-1";
-}
-
-string dispatcher::hr(string item, string host, nssp reference) {
-	auto iter = hr_map.find(item);
-	if(iter != hr_map.end())
-		return iter->second();
-	else
-		return "nyet\n";
-}
-string dispatcher::sub(string channel,string option, nssp reference) {
-	if((!(option.compare("help"))) || (!channel.compare("help"))) {
-		string help("Channels:\n");
-		for(auto channel_pr : channel_sub_map) {
-			help +='\t';
-			help += channel_pr.first;
-			help += '\n';
-		}
-		return help;
-	}
-
-	auto iter = channel_sub_map.find(channel);
-	if(iter==channel_sub_map.end())
-		return "Channel not recognized.  Use \'help subscribe\' to see a list of"
-				" channels.\n";
-
-	for(auto subscriber : iter->second)
-		if(subscriber.lock() == reference)
-			return string("Already subscribed to " + channel + '\n');
-
-	iter->second.emplace_back(nssw(reference));
-
-	return string("Successfully subscribed to channel "+channel+'\n');
-}
-
-string dispatcher::unsub(string channel, string option, nssp reference) {
-	if((!(option.compare("help"))) || (!channel.compare("help")))
-		return "subscription help\n";
-
-	auto iter = channel_sub_map.find(channel);
-	if(iter == channel_sub_map.end())
-		return "Channel not recognized.  Use \'help unsubscribe\' to see a list of"
-				" channels.\n";
-
-	bool removed = false;
-
-	for(auto sub_iter = iter->second.begin() ;
-			sub_iter != iter->second.end() ;)
-		if(sub_iter->lock() == reference){
-			iter->second.erase(sub_iter);
-			sub_iter = iter->second.begin();
-			removed=true;
-		} else
-			 ++sub_iter;
-
-	if(removed)
-		return "Successfully unsubscribed from channel "+channel+'\n';
-	else
-		return "You were not subscribed to channel "+channel+'\n';
-}
-
-string dispatcher::zabbix_help() { return "zabbix help\n"; }
-
-string dispatcher::hr_help() { return "human readable help\n"; }
-
-
-void dispatcher::forward(string* msg_in) {
+void dispatcher::forward(shared_ptr<string> msg) {
 	flopointpb::FloPointWaveform fpwf;
 	auto self=shared_from_this();
-	string msg (*msg_in);
-	delete msg_in;
 
 	if(local_logging_enabled){
-		if(!(fpwf.ParseFromString(msg))) {
+		if(!(fpwf.ParseFromString(*msg))) {
 			FILE * log = fopen((logdir_ + "dispatch.failure.log").c_str(),"a");
 			string s (to_string(steady_clock::now()) + ": Could not parse string.\n");
 			std::fwrite(s.c_str(), sizeof(u8), s.length(), log);
@@ -263,7 +290,7 @@ void dispatcher::forward(string* msg_in) {
 			fclose(log);
 		}
 	} else {
-		if(!(fpwf.ParseFromString(msg))) {
+		if(!(fpwf.ParseFromString(*msg))) {
 			string s (to_string(steady_clock::now()) + ": Could not parse string.\n");
 			cout << s;
 		} else {
@@ -298,7 +325,16 @@ void dispatcher::forward_handler(boost::system::error_code ec, size_t in_length,
 }
 
 
-void dispatcher::make_session (tcp::endpoint& ep_in) {
+
+/*	December 14, 2015 --  Session creation.
+ *
+ * Under the new object management model, the dispatcher handles the creation
+ * and destruction of all sessions.  The only sessions with lifetime less than
+ * the run time of the program are the network sockets.
+ *
+ */
+
+void dispatcher::make_nas (tcp::endpoint& ep_in) {
 	auto pt = make_shared<nas>(io_ref, ep_in);
 
 	pt->set_ref(shared_from_this());
@@ -307,7 +343,7 @@ void dispatcher::make_session (tcp::endpoint& ep_in) {
 	comrades.push_back(move(pt));
 }
 
-void dispatcher::make_session (tcp::socket& sock_in) {
+void dispatcher::make_nss (tcp::socket& sock_in) {
 
 	auto pt = make_shared<network_socket_session>(io_ref, sock_in);
 
@@ -329,7 +365,7 @@ void dispatcher::remove_nss (nssp to_remove) {
 }
 
 
-void dispatcher::make_session (string device_name, string type) {
+void dispatcher::make_ss (string device_name, string type) {
 	if(type.compare("read")) {
 		auto pt = make_shared<srs>(io_ref, device_name);
 

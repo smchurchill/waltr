@@ -79,23 +79,61 @@ private:
 
 class dispatcher : public enable_shared_from_this<dispatcher> {
 
+	/* Layer 0 of network command parsing.
+	 * Some other function distributes a list of commands to call_net for
+	 * parsing.  Call_net will delegate through root_map to the approriate
+	 * resource.
+	 */
+public:
+	string call_net(sentence c, nssp reference);
+
 private:
-	string help(string type, string item, nssp reference);
-	string raw(string item, string host, nssp reference);
-	string hr(string item, string host, nssp reference);
-	string sub(string channel, string option, nssp reference);
-	string unsub(string channel, string option, nssp reference);
+	map<string, std::function<string(sentence,nssp)> > root_map = {
+			{"help", bind(&dispatcher::help,this,_1,_2)},
+			{"zabbix", bind(&dispatcher::raw,this,_1,_2)},
+			{"query", bind(&dispatcher::hr,this,_1,_2)},
+			{"subscribe", bind(&dispatcher::sub,this,_1,_2)},
+			{"unsubscribe", bind(&dispatcher::unsub,this,_1,_2)}
+		};
 
-	string zabbix_ports();
-	string zabbix_help();
+	string help(sentence c, nssp reference);
+	string raw(sentence c, nssp reference);
+	string hr(sentence c, nssp reference);
+	string sub(sentence c, nssp reference);
+	string unsub(sentence c, nssp reference);
+	// Layer 0
 
-	string brag();
-	string bark();
-	string hr_help();
+	/* Layer 1 of network command parsing.
+	 * A resource was called by root_map, and that resource further delegates
+	 * down the decision tree.
+	 */
+private:
+	map<string, std::function<string(vector<string>,nssp)> > raw_map = {
+			{"ports", bind(&dispatcher::zabbix_ports,this,_1,_2)},
+			{"help", bind(&dispatcher::zabbix_help,this,_1,_2)},
+			{"get", bind(&dispatcher::zabbix_get,this,_1,_2)}
+		};
 
-	map<string, std::function<string(string,string,nssp)> > root_map;
-	map<string, std::function<string()> > raw_map;
-	map<string, std::function<string()> > hr_map;
+	string zabbix_ports(vector<string> vec, nssp reference);
+	string zabbix_help(vector<string> vec, nssp reference);
+	string zabbix_get(vector<string> vec, nssp reference);
+
+	map<string, std::function<string(vector<string>,nssp)> > hr_map = {
+			{"comrades", bind(&dispatcher::brag, this, _1, _2)},
+			{"map", bind(&dispatcher::bark,this, _1, _2)},
+			{"help", bind(&dispatcher::hr_help,this, _1, _2)}
+		};
+
+	string brag(vector<string> vec, nssp reference);
+	string bark(vector<string> vec, nssp reference);
+	string hr_help(vector<string> vec, nssp reference);
+
+	// Layer 1
+
+
+
+
+
 
 	map<string, weak_ptr<srs> > srs_map;
 	map<string, weak_ptr<swps> > sws_map;
@@ -117,46 +155,25 @@ private:
 
 public:
 	dispatcher(shared_ptr<io_service> const& io_in, string log_in) :
-		root_map(
-			{
-				{"help", bind(&dispatcher::help,this,_1,_2,_3)},
-				{"zabbix", bind(&dispatcher::raw,this,_1,_2,_3)},
-				{"query", bind(&dispatcher::hr,this,_1,_2,_3)},
-				{"subscribe", bind(&dispatcher::sub,this,_1,_2,_3)},
-				{"unsubscribe", bind(&dispatcher::unsub,this,_1,_2,_3)}
-			}
-		),
-		raw_map(
-			{
-				{"ports", bind(&dispatcher::zabbix_ports,this)},
-				{"help", bind(&dispatcher::zabbix_help,this)}
-			}
-		),
-		hr_map(
-			{
-				{"comrades", bind(&dispatcher::brag, this)},
-				{"map", bind(&dispatcher::bark,this)},
-				{"help", bind(&dispatcher::hr_help,this)}
-			}
-		),
+
 		io_ref(io_in),
 		logdir_(log_in)
 	{
 	}
 	~dispatcher() {}
 
-	string call_net(vector<string> cmds, nssp reference);
+
 	string get_logdir() { return logdir_; }
 	void set_logdir(string logdir_in) { logdir_ = logdir_in; }
 
-	void forward(string* msg);
+	void forward(shared_ptr<string> msg);
 
-	void make_session (tcp::endpoint& ep_in);
+	void make_nas (tcp::endpoint& ep_in);
 
-	void make_session (tcp::socket& sock_in);
+	void make_nss (tcp::socket& sock_in);
 	void remove_nss (nssp to_remove);
 
-	void make_session (string device_name, string type);
+	void make_ss (string device_name, string type);
 
 	const time_point<steady_clock> start_ = steady_clock::now();
 

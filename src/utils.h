@@ -215,6 +215,21 @@ void set_endpoints(vector<tcp::endpoint>* end, vector<string>* addr, const int p
 		end->emplace_back(address_v4::from_string(it),port_num);
 }
 
+/*=============================================================================
+ * December 14, 2015
+ *
+ * Dissatisfied with inelegant command parsing.  Hoping that this makes things
+ * a bit more structured.
+ */
+
+struct command {
+	string Do;
+	string WhatTo;
+	string From;
+	string For;
+};
+
+
 }; // namespace dew
 
 

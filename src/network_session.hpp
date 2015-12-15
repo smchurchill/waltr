@@ -97,7 +97,7 @@ void nss::handle_read(
 		stringstream ss;
 		for(auto c : make_iterator_range(request_.begin(),request_.begin()+in_length))
 		ss << c;
-		vector<string> cmds;
+		sentence cmds;
 		string in;
 		while(ss >> in)
 			cmds.push_back(in);
@@ -105,12 +105,10 @@ void nss::handle_read(
 
 
 		string msg;
-		if(cmds.size() && cmds.size() < 4) {
-			while(cmds.size() < 3)
-				cmds.push_back("0");
+		if(cmds.size()) {
 			msg = dis_ref->call_net(cmds,self);
 		} else {
-			msg = "Adhere to command format: query-type query-subtype query-option.\n";
+			msg = "No command entered.\n";
 		}
 		out_length = msg.size();
 
@@ -138,7 +136,7 @@ void nas::do_accept() {
 			[this,self](boost::system::error_code ec)
 			{
 				if(!ec) {
-					dis_ref->make_session(socket_);
+					dis_ref->make_nss(socket_);
 				}
 				start();
 			});
