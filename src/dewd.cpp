@@ -67,27 +67,40 @@ int main(int argc, char** argv) {
 	try {
 		string logging_directory;
 		vector<string> rdev;
+		vector<string> rwdev;
+		vector<string> rwtdev;
+		vector<string> wtdev;
 		vector<string> wdev;
 		vector<string> addr;
 		string conf;
+		short timeout;
 
 		po::options_description modes("Mode options");
 		modes.add_options()
-				("sp-comm,S", "Start the dewd in serial port communication mode.  Need to"
-						" specify serial ports to read and write to.")
-				("net-comm,N", "Start the dewd in network communication mode.  Need to"
-						" specify ip-addresses to bind to.")
-				("fp-em,M", "Start dewd as a flo-point emulator rather than a"
-						" communications server.  Not currently supported.")
-				;
+			("sp-comm,s", "Start the dewd in serial port communication mode.  Need to"
+					" specify serial ports to read and write to.  For all serial port"
+					" options specified the input string must have no trailing '/' and"
+					" the option allows multiple entries. Ex. /dev/ttyS0 /dev/ttyS1")
+			("net-comm,n", "Start the dewd in network communication mode.  Need to"
+					" specify ip-addresses to bind to.")
+			("fp-em,m", "Start dewd as a flo-point emulator rather than a"
+					" communications server.  Not currently supported.")
+			;
 		po::options_description ifaces("Interface options");
 		ifaces.add_options()
-				("read-from,R", po::value<vector<string> >(&rdev)->multitoken(),
-					"Specify serial ports to read from, where the input string must"
-					" have no trailing '/'. Allows multiple entries. Ex. /dev/ttyS0")
-				("write-to,W", po::value<vector<string> >(&wdev)->multitoken(),
-					"Specify serial ports to write to, where the input string must"
-					" have no trailing '/'. Allows multiple entries. Ex. /dev/ttyS0")
+				("poll-read,R", po::value<vector<string> >(&rdev)->multitoken(),
+					"Serial ports open in polling-read mode, which reads buffers from your"
+					" serial port at a default rate of 10Hz.  To write to a port opened in"
+					" this mode, you must open the port again in some non-reading write mode.")
+				("read-write,S", po::value<vector<string> >(&rwdev)->multitoken(),
+					"Serial ports open in read-write mode, which reads at the standard asio"
+					" async-read-some rate and writes full commands.")
+				("read-write-test", po::value<vector<string> >(&rwtdev)->multitoken(),
+					"Identical to read-write except test messages are written to the port.")
+				("write-test,T", po::value<vector<string> >(&wtdev)->multitoken(),
+					"Identical to read-write-test except the port is non-reading.")
+				("write,W", po::value<vector<string> >(&wdev)->multitoken(),
+					"Identical to read-write except the port is non-reading.")
 				("network,I",po::value<vector<string> >(&addr)->multitoken(),
 					"Specify local ip4 addresses to bind to. It is assumed that these ip"
 					" addresses can be bound to by dewd." )
@@ -95,46 +108,25 @@ int main(int argc, char** argv) {
 					"Give a port number to bind to.  Used with --net-comm flag.  It is"
 					" assumed that dewd can bind to the given port.")
 				;
-
-		po::options_description testing("Test options");
-		testing.add_options()
-				("test,t", "Starting all test interfaces.  These interfaces are"
-						" pang-specific and current as of November 27, 2015.  We use"
-						" serial ports /dev/ttyS{5..12} in RW mode and tcp endpoints of"
-						" 192.168.16.{0..8}:2023.  No other test options or interface"
-						" options should be specified with --test.  --test is equivalent"
-						" to -rwn.")
-				("read-test,r", "Start serial ports as specified in --test in read"
-						" mode.")
-				("write-test,w", "Start serial ports as specified in --test in write"
-						" mode.")
-				("network-test,i", "Bind tcp endpoints specified in --test.")
-				;
-
 		po::options_description general("General options");
 		general.add_options()
 				("help,h", "Print help messages.")
 				("logging,l",
-						po::value<string>(&logging_directory)->default_value("/tmp/dewd/"),
+						po::value<string>(&logging_directory)->default_value("/tmp/"),
 						"Specify the path to logging folder, where input string must have"
 						" trailing '/'.  Default is /tmp/dewd/. Permissions are not"
 						" checked before logging begins -- it is assumed that dewd can"
 						" write to the given directory.")
 				("config,c",po::value<string>(&conf)->default_value(
 						"/usr/local/etc/dewd/dewd.conf"), "Specify a configuration file.")
+				("timeout,t",po::value<short>(&timeout)->default_value(100),
+						"Used with poll-read serial port interface to set polling rate."
+						"Value is in milliseconds.")
 				;
 
 		po::options_description cmdline_options;
-		cmdline_options.add(modes).add(ifaces).add(testing).add(general);
+		cmdline_options.add(modes).add(ifaces).add(general);
 
-
-		/* If you ask for help, you only get help.
-		 *
-		 * After that, the program exits.
-		 *
-		 * If there is an error in building the variables map, then we also need to
-		 * exit.
-		 */
 
 		po::variables_map vmap;
 		try {
@@ -156,79 +148,32 @@ int main(int argc, char** argv) {
 			return ERROR_UNHANDLED_EXCEPTION;
 		}
 
-
-		/* The first thing we'll do is set a port number for network communications
-		 *
-		 * Even if we don't end up communicating on the network we need to set this
-		 * to a const int ASAP.
-		 */
 		const int port_number = vmap["port-number"].as<int>();
 
-
-		/* Everything else we're doing requires an asio io_service, so we
-		 * initialize that now.
-		 *
-		 *
-		 */
-
-		shared_ptr<io_service> service(new io_service);
-
-
-		/* If a log-directory was specified, we set it now.  Otherwise, we use the
-		 * default log-directory.
-		 *
-		 * If an explicit directory is passed to us, then we assume dewd may write
-		 * to it.  This is the responsibility of whoever runs dewd.
-		 *
-		 *
-		 */
-		if(0)
-			cout << "Logging to " << logging_directory << '\n';
-
-
-		/* If dewd is explicitly run in test mode, then we use our test devs of
-		 * ttyS[5..12] and test ips of 192.168.16.[0..8].
-		 *
-		 * If no devs -or- ips are given, then we implicitly start in test mode.
-		 * This also covers the case of dewd being run with no options.
-		 *
-		 * If devs and/or ips are given, then we assume that those are the only
-		 * objects we want to consider.  The vectors devs and ips will be assumed
-		 * to hold all serial ports/ip addresses we want to communicate through in
-		 * the future.
-		 */
-
-
-
+		auto service = make_shared<io_service>();
 		auto dis = make_shared<dispatcher>(service, logging_directory);
 		vector<tcp::endpoint> ends;
 
-		if(vmap.count("test")||vmap.count("read-test"))
-			set_default_ports(&rdev);
-
-		if(vmap.count("test")||vmap.count("write-test"))
-			set_default_ports(&wdev);
-
-		if(vmap.count("test")||vmap.count("network-test"))
-			set_default_endpoints(&ends, port_number);
-		else if (vmap.count("network"))
+		if (vmap.count("network"))
 			set_endpoints(&ends,&addr,port_number);
-
 
 		if(vmap.count("sp-comm")){
 			for(auto it : rdev)
-				dis->make_session(it, "read");
+				dis->make_r_ss(it,timeout);
+			for(auto it : rwdev)
+				dis->make_rw_ss(it);
+			for(auto it : rwtdev)
+				dis->make_rwt_ss(it);
+			for(auto it : wtdev)
+				dis->make_wt_ss(it);
 			for(auto it : wdev)
-				dis->make_session(it, "write-test");
+				dis->make_w_ss(it);
 		}
 
 		if(vmap.count("net-comm")) {
 			for(auto it : ends)
-				dis->make_session(it);
+				dis->make_ns(it);
 		}
-
-
-
 
 		/*
 		 * Set signals to catch for graceful termination.
@@ -247,8 +192,6 @@ int main(int argc, char** argv) {
 		service->run();
 
 
-	} catch (std::bad_weak_ptr& e) {
-		cout << e.what() << endl;
 	} catch (std::exception& e) {
 		cerr << e.what() << endl;
 	}

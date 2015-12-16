@@ -26,112 +26,73 @@ using ::std::size_t;
 
 using ::std::enable_shared_from_this;
 
-
-/*-----------------------------------------------------------------------------
- * November 20, 2015 :: base class
- */
-class network_session : public basic_session{
+class network_session : public enable_shared_from_this<network_session> {
 public:
-	network_session() : basic_session() {}
+	network_session(context_struct context_in) :
+			context_(context_in),
+			endpoint_(),
+			acceptor_(context_.service),
+			socket_(context_.service)
+	{
+	}
 
 	network_session(
-			shared_ptr<io_service> const& io_in, tcp::endpoint const& ep_in) :
-				basic_session(io_in), endpoint_(ep_in)
+			context_struct context_in,
+			tcp::endpoint const& ep_in
+	) :
+			context_(context_in),
+			endpoint_(ep_in),
+			acceptor_(ep_in, context_.service),
+			socket_(context_.service)
 	{
-		map<string,std::function<string()> > tmp_map
-			{
-				{"name", bind(&network_session::get_name,this)},
-				{"type", bind(&network_session::get_type,this)}
-			};
-		get_map.insert(tmp_map.begin(),tmp_map.end());
+			stringstream ss;
+			ss << endpoint_;
+			name_ = ss.str();
+	}
+
+	network_session(
+			context_struct context_in,
+			tcp::socket& sock_in
+	) :
+			context_(context_in),
+			acceptor_(context_.service),
+			socket_(move(sock_in))
+	{
+			stringstream ss;
+			ss << socket_.remote_endpoint();
+			name_ = ss.str();
 	}
 
 	~network_session() {};
 
-protected:
+	void start_accept() { if(acceptor_.is_open()) do_accept(); }
+	void start_read() { if(socket_.is_open()) do_read(); }
 
-	virtual string get_name() { stringstream ss; ss << endpoint_; return ss.str(); }
-	string get_type() { return string("network"); }
-	tcp::endpoint endpoint_;
-};
-
-/*-----------------------------------------------------------------------------
- * December 8, 2015 :: _socket_ class
+/* December 15, 2015
+ *
+ * These variables are named by whether they are initialized by the constructor
  */
-class network_socket_session : public network_session,
-	public enable_shared_from_this<network_socket_session> {
-	friend class network_acceptor_session;
-	friend class dispatcher;
-public:
-	network_socket_session(
-			shared_ptr<io_service> const& io_in, tcp::socket& sock_in) :
-			network_session(io_in, sock_in.local_endpoint()), socket_(move(sock_in))
-	{
-		stringstream ss;
-		ss << socket_.remote_endpoint();
-		name_ = ss.str();
-
-		map<string,std::function<string()> > tmp_map
-			{
-				{"subtype", bind(&network_socket_session::get_subtype,this)}
-			};
-		get_map.insert(tmp_map.begin(),tmp_map.end());
-	}
-
-	~network_socket_session() { cout << get_name() << " destructed\n"; }
-
-	void start() { do_read(); }
-
-
-protected:
-	void do_read();
-	void handle_read( boost::system::error_code ec, size_t in_length);
-
+private:
+	context_struct context_;
+	tcp::endpoint endpoint_;
+	tcp::acceptor acceptor_;
+	tcp::socket socket_;
 	string name_;
 
 	const long BUFFER_LENGTH = 8192;
-	bBuff request_ = vector<u8>(BUFFER_LENGTH,0);
-	bBuff reply_ = vector<u8>(2*BUFFER_LENGTH,0);
-	tcp::socket socket_;
+	bBuff request = vector<u8>(BUFFER_LENGTH);
+	bBuff reply = vector<u8>(2*BUFFER_LENGTH);
 
-	tcp::socket& get_sock() { return socket_; }
-
-	string get_subtype() { return "socket"; }
-	string get_name() { return name_; }
-};
-
-/*-----------------------------------------------------------------------------
- * November 20, 2015 :: _acceptor_ class
- */
-class network_acceptor_session : public network_session,
-	public enable_shared_from_this<network_acceptor_session> {
-public:
-	network_acceptor_session(
-			shared_ptr<io_service> const& io_in, tcp::endpoint const& ep_in) :
-			network_session(io_in, ep_in),
-			acceptor_(*io_ref, endpoint_),
-			socket_(*io_ref)
-	{
-		map<string,std::function<string()> > tmp_map
-			{
-				{"subtype", bind(&network_acceptor_session::get_subtype,this)}
-			};
-		get_map.insert(tmp_map.begin(),tmp_map.end());
-	}
-
-	void start() { do_accept(); }
-
-
-private:
 
 	void do_accept();
+	void do_read();
+	void handle_read( boost::system::error_code ec, size_t in_length);
+	void cancel_socket() { if(socket_.is_open()) socket_.cancel(); }
+	sentence buffer_to_sentence(int len);
 
-	string get_subtype() { return "acceptor"; }
-
-	tcp::acceptor acceptor_;
-	tcp::socket socket_;
+	string get_name() { return name_; }
+	string get_type() { return string("network"); }
 };
-
 
 } // dew namespace
 

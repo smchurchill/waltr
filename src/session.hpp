@@ -35,17 +35,14 @@
 #include <boost/bimap/unordered_multiset_of.hpp>
 
 
-
+#include "structs.h"
 #include "types.h"
 #include "utils.h"
 #include "session.h"
-
 #include "serial_session.h"
 #include "network_session.h"
+#include "network_command.h"
 
-
-
-namespace po = boost::program_options;
 
 namespace dew {
 
@@ -79,51 +76,118 @@ using ::std::move;
 using ::std::enable_shared_from_this;
 
 
-
-
-/*-----------------------------------------------------------------------------
- * December 1, 2015 :: dispatcher methods
- */
-
-/*=============================================================================
- * December 14, 2015 :: Network command parsing
- */
-
-string dispatcher::call_net(sentence to_parse, nssp ref) {
-	auto init = make_shared<command>{
-		"get", //Do
-		"help", //WhatTo
-		"dewd", //From
-		"me", //For
-	};
-
-	do_parse(to_parse,init);
-
-}
-
-void dipatcher::do_parse(sentence to_parse, shared_ptr<command> cmd) {
-
-}
-
-
-
-/*-----------------------------------------------------------------------------
- * December 14, 2015 :: Network communications, Layer 0
- */
-
-/* December 14, 2015
- * call_net simply checks whether we may pass to Layer 1 of communications.  It
- * strips away the first command, and sends the rest through the root map.
+/*	December 14, 2015 :: Session creation.
  *
+ * Under the new object management model, the dispatcher handles the creation
+ * and destruction of all sessions.  The only sessions with lifetime less than
+ * the run time of the program are the network sockets.
+ *
+ * This also allows us to include pseudo-default constructors in our session
+ * classes that need only be passed a context_struct.
+ *
+ */
 
-string dispatcher::call_net(sentence c, nssp reference) {
-	auto iter = root_map.find(c[0]);
-	c.pop_front();
-	if(iter != root_map.end())
-		return iter->second(c,reference);
-	else
-		return "Query not supported.\n";
-}*/
+nsp dispatcher::make_ns (tcp::endpoint& ep_in) {
+	auto pt = make_shared<ns>(context_.service, shared_from_this(), ep_in);
+	pt->start_accept();
+	network.emplace_back(pt);
+	return pt;
+}
+
+nsp dispatcher::make_ns (tcp::socket& sock_in) {
+	auto pt = make_shared<ns>(context_.service, shared_from_this(), sock_in);
+	pt->start_read();
+	network.emplace_back(pt);
+	return pt;
+}
+
+void dispatcher::remove_ns (nsp to_remove) {
+	to_remove->cancel_socket();
+
+	for(auto channel : channel_subscribers)
+		unsub(channel.first, to_remove);
+
+	network.remove(to_remove);
+}
+
+ssp dispatcher::make_r_ss(string device_name, unsigned short timeout) {
+	auto pt = make_ss(device_name, timeout);
+	pt->start_read();
+	return pt;
+}
+
+ssp dispatcher::make_rw_ss(string device_name) {
+	auto pt = make_ss(device_name);
+	pt->start_read();
+	return pt;
+}
+
+ssp dispatcher::make_rwt_ss(string device_name) {
+	auto pt = make_ss(device_name);
+	pt->start_read();
+	pt->start_write();
+	return pt;
+}
+
+ssp dispatcher::make_wt_ss(string device_name) {
+	auto pt = make_ss(device_name);
+	pt->start_write();
+	return pt;
+}
+
+ssp dispatcher::make_w_ss(string device_name) {
+	return make_ss(device_name);
+}
+
+ssp dispatcher::make_ss(string device_name, unsigned short timeout) {
+	auto pt = make_shared<ss>(context_.service, shared_from_this(), device_name,
+			milliseconds(timeout));
+	serial.emplace_back(pt);
+	return pt;
+}
+
+ssp dispatcher::make_ss(string device_name) {
+	auto pt = make_shared<ss>(context_.service, shared_from_this(), device_name);
+	serial.emplace_back(pt);
+	return pt;
+}
+
+/* December 15, 2015 :: network communications */
+
+string dispatcher::execute_network_command(network_command command, nsp reference) {
+	assert(false);
+	return "\n";
+}
+
+void dispatcher::receive(string message_in) {
+	auto self (shared_from_this());
+	auto message = make_shared<string>(message_in);
+	context_.service->post(bind(&dispatcher::forward,self,message));
+}
+
+void dispatcher::forward(string);
+void dispatcher::forward_handler(const error_code&,size_t, bBuffp, nsp);
+void dispatcher::unsub(string channel, nsp to_remove) {
+	assert(false);
+}
+
+/* December 15, 2015 :: basic information */
+shared_ptr<const ss> dispatcher::get_ss_from_name(string name) {
+	for(auto i : serial)
+		if(!i->get_name().compare(name))
+			return i;
+
+	return make_shared<const ss>(context_);
+}
+shared_ptr<const ns> dispatcher::get_ns_from_name(string name) {
+	for(auto i : network)
+		if(!i->get_name().compare(name))
+			return i;
+
+	return make_shared<const ns>(context_);
+}
+
+
 
 string dispatcher::help(sentence c, nssp reference) {
 	auto iter = nullptr;
@@ -269,6 +333,7 @@ string dispatcher::hr_help(vector<string> vec, nssp reference) {
 }
 
 
+
 void dispatcher::forward(shared_ptr<string> msg) {
 	flopointpb::FloPointWaveform fpwf;
 	auto self=shared_from_this();
@@ -326,63 +391,7 @@ void dispatcher::forward_handler(boost::system::error_code ec, size_t in_length,
 
 
 
-/*	December 14, 2015 --  Session creation.
- *
- * Under the new object management model, the dispatcher handles the creation
- * and destruction of all sessions.  The only sessions with lifetime less than
- * the run time of the program are the network sockets.
- *
- */
 
-void dispatcher::make_nas (tcp::endpoint& ep_in) {
-	auto pt = make_shared<nas>(io_ref, ep_in);
-
-	pt->set_ref(shared_from_this());
-	pt->start();
-
-	comrades.push_back(move(pt));
-}
-
-void dispatcher::make_nss (tcp::socket& sock_in) {
-
-	auto pt = make_shared<network_socket_session>(io_ref, sock_in);
-
-	pt->set_ref(shared_from_this());
-	pt->start();
-
-	nss_map.insert({pt->get("name"),pt});
-}
-
-void dispatcher::remove_nss (nssp to_remove) {
-
-	to_remove->get_sock().cancel();
-
-	for(auto channel : channel_sub_map)
-		unsub(channel.first, string("disconnect"), to_remove);
-
-	nss_map.erase(to_remove->get("name"));
-
-}
-
-
-void dispatcher::make_ss (string device_name, string type) {
-	if(type.compare("read")) {
-		auto pt = make_shared<srs>(io_ref, device_name);
-
-		pt->set_ref(shared_from_this());
-		pt->start();
-
-		srs_map.insert({pt->get("name"), pt});
-		comrades.push_back(move(pt));
-	}	else if(type.compare("write-test")) {
-		auto pt = make_shared<swps>(io_ref, device_name);
-
-		pt->set_ref(shared_from_this());
-		pt->start();
-
-		comrades.push_back(move(pt));
-	}
-}
 
 
 /*-----------------------------------------------------------------------------

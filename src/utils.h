@@ -200,34 +200,11 @@ void graceful_exit(const boost::system::error_code& error, int signal_number)
 	exit(0);
 }
 
-void set_default_ports(vector<string>* dev){
-	for(int i = 5; i < 13 ; ++i)
-		dev->emplace_back("/dev/ttyS" + to_string(i));
-}
-
-void set_default_endpoints(vector<tcp::endpoint>* end, const int port_num){
-	for(int i = 0; i < 9 ; ++i)
-		end->emplace_back(address_v4::from_string("192.168.16." + to_string(i)), port_num);
-}
-
 void set_endpoints(vector<tcp::endpoint>* end, vector<string>* addr, const int port_num){
 	for(auto it : *addr)
 		end->emplace_back(address_v4::from_string(it),port_num);
 }
 
-/*=============================================================================
- * December 14, 2015
- *
- * Dissatisfied with inelegant command parsing.  Hoping that this makes things
- * a bit more structured.
- */
-
-struct command {
-	string Do;
-	string WhatTo;
-	string From;
-	string For;
-};
 
 
 }; // namespace dew

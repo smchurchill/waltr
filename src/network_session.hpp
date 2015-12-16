@@ -29,6 +29,7 @@
 #include "types.h"
 #include "utils.h"
 #include "session.h"
+#include "network_command.h"
 #include "network_session.h"
 
 
@@ -58,97 +59,70 @@ using ::std::copy_n;
 using ::std::make_shared;
 using ::std::shared_ptr;
 
-/*-----------------------------------------------------------------------------
- * November 20, 2015 :: base methods
- */
-
-
-/*=============================================================================
- * December 8, 2015 :: _socket_ methods
- */
-
-/* Currently implemented using asyc_read_some. May need to switch to async_read
- * with timeouts if partial commands are being processed.
- */
-void nss::do_read() {
-	nssp self (shared_from_this());
-	socket_.async_read_some(boost::asio::buffer(request_),bind(
-			&nss::handle_read,self,_1,_2));
+void ns::do_accept() {
+	auto self (shared_from_this());
+	acceptor_.async_accept(socket_,
+			[this,self](boost::system::error_code ec)
+			{
+				if(!ec) {
+					context_.dispatch->make_ns(socket_);
+				}
+				start_accept();
+			});
 }
 
-void nss::handle_read(
+
+void ns::do_read() {
+	auto self (shared_from_this());
+	socket_.async_read_some(boost::asio::buffer(request),bind(
+			&ns::handle_read,self,_1,_2));
+}
+
+void ns::handle_read(
 		boost::system::error_code ec, size_t in_length) {
 	if(ec){
-		dis_ref->remove_nss(shared_from_this());
+		context_.dispatch->remove_ns(shared_from_this());
 		return;
 	} else {
-
-	nssp self (shared_from_this());
-
+	auto self (shared_from_this());
 	size_t out_length = 0;
 
 	/* Cut out edge cases */
 	if (in_length >= BUFFER_LENGTH) {
 		string exceeds ("Request exceeds length.\r\n");
 		out_length = exceeds.size();
-		copy(exceeds.begin(),exceeds.end(),reply_.begin());
+		copy(exceeds.begin(),exceeds.end(),reply.begin());
 	} else {
-
-		stringstream ss;
-		for(auto c : make_iterator_range(request_.begin(),request_.begin()+in_length))
-		ss << c;
-		sentence cmds;
-		string in;
-		while(ss >> in)
-			cmds.push_back(in);
-
-
-
-		string msg;
-		if(cmds.size()) {
-			msg = dis_ref->call_net(cmds,self);
+		sentence s = buffer_to_sentence(in_length);
+		string message;
+		if(s.empty()) {
+			message = "No command entered.\n";
 		} else {
-			msg = "No command entered.\n";
+			network_command command (s);
+			message = context_.dispatch->execute_network_command(command, self);
 		}
-		out_length = msg.size();
-
-
-		copy(msg.begin(),msg.end(),reply_.begin());
-
+		out_length = message.size();
+		copy(message.begin(),message.end(),reply.begin());
 	}
 
-
-	boost::asio::async_write(socket_,boost::asio::buffer(reply_,out_length),
+	boost::asio::async_write(socket_,boost::asio::buffer(reply,out_length),
 			[self](boost::system::error_code ec, size_t in_length) {
 				self->do_read();
 			});
-
 	}
 }
 
+sentence ns::buffer_to_sentence(int len) {
+	stringstream ss;
+	for(auto c : make_iterator_range(request.begin(),request.begin()+len))
+	ss << c;
+	sentence s;
+	string in;
+	while(ss >> in)
+		s.push_back(in);
 
-/*-----------------------------------------------------------------------------
- * November 20, 2015 :: _acceptor_ methods
- */
-void nas::do_accept() {
-	auto self (shared_from_this());
-	acceptor_.async_accept(socket_,
-			[this,self](boost::system::error_code ec)
-			{
-				if(!ec) {
-					dis_ref->make_nss(socket_);
-				}
-				start();
-			});
+	return s;
 }
-
-
-
-
-
-
-
-
 
 } // dew namespace
 

@@ -35,7 +35,7 @@
 
 #include <boost/range/iterator_range.hpp>
 
-
+#include "structs.h"
 #include "types.h"
 #include "utils.h"
 #include "session.h"
@@ -57,6 +57,8 @@ using ::boost::make_iterator_range;
 
 using ::boost::bind;
 
+using ::boost::system::error_code;
+
 using ::std::to_string;
 using ::std::string;
 using ::std::vector;
@@ -72,83 +74,67 @@ using ::std::reverse_copy;
 using ::std::floor;
 using ::std::exp;
 
-/*-----------------------------------------------------------------------------
- * November 20, 2015 :: base methods
- */
-
-string serial_session::get_tx() {
-	pop_counters();
-	long int tx = (unsigned)counters.tx;
-	return to_string(tx);
+void ss::start_write() {
+	srand(time(0));
+	do_write();
+	set_write_timer();
 }
 
-string serial_session::get_rx() {
-	pop_counters();
-	long int rx = (unsigned)counters.rx;
-	return to_string(rx);
+void ss::start_read() {
+	do_read();
+	if(read_type_is_timeout_)
+		set_read_timer();
 }
 
-
-
-/*=============================================================================
- * December 9, 2015 :: _read_ methods
- *
- * _read_ class cannibalized _read_parse_ class as of December 9, 2015.
- */
-void srs::set_timer() {
-	srsp self (shared_from_this());
-	time_point<steady_clock> now_ =	steady_clock::now();
-
-	while(dead_< now_)
-		dead_ = dead_ + timeout_;
-
-	timer_.expires_at(dead_);
-	timer_.async_wait(
-  	boost::bind(&srs::handle_timeout, self, _1));
+void ss::do_write() {
+	do_write(generate_message());
 }
 
-void srs::handle_timeout(boost::system::error_code ec) {
-	if(!ec)
-		port_.cancel();
-	set_timer();
-}
-
-void srs::start() {
-	start_read();
-	dead_ = steady_clock::now() + timeout_;
-	set_timer();
-}
-void srs::start_read() {
+void ss::do_write(bBuff message) {
 	auto self (shared_from_this());
-	auto buffer_ = make_shared<bBuff> (BUFFER_LENGTH);
-	mutable_buffers_1 Buffer_ = boost::asio::buffer(*buffer_);
-	boost::asio::async_read(port_,Buffer_,boost::bind(
-			&srs::handle_read, self, _1, _2, buffer_));
+	auto messagep = make_shared<bBuff>(message);
+	auto Message = boost::asio::buffer(message);
+	boost::asio::async_write(
+			port_, Message, bind(&ss::handle_write, self, _1, _2, messagep));
 }
-void srs::handle_read(boost::system::error_code ec,
-		size_t length, shared_ptr<bBuff> buffer_) {
-	srsp self (shared_from_this());
-	counts.bytes_received += length;
 
-	if(!buffer_->empty()) {
+void ss::do_read() {
+	auto self (shared_from_this());
+	auto buffer = make_shared<bBuff> (BUFFER_LENGTH);
+	auto Buffer = boost::asio::buffer(*buffer);
+	if(read_type_is_timeout_)
+		boost::asio::async_read(
+			port_, Buffer, bind(&ss::handle_read, self, _1, _2, buffer));
+	else
+		port_.async_read_some(
+				Buffer, bind(&ss::handle_read, self, _1, _2, buffer));
+}
+
+void ss::handle_write(const error_code& ec, size_t len, bBuffp message) {
+	return;
+}
+
+void ss::handle_read(const error_code& ec, size_t len, bBuffp buffer) {
+	auto self (shared_from_this());
+	counts.bytes_received += len;
+
+	if(!buffer->empty()) {
 		if(to_parse.empty())
 			front_last = steady_clock::now();
-		copy(buffer_->begin(),buffer_->begin()+length, back_inserter(to_parse));
+		copy(buffer->begin(),buffer->begin()+len, back_inserter(to_parse));
 	}
 
-	io_ref->post(bind(&srs::check_the_deque,self));
-	start_read();
+	set_a_check();
+	do_read();
 }
 
-int srs::scrub(pBuff::iterator iter) {
-	pBuff::iterator oter = find(iter,to_parse.end(),0xff);
-	int bytes = oter - to_parse.begin();
-	to_parse.erase(to_parse.begin(), oter);
-	front_last = steady_clock::now();
-	return bytes;
+void ss::set_a_check() {
+	auto self (shared_from_this());
+	context_.service->post(boost::bind(&ss::check_the_deque,self));
 }
-void srs::check_the_deque() {
-	srsp self (shared_from_this());
+
+void ss::check_the_deque() {
+	auto self (shared_from_this());
 	/* The deque to check is d. From least restrictive to most restrictive, we
 	 * check that:
 	 * 1. size(d) > 0
@@ -176,23 +162,18 @@ void srs::check_the_deque() {
 	 * nonce1(4) + FE + FF = 6 characters.  If we have fewer than 18 characters
 	 * in to_parse then we cannot succeed.
 	 *
-	 * With exactly 18 characters there is an edge case of an empty payload.  We
-	 * would want to find and remove that.
+	 * The payload is a google protobuf message of unknown length, so we stay
+	 * at the conservative 18 character minimum.
 	 */
 	if(to_parse.size() < 18)
 		return;
-
 	assert(to_parse.size()>=18);
 
-
 	if(to_parse[0]!=0xff || to_parse[1]!=0xfe) {
-
 		counts.bad_prefix += scrub(to_parse.begin()+2);
-
-		io_ref->post(boost::bind(&srs::check_the_deque,self));
+		set_a_check();
 		return;
 	}
-
 	assert(to_parse[0]==0xff);
 	assert(to_parse[1]==0xfe);
 
@@ -205,14 +186,8 @@ void srs::check_the_deque() {
 
 	u8 crc_comp = crc8(make_iterator_range(to_parse.begin(),to_parse.begin()+11));
 	if(crc_comp!=to_parse[11]) {
-		if(0)
-		cout << "Bad CRC:\n" <<
-				"\tMessage:" << debug_str(make_iterator_range(to_parse.begin(),to_parse.begin()+13)) <<
-				'\n' << "\t Computed CRC: " << filter_unprintable(crc_comp) << '\n';
-
 		counts.bad_crc += scrub(to_parse.begin()+12);
-
-		io_ref->post(boost::bind(&srs::check_the_deque,self));
+		set_a_check();
 		return;
 	}
 
@@ -230,8 +205,6 @@ void srs::check_the_deque() {
 	 *  - currently printing to console
 	 *  - later, will send to dispatcher
 	 */
-
-
 
 	pBuff delim (6);
 	reverse_copy(to_parse.begin(),to_parse.begin()+6,delim.begin());
@@ -253,22 +226,16 @@ void srs::check_the_deque() {
 	if(match_point == to_parse.end()) {
 		if(to_parse.size()>MAX_FRAME_LENGTH) {
 			counts.frame_too_long += scrub(to_parse.begin()+1);
-
-			io_ref->post(bind(&srs::check_the_deque,self));
+			set_a_check();
 			return;
 		} else if (steady_clock::now() - front_last > milliseconds(500)) {
 			counts.frame_too_old += scrub(to_parse.begin()+1);
-
-			io_ref->post(boost::bind(&srs::check_the_deque,self));
+			set_a_check();
 			return;
 		}
-	} else if(match_point!=to_parse.end()) { /* We have a message */
-		++counts.msg_tot;
-
-		/* With the use of smart pointers, we ~know~ that the memory allocated here
-		 * will be automatically freed when appropriate.  Thanks, C++11!
-		 */
-		auto to_send = make_shared<string>();
+	} else { /* We have a message */
+		++counts.messages_received;
+		string to_send;
 		pBuff xfix;
 
 		/* We have a match and match_point points to the beginning of the endframe
@@ -277,13 +244,13 @@ void srs::check_the_deque() {
 		 */
 		assert(match_point+6 <= to_parse.end());
 		copy(to_parse.begin(),to_parse.begin()+12,back_inserter(xfix));
-		copy(to_parse.begin()+12, match_point, back_inserter(*to_send));
+		copy(to_parse.begin()+12, match_point, back_inserter(to_send));
 		copy(match_point, match_point+6, back_inserter(xfix));
 
 		counts.wrapper_bytes_tot += xfix.size();
-		counts.msg_bytes_tot += to_send->size();
+		counts.msg_bytes_tot += to_send.size();
 		counts.garbage += scrub(match_point+6);
-		counts.garbage -= to_send->size();
+		counts.garbage -= to_send.size();
 
 		assert(xfix.size()>=11);
 		counts.curr_msg = (int)(xfix.at(10));
@@ -294,65 +261,36 @@ void srs::check_the_deque() {
 			++counts.lost_msg_count;
 		}
 		counts.last_msg=counts.curr_msg;
-
-		/* debug logging */
-		if(0) {
-		FILE * log = fopen((
-				dis_ref->get_logdir() + name_.substr(name_.find_last_of("/\\")+1) + ".received.prefix").c_str(),"a");
-		stringstream ss;
-		debug(make_iterator_range(to_send->begin(),to_send->begin()+18),&ss);
-		std::fwrite(ss.str().c_str(), sizeof(u8), ss.str().length(), log);
-		fclose(log);
-		}
-
-		io_ref->post(bind(&srs::forward,self,to_send));
+		deliver(to_send);
 
 		/* Loop checks until to_parse has no more messages waiting for us. */
-		io_ref->post(bind(&srs::check_the_deque,self));
+		set_a_check();
 	}
 }
 
-void srs::forward(shared_ptr<string> to_send) {
-	dis_ref->forward(to_send);
+void ss::deliver(string message) {
+	context_.dispatch->receive(message);
 }
 
-
-/*-----------------------------------------------------------------------------
- * November 20, 2015 :: _write_ methods
- */
-
-/*=============================================================================
- * December 7, 2015 :: _write_pb_ methods
- */
-
-void swps::start() {
-	srand(time(0));
-	start_write();
+int ss::scrub(pBuff::iterator iter) {
+	pBuff::iterator oter = find(iter,to_parse.end(),0xff);
+	int bytes = oter - to_parse.begin();
+	to_parse.erase(to_parse.begin(), oter);
+	front_last = steady_clock::now();
+	return bytes;
 }
 
-void swps::start_write() {
-	swpsp self (shared_from_this());
-	bBuff* message = generate_message();
-	mutable_buffers_1 bMessage = boost::asio::buffer(*message);
-	boost::asio::async_write(port_, bMessage, bind(
-			&swps::handle_write, self, _1, _2, message));
+int ss::pop_counters() {
+	memset(&ioctl_counters, 0, sizeof(serial_icounter_struct));
+	return ioctl(fd_, TIOCGICOUNT, &ioctl_counters);
 }
 
-void swps::handle_write(
-			const boost::system::error_code& error, size_t bytes_transferred,
-			bBuff* message) {
-	swpsp self (shared_from_this());
-	io_ref->post(
-			boost::bind(&swps::start_write,self));
-	delete message;
-}
-
-bBuff* swps::generate_message() {
+bBuff ss::generate_message() {
 	/* Caller accepts the responsibility of freeing this memory */
-	bBuff* msg = new bBuff;
+	bBuff message;
 
-	while(msg->size() < 1024) {
-		++internal_counter;
+	while(message.size() < 1024) {
+		++counts.messages_sent;
 		bBuff nonce1 = {0xff, 0xfe}, nonce2;
 		u8 byte;
 
@@ -363,19 +301,19 @@ bBuff* swps::generate_message() {
 			nonce2.emplace_back(byte);
 		}
 		/* nonce 1 add */
-		copy(nonce1.begin(), nonce1.end(), back_inserter(*msg));
+		copy(nonce1.begin(), nonce1.end(), back_inserter(message));
 
 		/* nonce2 add */
-		copy(nonce2.begin(), nonce2.end(), back_inserter(*msg));
+		copy(nonce2.begin(), nonce2.end(), back_inserter(message));
 
 		/* msg number sequence */
-		msg->push_back(mod(internal_counter,256));
+		message.push_back(mod(counts.messages_sent,256));
 
-		assert(msg->size()>=11);
-		u8 crc = crc8(make_iterator_range(msg->end()-11,msg->end()));
+		assert(message.size()>=11);
+		u8 crc = crc8(make_iterator_range(message.end()-11,message.end()));
 
 		/* crc byte */
-		msg->push_back(crc);
+		message.push_back(crc);
 
 		int num = mod(rand(),9);
 		string name = to_string(num) + "of09";
@@ -383,40 +321,81 @@ bBuff* swps::generate_message() {
 		flopointpb::FloPointWaveform fpwf;
 		fpwf.set_name(name);
 
-
 		/*=========================================================================
 		 * Waveform generated is Gompertz function samples at x = 0 .. 63
 		 * with parameters a=2^32-1, b=rand(1), c=rand(2)
 		 */
-		flopointpb::FloPointWaveform_Waveform* wf = new flopointpb::FloPointWaveform_Waveform;
+		flopointpb::FloPointWaveform_Waveform wf;
 
 		double gomp_b = 1 - (static_cast<double>(rand())/RAND_MAX);
 		double gomp_c = 1 - (static_cast<double>(rand())/RAND_MAX);
 
-
 		for(int i = 0  ; i<64 ; ++i) {
-			wf->add_wheight(
+			wf.add_wheight(
 					static_cast<int>(65000*exp((-1)*gomp_b*exp((-1)*gomp_c)))*i);
 		}
 
-		fpwf.set_allocated_waveform(wf);
+		fpwf.set_allocated_waveform(&wf);
 
 		string fpwf_str;
 		if(!(fpwf.SerializeToString(&fpwf_str))) {
-			FILE * log = fopen((
-					dis_ref->get_logdir() + name_.substr(name_.find_last_of("/\\")+1) + ".message_generation").c_str(),"a");
-			string s (to_string(steady_clock::now()) + ": Could not serialize message to string.\n");
-			std::fwrite(s.c_str(), sizeof(u8), s.length(), log);
-			fclose(log);
+			string filename;
+			filename += context_.dispatch->get_logdir();
+			filename +=	name_.substr(name_.find_last_of("/\\")+1);
+			filename +=".message_generation";
+			FILE * logfile = fopen(filename.c_str(),"a");
+			string s;
+			s += to_string(steady_clock::now());
+			s += ": Could not serialize message to string.\n";
+			std::fwrite(s.c_str(), sizeof(u8), s.length(), logfile);
+			fclose(logfile);
 		}
-		copy(fpwf_str.begin(), fpwf_str.end(), back_inserter(*msg));
-
-		reverse_copy(nonce1.begin(),nonce1.end(),back_inserter(*msg));
+		copy(fpwf_str.begin(), fpwf_str.end(), back_inserter(message));
+		reverse_copy(nonce1.begin(),nonce1.end(),back_inserter(message));
 	}
+	return message;
+}
 
-	//debug(make_iterator_range(msg->begin(),msg->end()));
+void ss::set_write_timer() {
+	auto self (shared_from_this());
+	int time_to_wait_in_ms = 25 + (rand()%25);
+	milliseconds time_to_wait = milliseconds(time_to_wait_in_ms);
 
-	return msg;
+	timer_.expires_from_now(time_to_wait);
+	timer_.async_wait(bind(&ss::handle_write_timeout,self,_1));
+}
+
+void ss::set_read_timer() {
+	auto self (shared_from_this());
+	time_point<steady_clock> now =	steady_clock::now();
+	while(dead < now)
+		dead = dead + timeout_;
+
+	timer_.expires_at(dead);
+	timer_.async_wait(bind(&ss::handle_read_timeout, self, _1));
+}
+
+void ss::handle_write_timeout(const error_code& ec) {
+	do_write();
+	set_write_timer();
+}
+
+void ss::handle_read_timeout(const error_code& ec) {
+	if(!ec)
+		port_.cancel();
+	set_read_timer();
+}
+
+string ss::get_tx() {
+	pop_counters();
+	long int tx = (unsigned)ioctl_counters.tx;
+	return to_string(tx);
+}
+
+string ss::get_rx() {
+	pop_counters();
+	long int rx = (unsigned)ioctl_counters.rx;
+	return to_string(rx);
 }
 
 } // dew namespace
