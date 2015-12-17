@@ -38,7 +38,7 @@
 #include "structs.h"
 #include "types.h"
 #include "utils.h"
-#include "session.h"
+
 #include "serial_session.h"
 
 namespace dew {
@@ -73,6 +73,43 @@ using ::std::copy;
 using ::std::reverse_copy;
 using ::std::floor;
 using ::std::exp;
+
+/* December 16, 2015 :: constructors */
+
+serial_session::serial_session(context_struct context_in) :
+	serial_session(context_in, "/dev/null")
+{
+}
+
+serial_session::serial_session(
+		context_struct context_in,
+		string device_in,
+		milliseconds timeout_in
+) :
+		context_(context_in),
+		port_(*context_.service, device_in),
+		fd_(port_.native_handle()),
+		name_(device_in),
+		timeout_(timeout_in),
+		timer_(*context_.service),
+		read_type_is_timeout_(true)
+{
+}
+
+serial_session::serial_session(
+		context_struct context_in,
+		string device_in
+) :
+		context_(context_in),
+		port_(*context_.service, device_in),
+		fd_(port_.native_handle()),
+		name_(device_in),
+		timeout_(milliseconds(0)),
+		timer_(*context_.service),
+		read_type_is_timeout_(false)
+{
+}
+
 
 void ss::start_write() {
 	srand(time(0));
@@ -397,6 +434,72 @@ string ss::get_rx() {
 	long int rx = (unsigned)ioctl_counters.rx;
 	return to_string(rx);
 }
+
+void ss::get_tx(nsp in) {
+	in->do_write(get_tx());
+}
+void ss::get_rx(nsp in) {
+	in->do_write(get_rx());
+}
+
+string ss::get_messages_received_tot() {
+	return to_string(counts.messages_received);
+}
+string ss::get_messages_lost_tot() {
+	return to_string(counts.messages_lost_tot);
+}
+
+void ss::get_messages_received_tot(nsp in) {
+	in->do_write(get_messages_received_tot());
+}
+void ss::get_messages_lost_tot(nsp in) {
+	in->do_write(get_messages_lost_tot());
+}
+
+string ss::get_messages_sent_tot() {
+	return to_string(counts.messages_sent);
+}
+
+string ss::get_frame_too_old() {
+	return to_string(counts.frame_too_old);
+}
+
+string ss::get_frame_too_long() {
+	return to_string(counts.frame_too_long);
+}
+
+string ss::get_bad_prefix() {
+	return to_string(counts.bad_prefix);
+}
+
+string ss::get_bad_crc() {
+	return to_string(counts.bad_crc);
+}
+
+string ss::get_bytes_received() {
+	return to_string(counts.bytes_received);
+}
+
+string ss::get_msg_bytes_tot() {
+	return to_string(counts.msg_bytes_tot);
+}
+
+string ss::get_wrapper_bytes_tot() {
+	return to_string(counts.wrapper_bytes_tot);
+}
+
+string ss::get_garbage() {
+	return to_string(counts.garbage);
+}
+
+string ss::get_name() {
+	return name_;
+}
+
+string ss::get_type() {
+	return string("serial");
+}
+
 
 } // dew namespace
 

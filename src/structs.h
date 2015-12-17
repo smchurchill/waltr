@@ -10,7 +10,6 @@
 
 #include <memory>
 #include <vector>
-#include "session.hpp"
 
 #include <boost/asio.hpp>
 #include <boost/chrono.hpp>
@@ -18,22 +17,33 @@
 
 
 using ::std::shared_ptr;
-
 using ::boost::asio::io_service;
-
 using ::boost::chrono::time_point;
 using ::boost::chrono::steady_clock;
-
 using ::std::vector;
 
 namespace dew {
 
+class dispatcher;
+
+
+struct context_struct_lite {
+	context_struct_lite(shared_ptr<io_service> const& io_in) :
+		start(steady_clock::now()), service(io_in) {}
+
+	time_point<steady_clock> start;
+	const shared_ptr<io_service> service;
+
+	void set_start() { start = steady_clock::now(); }
+};
+
+
+
 struct context_struct {
-	context_struct(const context_struct& in) {
-		start = steady_clock::now();
-		service = in.service;
-		dispatch = in.dispatch;
-	}
+	context_struct(const context_struct_lite& context_in, shared_ptr<dispatcher> const& dis_in) :
+		start(steady_clock::now()), service(context_in.service), dispatch(dis_in) {}
+
+	context_struct(){}
 
 	time_point<steady_clock> start;
 	const shared_ptr<io_service> service;
@@ -42,7 +52,7 @@ struct context_struct {
 	void set_start() { start = steady_clock::now(); }
 };
 
-/*
+
 struct serial_icounter_struct {
   int cts, dsr, rng, dcd;
   int rx, tx;
@@ -50,7 +60,7 @@ struct serial_icounter_struct {
   int buf_overrun;
   int reserved[9];
 };
-*/
+
 
 struct message_counter_struct {
 	int messages_received;

@@ -23,51 +23,31 @@ using ::std::map;
 using ::std::pair;
 using ::std::cout;
 using ::std::size_t;
+using ::std::move;
 
 using ::std::enable_shared_from_this;
 
 class network_session : public enable_shared_from_this<network_session> {
 public:
-	network_session(context_struct context_in) :
-			context_(context_in),
-			endpoint_(),
-			acceptor_(context_.service),
-			socket_(context_.service)
-	{
-	}
+	network_session(context_struct context_in);
 
 	network_session(
 			context_struct context_in,
 			tcp::endpoint const& ep_in
-	) :
-			context_(context_in),
-			endpoint_(ep_in),
-			acceptor_(ep_in, context_.service),
-			socket_(context_.service)
-	{
-			stringstream ss;
-			ss << endpoint_;
-			name_ = ss.str();
-	}
+	);
 
 	network_session(
 			context_struct context_in,
 			tcp::socket& sock_in
-	) :
-			context_(context_in),
-			acceptor_(context_.service),
-			socket_(move(sock_in))
-	{
-			stringstream ss;
-			ss << socket_.remote_endpoint();
-			name_ = ss.str();
-	}
+	);
 
 	~network_session() {};
 
 	void start_accept() { if(acceptor_.is_open()) do_accept(); }
 	void start_read() { if(socket_.is_open()) do_read(); }
 	void do_write(string);
+
+	void cancel_socket() { if(socket_.is_open()) socket_.cancel(); }
 
 /* December 15, 2015
  *
@@ -86,9 +66,8 @@ private:
 
 	void do_accept();
 	void do_read();
-	void handle_read(error_code, size_t);
-	void handle_write(error_code, size_t, bBuffp);
-	void cancel_socket() { if(socket_.is_open()) socket_.cancel(); }
+	void handle_read(boost::system::error_code, size_t);
+	void handle_write(boost::system::error_code, size_t, bBuffp);
 	sentence buffer_to_sentence(int len);
 
 	string get_name() { return name_; }

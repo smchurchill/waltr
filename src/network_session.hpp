@@ -26,11 +26,13 @@
 
 #include <boost/function.hpp>
 
+#include "structs.h"
 #include "types.h"
 #include "utils.h"
-#include "session.h"
-#include "network_command.h"
+
 #include "network_session.h"
+#include "network_help.h"
+#include "session.h"
 
 
 namespace dew {
@@ -59,6 +61,46 @@ using ::std::copy_n;
 
 using ::std::make_shared;
 using ::std::shared_ptr;
+
+using ::std::enable_shared_from_this;
+
+/* December 16, 2015 :: constructors */
+
+ns::network_session(context_struct context_in) :
+		context_(context_in),
+		endpoint_(),
+		acceptor_(*context_.service),
+		socket_(*context_.service)
+{
+}
+
+ns::network_session(
+		context_struct context_in,
+		tcp::endpoint const& ep_in
+) :
+		context_(context_in),
+		endpoint_(ep_in),
+		acceptor_(*context_.service, ep_in),
+		socket_(*context_.service)
+{
+		stringstream ss;
+		ss << endpoint_;
+		name_ = ss.str();
+}
+
+ns::network_session(
+		context_struct context_in,
+		tcp::socket& sock_in
+) :
+		context_(context_in),
+		acceptor_(*context_.service),
+		socket_(move(sock_in))
+{
+		stringstream ss;
+		ss << socket_.remote_endpoint();
+		name_ = ss.str();
+}
+
 
 
 void ns::do_write(string message) {
@@ -90,7 +132,7 @@ void ns::do_read() {
 }
 
 void ns::handle_read(
-		error_code ec, size_t in_length) {
+		boost::system::error_code ec, size_t in_length) {
 	if(ec){
 		context_.dispatch->remove_ns(shared_from_this());
 		return;
@@ -113,7 +155,8 @@ void ns::handle_read(
 	}
 }
 
-void ns::handle_write(error_code ec, size_t in_length, bBuffp buffer) {
+void ns::handle_write(
+		boost::system::error_code ec, size_t in_length, bBuffp buffer) {
 	return;
 }
 

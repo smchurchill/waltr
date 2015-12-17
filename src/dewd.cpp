@@ -19,12 +19,17 @@
 #include <boost/asio.hpp>
 #include <boost/program_options.hpp>
 
+#include "structs.h"
 #include "types.h"
 #include "utils.h"
 
+#include "network_session.hpp"
+#include "network_help.h"
+#include "command_graph.hpp"
+
 #include "session.hpp"
 #include "serial_session.hpp"
-#include "network_session.hpp"
+
 
 
 namespace
@@ -152,8 +157,8 @@ int main(int argc, char** argv) {
 
 		auto service = make_shared<io_service>();
 		auto dis = make_shared<dispatcher>(service, logging_directory);
-		vector<tcp::endpoint> ends;
 
+		vector<tcp::endpoint> ends;
 		if (vmap.count("network"))
 			set_endpoints(&ends,&addr,port_number);
 

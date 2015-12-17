@@ -39,11 +39,12 @@
 #include "structs.h"
 #include "types.h"
 #include "utils.h"
-#include "session.h"
 #include "serial_session.h"
 #include "network_session.h"
+#include "network_help.h"
 #include "command_graph.h"
 
+#include "session.h"
 
 namespace dew {
 
@@ -77,6 +78,19 @@ using ::std::move;
 
 using ::std::enable_shared_from_this;
 
+/* December 16, 2015 :: constructors */
+
+dispatcher::dispatcher(shared_ptr<io_service> const& io_in) :
+	context_(io_in),
+	root(root_nodes)
+{
+}
+dispatcher::dispatcher(shared_ptr<io_service> const& io_in, string log_in) :
+	context_(io_in),
+	logdir_(log_in),
+	root(root_nodes)
+{
+}
 
 /*	December 14, 2015 :: Session creation.
  *
@@ -90,14 +104,14 @@ using ::std::enable_shared_from_this;
  */
 
 nsp dispatcher::make_ns (tcp::endpoint& ep_in) {
-	auto pt = make_shared<ns>(context_.service, shared_from_this(), ep_in);
+	auto pt = make_shared<ns>(context_struct(context_, shared_from_this()),ep_in);
 	pt->start_accept();
 	network.emplace_back(pt);
 	return pt;
 }
 
 nsp dispatcher::make_ns (tcp::socket& sock_in) {
-	auto pt = make_shared<ns>(context_.service, shared_from_this(), sock_in);
+	auto pt = make_shared<ns>(context_struct(context_, shared_from_this()), sock_in);
 	pt->start_read();
 	network.emplace_back(pt);
 	return pt;
@@ -150,20 +164,20 @@ ssp dispatcher::make_w_ss(string device_name) {
 }
 
 ssp dispatcher::make_ss(string device_name, unsigned short timeout) {
-	auto pt = make_shared<ss>(context_.service, shared_from_this(), device_name,
+	auto pt = make_shared<ss>(context_struct(context_, shared_from_this()), device_name,
 			milliseconds(timeout));
 	return pt;
 }
 
 ssp dispatcher::make_ss(string device_name) {
-	auto pt = make_shared<ss>(context_.service, shared_from_this(), device_name);
+	auto pt = make_shared<ss>(context_struct(context_, shared_from_this()), device_name);
 	return pt;
 }
 
 /* December 15, 2015 :: network communications */
 
 void dispatcher::execute_network_command(
-		sentence command, nsp reference, node at = root) {
+		sentence command, nsp reference) {
 	assert(false);
 }
 
@@ -274,6 +288,7 @@ void dispatcher::add_static_leaves() {
 						std::function<void(nsp)>(
 							bind(&dispatcher::unsubscribe,self,_1,channel.first))));
 	}
+	added_static_leaves = true;
 }
 
 void dispatcher::purge_dynamic_leaves() {

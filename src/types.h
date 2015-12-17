@@ -17,6 +17,9 @@
 
 namespace dew {
 
+class serial_session;
+class network_session;
+class node;
 
 typedef serial_session ss;
 typedef network_session ns;

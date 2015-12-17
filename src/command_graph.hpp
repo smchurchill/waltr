@@ -36,7 +36,6 @@
 #include "structs.h"
 #include "types.h"
 #include "utils.h"
-#include "session.h"
 #include "command_graph.h"
 
 namespace dew {
@@ -69,7 +68,7 @@ using ::std::reverse_copy;
 
 
 void node::spawn(pair<string,nodep> child) {
-	if(child.second->is_owned)
+	if(child.second->is_owned())
 		return;
 	else {
 		child.second->own();
@@ -77,7 +76,7 @@ void node::spawn(pair<string,nodep> child) {
 	}
 }
 void node::spawn(string str_in, nodep node_in) {
-	if(node_in->is_owned)
+	if(node_in->is_owned())
 		return;
 	else {
 		node_in->own();

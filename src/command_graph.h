@@ -11,6 +11,7 @@
 namespace dew {
 
 class node : public enable_shared_from_this<node> {
+public:
 	node(){}
 	node(map<string,nodep> children_in) : children(children_in) {}
 	node(std::function<void(nsp)> fn_in) : fn(fn_in) {}
@@ -24,7 +25,7 @@ class node : public enable_shared_from_this<node> {
 
 	void set_fn(std::function<void(nsp)> fn_in) { fn = fn_in; }
 	void operator()(nsp) const;
-	shared_ptr<node>& child(const string & key) const { return children.at(key); }
+	const shared_ptr<node>& child(const string & key) const { return children.at(key); }
 
 	string descendants(const int);
 

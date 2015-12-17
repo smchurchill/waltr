@@ -36,39 +36,18 @@ using ::std::size_t;
  */
 class serial_session : public enable_shared_from_this<serial_session> {
 public:
-	serial_session(context_struct context_in) :
-		serial_session(context_in, "/dev/null")
-	{
-	}
+	serial_session(context_struct context_in);
 
 	serial_session(
 			context_struct context_in,
 			string device_in,
 			milliseconds timeout_in
-	) :
-			context_(context_in),
-			port_(context_.service, device_in),
-			fd_(port_.native_handle),
-			name_(device_in),
-			timeout_(timeout_in),
-			timer_(context_.service),
-			read_type_is_timeout_(true)
-	{
-	}
+	);
 
 	serial_session(
 			context_struct context_in,
 			string device_in
-	) :
-			context_(context_in),
-			port_(context_.service, device_in),
-			fd_(port_.native_handle),
-			name_(device_in),
-			timeout_(milliseconds(0)),
-			timer_(context_.service),
-			read_type_is_timeout_(false)
-	{
-	}
+	);
 
 	/* It is recommended to only invoke _timeout_read if the port is not writing
 	 * to avoid potential loss or clobbering of data.
@@ -111,6 +90,7 @@ private:
   basic_waitable_timer<steady_clock> timer_;
   bool read_type_is_timeout_;
 
+
 	const size_t MAX_FRAME_LENGTH = 4096;
 	const size_t BUFFER_LENGTH = 16384;
 	serial_icounter_struct ioctl_counters {0};
@@ -148,24 +128,24 @@ private:
 /* Method type: basic information */
 public:
 	string get_tx();
-	void get_tx(nsp in) { in->do_write(get_tx()); }
+	void get_tx(nsp in);
 	string get_rx();
-	void get_rx(nsp in) { in->do_write(get_rx()); }
-	string get_messages_received_tot() { return to_string(counts.messages_received); }
-	void get_messages_received_tot(nsp in) { in->do_write(get_messages_received_tot());}
-	string get_messages_sent_tot() 		{ return to_string(counts.messages_sent); }
-	string get_messages_lost_tot() 			{ return to_string(counts.messages_lost_tot); }
-	void get_messages_lost_tot(nsp in) { in->do_write(get_messages_lost_tot());}
-	string get_frame_too_old() 				{ return to_string(counts.frame_too_old); }
-	string get_frame_too_long() 			{ return to_string(counts.frame_too_long); }
-	string get_bad_prefix() 					{ return to_string(counts.bad_prefix); }
-	string get_bad_crc() 							{ return to_string(counts.bad_crc); }
-	string get_bytes_received() 			{ return to_string(counts.bytes_received); }
-	string get_msg_bytes_tot() 				{ return to_string(counts.msg_bytes_tot); }
-	string get_wrapper_bytes_tot() 		{ return to_string(counts.wrapper_bytes_tot); }
-	string get_garbage() 							{ return to_string(counts.garbage); }
-	string get_name()									{ return name_; }
-	string get_type() 								{ return string("serial"); }
+	void get_rx(nsp in);
+	string get_messages_received_tot();
+	void get_messages_received_tot(nsp in);
+	string get_messages_sent_tot();
+	string get_messages_lost_tot();
+	void get_messages_lost_tot(nsp in);
+	string get_frame_too_old();
+	string get_frame_too_long();
+	string get_bad_prefix();
+	string get_bad_crc();
+	string get_bytes_received();
+	string get_msg_bytes_tot();
+	string get_wrapper_bytes_tot();
+	string get_garbage();
+	string get_name();
+	string get_type();
 };
 
 } // dew namespace

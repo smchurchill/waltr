@@ -26,7 +26,6 @@
 #include <boost/range/adaptors.hpp>
 #include <boost/range/algorithm.hpp>
 
-#include "session.h"
 
 namespace dew {
 
@@ -206,75 +205,6 @@ void set_endpoints(vector<tcp::endpoint>* end, vector<string>* addr, const int p
 	for(auto it : *addr)
 		end->emplace_back(address_v4::from_string(it),port_num);
 }
-
-/*=============================================================================
- * December 16, 2015
- *
- * The following return help strings for network commands.
- */
-
-void help(nsp in) {
-	string to_write ("help called.\n");
-	in->do_write(to_write);
-}
-
-void help_help(nsp in) {
-	string to_write ("help_help called.\n");
-	in->do_write(to_write);
-}
-
-void get_help(nsp in) {
-	string to_write ("get_help called.\n");
-	in->do_write(to_write);
-}
-
-void get_help_rx(nsp in) {
-	string to_write ("get_help_rx(called.\n");
-	in->do_write(to_write);
-}
-
-void get_help_tx(nsp in) {
-	string to_write ("get_help_tx called.\n");
-	in->do_write(to_write);
-}
-
-void get_help_messages_received_tot(nsp in) {
-	string to_write ("get_help_messages_received_tot called.\n");
-	in->do_write(to_write);
-}
-
-void get_help_messages_lost_tot(nsp in) {
-	string to_write ("get_help_messages_lost_tot called.\n");
-	in->do_write(to_write);
-}
-
-void get_help_ports_for_zabbix(nsp in) {
-	string to_write ("get_help_ports_for_zabbix called.\n");
-	in->do_write(to_write);
-}
-
-void help_get(nsp in) {
-	get_help(in);
-}
-
-void subscribe_help(nsp in) {
-	string to_write ("subscribe_help() called.\n");
-	in->do_write(to_write);
-}
-
-void help_subscribe(nsp in) {
-	subscribe_help(in);
-}
-
-void unsubscribe_help(nsp in) {
-	string to_write ("unsubscribe_help called.\n");
-	in->do_write(to_write);
-}
-
-void help_unsubscribe(nsp in) {
-	unsubscribe_help(in);
-}
-
 
 
 

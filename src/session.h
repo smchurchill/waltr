@@ -8,7 +8,7 @@
 #ifndef SESSION_H_
 #define SESSION_H_
 
-namespace po = boost::program_options;
+#include "command_graph.h"
 
 namespace dew {
 
@@ -38,31 +38,23 @@ using ::std::shared_ptr;
 using ::std::weak_ptr;
 using ::std::enable_shared_from_this;
 
-class dispatcher;
-class network_session;
-class serial_session;
 
 class dispatcher : public enable_shared_from_this<dispatcher> {
 public:
-	dispatcher(shared_ptr<io_service> const& io_in, string log_in) :
-		context_{steady_clock::now(), io_in},
-		logdir_(log_in)
-	{
-	}
+	dispatcher(shared_ptr<io_service> const& io_in);
+	dispatcher(shared_ptr<io_service> const& io_in, string log_in);
 	~dispatcher() {}
 
 private:
-	context_struct context_;
+	context_struct_lite context_;
 	string logdir_;
 
 	list<ssp> serial_reading;
 	list<ssp> serial_writing;
 	list<nsp> network;
-	node root;
-
 
 	map<string,set<nsp> > subscriptions = {
-			{"raw_waveforms",}
+			{"raw_waveforms",{}}
 	};
 
 	bool local_logging_enabled = false;
@@ -86,7 +78,7 @@ private:
 
 /* Method type: network communications */
 public:
-	void execute_network_command(sentence, nsp, node at = root);
+	void execute_network_command(sentence, nsp);
 	void receive(string);
 private:
 	void forward(shared_ptr<string>);
@@ -168,6 +160,8 @@ private:
 			{string("unsubscribe"), std::make_shared<node>(unsubscribe_nodes,
 					std::function<void(nsp)>(&unsubscribe_help))}
 	};
+
+	node root;
 };
 
 
