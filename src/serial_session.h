@@ -49,6 +49,8 @@ public:
 			string device_in
 	);
 
+	shared_ptr<serial_session> get_ss();
+
 	/* It is recommended to only invoke _timeout_read if the port is not writing
 	 * to avoid potential loss or clobbering of data.
 	 *

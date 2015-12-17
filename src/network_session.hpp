@@ -101,7 +101,9 @@ ns::network_session(
 		name_ = ss.str();
 }
 
-
+shared_ptr<network_session> ns::get_ns() {
+	return shared_from_this();
+}
 
 void ns::do_write(string message) {
 	auto self (shared_from_this());

@@ -145,6 +145,10 @@ string debug_str (Range rng) {
 	return ss.str();
 }
 
+void debug (string s) {
+	debug(boost::make_iterator_range(s.begin(),s.end()));
+}
+
 template<typename Printable>
 void dprint(Printable p) {
 	cout << p << '\n';

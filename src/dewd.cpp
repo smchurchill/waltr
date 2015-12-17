@@ -155,6 +155,7 @@ int main(int argc, char** argv) {
 
 		const int port_number = vmap["port-number"].as<int>();
 
+
 		auto service = make_shared<io_service>();
 		auto dis = make_shared<dispatcher>(service, logging_directory);
 

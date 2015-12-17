@@ -106,15 +106,15 @@ dispatcher::dispatcher(shared_ptr<io_service> const& io_in, string log_in) :
 nsp dispatcher::make_ns (tcp::endpoint& ep_in) {
 	auto pt = make_shared<ns>(context_struct(context_, shared_from_this()),ep_in);
 	pt->start_accept();
-	network.emplace_back(pt);
-	return pt;
+	network.emplace_back(pt->get_ns());
+	return pt->get_ns();
 }
 
 nsp dispatcher::make_ns (tcp::socket& sock_in) {
 	auto pt = make_shared<ns>(context_struct(context_, shared_from_this()), sock_in);
 	pt->start_read();
-	network.emplace_back(pt);
-	return pt;
+	network.emplace_back(pt->get_ns());
+	return pt->get_ns();
 }
 
 void dispatcher::remove_ns (nsp to_remove) {
@@ -128,50 +128,50 @@ void dispatcher::remove_ns (nsp to_remove) {
 
 ssp dispatcher::make_r_ss(string device_name, unsigned short timeout) {
 	auto pt = make_ss(device_name, timeout);
-	serial_reading.emplace_back(pt);
+	serial_reading.emplace_back(pt->get_ss());
 	pt->start_read();
-	return pt;
+	return pt->get_ss();
 }
 
 ssp dispatcher::make_rw_ss(string device_name) {
 	auto pt = make_ss(device_name);
-	serial_reading.emplace_back(pt);
-	serial_writing.emplace_back(pt);
+	serial_reading.emplace_back(pt->get_ss());
+	serial_writing.emplace_back(pt->get_ss());
 	pt->start_read();
-	return pt;
+	return pt->get_ss();
 }
 
 ssp dispatcher::make_rwt_ss(string device_name) {
 	auto pt = make_ss(device_name);
-	serial_reading.emplace_back(pt);
-	serial_writing.emplace_back(pt);
+	serial_reading.emplace_back(pt->get_ss());
+	serial_writing.emplace_back(pt->get_ss());
 	pt->start_read();
 	pt->start_write();
-	return pt;
+	return pt->get_ss();
 }
 
 ssp dispatcher::make_wt_ss(string device_name) {
 	auto pt = make_ss(device_name);
-	serial_writing.emplace_back(pt);
+	serial_writing.emplace_back(pt->get_ss());
 	pt->start_write();
-	return pt;
+	return pt->get_ss();
 }
 
 ssp dispatcher::make_w_ss(string device_name) {
 	auto pt = make_ss(device_name);
-	serial_writing.emplace_back(pt);
-	return pt;
+	serial_writing.emplace_back(pt->get_ss());
+	return pt->get_ss();
 }
 
 ssp dispatcher::make_ss(string device_name, unsigned short timeout) {
 	auto pt = make_shared<ss>(context_struct(context_, shared_from_this()), device_name,
 			milliseconds(timeout));
-	return pt;
+	return pt->get_ss();
 }
 
 ssp dispatcher::make_ss(string device_name) {
 	auto pt = make_shared<ss>(context_struct(context_, shared_from_this()), device_name);
-	return pt;
+	return pt->get_ss();
 }
 
 /* December 15, 2015 :: network communications */
@@ -209,8 +209,9 @@ void dispatcher::forward(shared_ptr<string> msg) {
 	}
 
 	if(!(fpwf.ParseFromString(*msg))) {
-		string s (to_string(steady_clock::now()) + ": Could not parse string.\n");
+		string s (to_string(steady_clock::now()) + ": Could not parse string:\n");
 		cout << s;
+		debug(*msg);
 	} else {
 		string wf_str;
 		for(auto wheight : fpwf.waveform().wheight()) {

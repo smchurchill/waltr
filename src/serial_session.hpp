@@ -110,6 +110,9 @@ serial_session::serial_session(
 {
 }
 
+shared_ptr<serial_session> ss::get_ss() {
+	return shared_from_this();
+}
 
 void ss::start_write() {
 	srand(time(0));
@@ -124,7 +127,8 @@ void ss::start_read() {
 }
 
 void ss::do_write() {
-	do_write(generate_message());
+	bBuff message = generate_message();
+	do_write(message);
 }
 
 void ss::do_write(bBuff message) {
@@ -148,6 +152,7 @@ void ss::do_read() {
 }
 
 void ss::handle_write(const error_code& ec, size_t len, bBuffp message) {
+	*message;
 	return;
 }
 
@@ -323,7 +328,6 @@ int ss::pop_counters() {
 }
 
 bBuff ss::generate_message() {
-	/* Caller accepts the responsibility of freeing this memory */
 	bBuff message;
 
 	while(message.size() < 1024) {
@@ -353,7 +357,7 @@ bBuff ss::generate_message() {
 		message.push_back(crc);
 
 		int num = mod(rand(),9);
-		string name = to_string(num) + "of09";
+		string name (to_string(num) + "of09");
 
 		flopointpb::FloPointWaveform fpwf;
 		fpwf.set_name(name);
@@ -362,17 +366,17 @@ bBuff ss::generate_message() {
 		 * Waveform generated is Gompertz function samples at x = 0 .. 63
 		 * with parameters a=2^32-1, b=rand(1), c=rand(2)
 		 */
-		flopointpb::FloPointWaveform_Waveform wf;
+		auto wf = new flopointpb::FloPointWaveform_Waveform;
 
 		double gomp_b = 1 - (static_cast<double>(rand())/RAND_MAX);
 		double gomp_c = 1 - (static_cast<double>(rand())/RAND_MAX);
 
 		for(int i = 0  ; i<64 ; ++i) {
-			wf.add_wheight(
+			wf->add_wheight(
 					static_cast<int>(65000*exp((-1)*gomp_b*exp((-1)*gomp_c)))*i);
 		}
 
-		fpwf.set_allocated_waveform(&wf);
+		fpwf.set_allocated_waveform(wf);
 
 		string fpwf_str;
 		if(!(fpwf.SerializeToString(&fpwf_str))) {
@@ -389,6 +393,7 @@ bBuff ss::generate_message() {
 		}
 		copy(fpwf_str.begin(), fpwf_str.end(), back_inserter(message));
 		reverse_copy(nonce1.begin(),nonce1.end(),back_inserter(message));
+
 	}
 	return message;
 }
