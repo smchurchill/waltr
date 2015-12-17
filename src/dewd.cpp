@@ -78,7 +78,7 @@ int main(int argc, char** argv) {
 		vector<string> wdev;
 		vector<string> addr;
 		string conf;
-		short timeout;
+		unsigned short timeout;
 
 		po::options_description modes("Mode options");
 		modes.add_options()
@@ -124,7 +124,7 @@ int main(int argc, char** argv) {
 						" write to the given directory.")
 				("config,c",po::value<string>(&conf)->default_value(
 						"/usr/local/etc/dewd/dewd.conf"), "Specify a configuration file.")
-				("timeout,t",po::value<short>(&timeout)->default_value(100),
+				("timeout,t",po::value<unsigned short>(&timeout)->default_value(100),
 						"Used with poll-read serial port interface to set polling rate."
 						"Value is in milliseconds.")
 				;

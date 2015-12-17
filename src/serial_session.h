@@ -94,7 +94,7 @@ private:
 
 
 	const size_t MAX_FRAME_LENGTH = 4096;
-	const size_t BUFFER_LENGTH = 16384;
+	const size_t BUFFER_LENGTH = 16000;
 	serial_icounter_struct ioctl_counters {0};
 	message_counter_struct counts {0};
 	time_point<steady_clock> front_last = steady_clock::now();
@@ -112,6 +112,9 @@ private:
 /* Method type: postwork */
 	void handle_write(const error_code&, size_t, bBuffp);
 	void handle_read(const error_code&, size_t, bBuffp);
+
+/* Method type: debug */
+	void scope(bBuffp);
 
 /* Method type: complicated information handling */
 	void set_a_check();

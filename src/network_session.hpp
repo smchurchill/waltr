@@ -159,6 +159,7 @@ void ns::handle_read(
 
 void ns::handle_write(
 		boost::system::error_code ec, size_t in_length, bBuffp buffer) {
+	buffer.reset();
 	return;
 }
 

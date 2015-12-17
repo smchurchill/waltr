@@ -134,24 +134,22 @@ void ss::do_write() {
 void ss::do_write(bBuffp message) {
 	auto self (shared_from_this());
 	auto Message = boost::asio::buffer(*message);
-	boost::asio::async_write(
-			port_, Message, bind(&ss::handle_write, self, _1, _2, message));
+	auto handler = bind(&ss::handle_write, self, _1, _2, message);
+	boost::asio::async_write(port_, Message, handler);
 }
 
 void ss::do_read() {
 	auto self (shared_from_this());
 	auto buffer = make_shared<bBuff> (BUFFER_LENGTH);
 	auto Buffer = boost::asio::buffer(*buffer);
+	auto handler = bind(&ss::handle_read, self, _1, _2, buffer);
 	if(read_type_is_timeout_)
-		boost::asio::async_read(
-			port_, Buffer, bind(&ss::handle_read, self, _1, _2, buffer));
+		boost::asio::async_read(port_, Buffer, handler);
 	else
-		port_.async_read_some(
-				Buffer, bind(&ss::handle_read, self, _1, _2, buffer));
+		port_.async_read_some(Buffer, handler);
 }
 
 void ss::handle_write(const error_code& ec, size_t len, bBuffp message) {
-	message.reset();
 	return;
 }
 
@@ -166,8 +164,11 @@ void ss::handle_read(const error_code& ec, size_t len, bBuffp buffer) {
 	}
 
 	set_a_check();
-	buffer.reset();
 	do_read();
+}
+
+void ss::scope(bBuffp buff) {
+	dprint(buff.use_count());
 }
 
 void ss::set_a_check() {
@@ -305,8 +306,6 @@ void ss::check_the_deque() {
 		counts.last_msg=counts.curr_msg;
 		context_.dispatch->delivery(to_send);
 
-		dprint(to_parse.size());
-
 		/* Loop checks until to_parse has no more messages waiting for us. */
 		set_a_check();
 	}
@@ -328,7 +327,7 @@ int ss::pop_counters() {
 bBuffp ss::generate_message() {
 	auto message = make_shared<bBuff>();
 
-	while(message->size() < 1024) {
+	while(message->size() < 1024*1024) {
 		++counts.messages_sent;
 		bBuff nonce1 = {0xff, 0xfe}, nonce2;
 		u8 byte;
@@ -357,13 +356,17 @@ bBuffp ss::generate_message() {
 		int num = mod(rand(),9);
 		string name (to_string(num) + "of09");
 
-		auto fpwf = make_shared<flopointpb::FloPointWaveform>();
-		fpwf->set_name(name);
+
+		flopointpb::FloPointWaveform fpwf;
+		fpwf.set_name(name);
+
 
 		/*=========================================================================
 		 * Waveform generated is Gompertz function samples at x = 0 .. 63
 		 * with parameters a=2^32-1, b=rand(1), c=rand(2)
 		 */
+
+		/* Once allocated, this memory is freed when *fpwf is deleted */
 		auto wf = new flopointpb::FloPointWaveform_Waveform;
 
 		double gomp_b = 1 - (static_cast<double>(rand())/RAND_MAX);
@@ -374,10 +377,10 @@ bBuffp ss::generate_message() {
 					static_cast<int>(65000*exp((-1)*gomp_b*exp((-1)*gomp_c)))*i);
 		}
 
-		fpwf->set_allocated_waveform(wf);
+		fpwf.set_allocated_waveform(wf);
 
 		string fpwf_str;
-		if(!(fpwf->SerializeToString(&fpwf_str))) {
+		if(!(fpwf.SerializeToString(&fpwf_str))) {
 			string filename;
 			filename += context_.dispatch->get_logdir();
 			filename +=	name_.substr(name_.find_last_of("/\\")+1);
@@ -391,15 +394,16 @@ bBuffp ss::generate_message() {
 		}
 
 		copy(fpwf_str.begin(), fpwf_str.end(), back_inserter(*message));
-		reverse_copy(nonce1.begin(),nonce1.end(),back_inserter(*message));
+		reverse_copy(nonce1.begin(),nonce1.end(), back_inserter(*message));
 	}
+
 	return message;
 }
 
 void ss::set_write_timer() {
 	auto self (shared_from_this());
 //	int time_to_wait_in_ms = 25 + (rand()%25);
-	milliseconds time_to_wait = milliseconds(10);
+	milliseconds time_to_wait = milliseconds(100);
 
 	timer_.expires_from_now(time_to_wait);
 	timer_.async_wait(bind(&ss::handle_write_timeout,self,_1));

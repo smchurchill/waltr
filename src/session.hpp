@@ -208,11 +208,9 @@ void dispatcher::forward(shared_ptr<string> msg) {
 	}
 
 	if(!(fpwf->ParseFromString(*msg))) {
-		string s (to_string(steady_clock::now()) + ": Could not parse string:\n");
-		//cout << s;
+		string s (to_string(steady_clock::now()) + ": Could not parse string.\n");
+		cout << s;
 	} else {
-		string s (to_string(steady_clock::now()) + ": Parsed string:\n");
-		//cout << s;
 		string wf_str;
 		for(auto wheight : fpwf->waveform().wheight()) {
 			wf_str += '\t';
@@ -227,6 +225,7 @@ void dispatcher::forward(shared_ptr<string> msg) {
 				for(auto subscriber : channel.second)
 					subscriber->do_write(wf_str);
 	}
+	fpwf.reset();
 }
 
 void dispatcher::subscribe(nsp sub, string channel) {
