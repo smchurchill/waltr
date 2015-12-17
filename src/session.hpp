@@ -181,17 +181,16 @@ void dispatcher::execute_network_command(
 	assert(false);
 }
 
-void dispatcher::receive(string message_in) {
+void dispatcher::delivery(shared_ptr<string> message) {
 	auto self (shared_from_this());
-	auto message = make_shared<string>(message_in);
 	context_.service->post(bind(&dispatcher::forward,self,message));
 }
 
 void dispatcher::forward(shared_ptr<string> msg) {
-	flopointpb::FloPointWaveform fpwf;
+	auto fpwf = make_shared<flopointpb::FloPointWaveform>();
 
 	if(local_logging_enabled){
-		if(!(fpwf.ParseFromString(*msg))) {
+		if(!(fpwf->ParseFromString(*msg))) {
 			FILE * log = fopen((logdir_ + "dispatch.failure.log").c_str(),"a");
 			string s (to_string(steady_clock::now()) + ": Could not parse string.\n");
 			std::fwrite(s.c_str(), sizeof(u8), s.length(), log);
@@ -199,22 +198,23 @@ void dispatcher::forward(shared_ptr<string> msg) {
 		} else {
 			FILE * log = fopen((logdir_ + "dispatch.message.log").c_str(),"a");
 			string s (to_string(steady_clock::now()) + ": Message received:\n");
-			s += "\tName: " + fpwf.name() + '\n';
+			s += "\tName: " + fpwf->name() + '\n';
 			s += "\tWaveform: ";
-			for(int i = 0; i < fpwf.waveform().wheight().size(); ++i)
-				s += to_string(fpwf.waveform().wheight(i)) + '\n';
+			for(int i = 0; i < fpwf->waveform().wheight().size(); ++i)
+				s += to_string(fpwf->waveform().wheight(i)) + '\n';
 			std::fwrite(s.c_str(), sizeof(u8), s.length(), log);
 			fclose(log);
 		}
 	}
 
-	if(!(fpwf.ParseFromString(*msg))) {
+	if(!(fpwf->ParseFromString(*msg))) {
 		string s (to_string(steady_clock::now()) + ": Could not parse string:\n");
-		cout << s;
-		debug(*msg);
+		//cout << s;
 	} else {
+		string s (to_string(steady_clock::now()) + ": Parsed string:\n");
+		//cout << s;
 		string wf_str;
-		for(auto wheight : fpwf.waveform().wheight()) {
+		for(auto wheight : fpwf->waveform().wheight()) {
 			wf_str += '\t';
 			wf_str += (wheight >> 24 ) & 0xFF;
 			wf_str += (wheight >> 16 ) & 0xFF;

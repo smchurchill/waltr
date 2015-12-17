@@ -106,7 +106,7 @@ private:
  * Method type: prework
  */
 	void do_write();
-	void do_write(bBuff);
+	void do_write(bBuffp);
 	void do_read();
 
 /* Method type: postwork */
@@ -116,10 +116,10 @@ private:
 /* Method type: complicated information handling */
 	void set_a_check();
 	void check_the_deque();
-	void deliver(string);
+	void deliver(shared_ptr<string>);
 	int scrub(pBuff::iterator);
 	int pop_counters();
-	bBuff generate_message();
+	bBuffp generate_message();
 
 /* Method type: time handling */
 	void set_write_timer();

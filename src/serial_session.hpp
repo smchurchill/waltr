@@ -127,16 +127,15 @@ void ss::start_read() {
 }
 
 void ss::do_write() {
-	bBuff message = generate_message();
+	auto message = generate_message();
 	do_write(message);
 }
 
-void ss::do_write(bBuff message) {
+void ss::do_write(bBuffp message) {
 	auto self (shared_from_this());
-	auto messagep = make_shared<bBuff>(message);
-	auto Message = boost::asio::buffer(message);
+	auto Message = boost::asio::buffer(*message);
 	boost::asio::async_write(
-			port_, Message, bind(&ss::handle_write, self, _1, _2, messagep));
+			port_, Message, bind(&ss::handle_write, self, _1, _2, message));
 }
 
 void ss::do_read() {
@@ -152,7 +151,7 @@ void ss::do_read() {
 }
 
 void ss::handle_write(const error_code& ec, size_t len, bBuffp message) {
-	*message;
+	message.reset();
 	return;
 }
 
@@ -167,6 +166,7 @@ void ss::handle_read(const error_code& ec, size_t len, bBuffp buffer) {
 	}
 
 	set_a_check();
+	buffer.reset();
 	do_read();
 }
 
@@ -277,7 +277,7 @@ void ss::check_the_deque() {
 		}
 	} else { /* We have a message */
 		++counts.messages_received;
-		string to_send;
+		auto to_send = make_shared<string>();
 		pBuff xfix;
 
 		/* We have a match and match_point points to the beginning of the endframe
@@ -286,13 +286,13 @@ void ss::check_the_deque() {
 		 */
 		assert(match_point+6 <= to_parse.end());
 		copy(to_parse.begin(),to_parse.begin()+12,back_inserter(xfix));
-		copy(to_parse.begin()+12, match_point, back_inserter(to_send));
+		copy(to_parse.begin()+12, match_point, back_inserter(*to_send));
 		copy(match_point, match_point+6, back_inserter(xfix));
 
 		counts.wrapper_bytes_tot += xfix.size();
-		counts.msg_bytes_tot += to_send.size();
+		counts.msg_bytes_tot += to_send->size();
 		counts.garbage += scrub(match_point+6);
-		counts.garbage -= to_send.size();
+		counts.garbage -= to_send->size();
 
 		assert(xfix.size()>=11);
 		counts.curr_msg = (int)(xfix.at(10));
@@ -303,15 +303,13 @@ void ss::check_the_deque() {
 			++counts.messages_lost_tot;
 		}
 		counts.last_msg=counts.curr_msg;
-		deliver(to_send);
+		context_.dispatch->delivery(to_send);
+
+		dprint(to_parse.size());
 
 		/* Loop checks until to_parse has no more messages waiting for us. */
 		set_a_check();
 	}
-}
-
-void ss::deliver(string message) {
-	context_.dispatch->receive(message);
 }
 
 int ss::scrub(pBuff::iterator iter) {
@@ -327,10 +325,10 @@ int ss::pop_counters() {
 	return ioctl(fd_, TIOCGICOUNT, &ioctl_counters);
 }
 
-bBuff ss::generate_message() {
-	bBuff message;
+bBuffp ss::generate_message() {
+	auto message = make_shared<bBuff>();
 
-	while(message.size() < 1024) {
+	while(message->size() < 1024) {
 		++counts.messages_sent;
 		bBuff nonce1 = {0xff, 0xfe}, nonce2;
 		u8 byte;
@@ -342,25 +340,25 @@ bBuff ss::generate_message() {
 			nonce2.emplace_back(byte);
 		}
 		/* nonce 1 add */
-		copy(nonce1.begin(), nonce1.end(), back_inserter(message));
+		copy(nonce1.begin(), nonce1.end(), back_inserter(*message));
 
 		/* nonce2 add */
-		copy(nonce2.begin(), nonce2.end(), back_inserter(message));
+		copy(nonce2.begin(), nonce2.end(), back_inserter(*message));
 
 		/* msg number sequence */
-		message.push_back(mod(counts.messages_sent,256));
+		message->push_back(mod(counts.messages_sent,256));
 
-		assert(message.size()>=11);
-		u8 crc = crc8(make_iterator_range(message.end()-11,message.end()));
+		assert(message->size()>=11);
+		u8 crc = crc8(make_iterator_range(message->end()-11,message->end()));
 
 		/* crc byte */
-		message.push_back(crc);
+		message->push_back(crc);
 
 		int num = mod(rand(),9);
 		string name (to_string(num) + "of09");
 
-		flopointpb::FloPointWaveform fpwf;
-		fpwf.set_name(name);
+		auto fpwf = make_shared<flopointpb::FloPointWaveform>();
+		fpwf->set_name(name);
 
 		/*=========================================================================
 		 * Waveform generated is Gompertz function samples at x = 0 .. 63
@@ -376,10 +374,10 @@ bBuff ss::generate_message() {
 					static_cast<int>(65000*exp((-1)*gomp_b*exp((-1)*gomp_c)))*i);
 		}
 
-		fpwf.set_allocated_waveform(wf);
+		fpwf->set_allocated_waveform(wf);
 
 		string fpwf_str;
-		if(!(fpwf.SerializeToString(&fpwf_str))) {
+		if(!(fpwf->SerializeToString(&fpwf_str))) {
 			string filename;
 			filename += context_.dispatch->get_logdir();
 			filename +=	name_.substr(name_.find_last_of("/\\")+1);
@@ -391,17 +389,17 @@ bBuff ss::generate_message() {
 			std::fwrite(s.c_str(), sizeof(u8), s.length(), logfile);
 			fclose(logfile);
 		}
-		copy(fpwf_str.begin(), fpwf_str.end(), back_inserter(message));
-		reverse_copy(nonce1.begin(),nonce1.end(),back_inserter(message));
 
+		copy(fpwf_str.begin(), fpwf_str.end(), back_inserter(*message));
+		reverse_copy(nonce1.begin(),nonce1.end(),back_inserter(*message));
 	}
 	return message;
 }
 
 void ss::set_write_timer() {
 	auto self (shared_from_this());
-	int time_to_wait_in_ms = 25 + (rand()%25);
-	milliseconds time_to_wait = milliseconds(time_to_wait_in_ms);
+//	int time_to_wait_in_ms = 25 + (rand()%25);
+	milliseconds time_to_wait = milliseconds(10);
 
 	timer_.expires_from_now(time_to_wait);
 	timer_.async_wait(bind(&ss::handle_write_timeout,self,_1));

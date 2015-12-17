@@ -79,7 +79,7 @@ private:
 /* Method type: network communications */
 public:
 	void execute_network_command(sentence, nsp);
-	void receive(string);
+	void delivery(shared_ptr<string>);
 private:
 	void forward(shared_ptr<string>);
 	void forward_handler(const error_code&,size_t, bBuffp, nsp);
