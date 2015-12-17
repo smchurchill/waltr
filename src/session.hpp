@@ -15,6 +15,7 @@
 #include <sstream>
 #include <vector>
 #include <map>
+#include <set>
 #include <cstdio>
 #include <algorithm>
 #include <functional>
@@ -41,7 +42,7 @@
 #include "session.h"
 #include "serial_session.h"
 #include "network_session.h"
-#include "network_command.h"
+#include "command_graph.h"
 
 
 namespace dew {
@@ -59,6 +60,7 @@ using ::std::stringstream;
 using ::std::vector;
 using ::std::deque;
 using ::std::map;
+using ::std::set;
 using ::std::make_pair;
 using ::std::pair;
 
@@ -104,26 +106,31 @@ nsp dispatcher::make_ns (tcp::socket& sock_in) {
 void dispatcher::remove_ns (nsp to_remove) {
 	to_remove->cancel_socket();
 
-	for(auto channel : channel_subscribers)
-		unsub(channel.first, to_remove);
+	//for(auto channel : channel_subscribers)
+	//	unsub(channel.first, to_remove);
 
 	network.remove(to_remove);
 }
 
 ssp dispatcher::make_r_ss(string device_name, unsigned short timeout) {
 	auto pt = make_ss(device_name, timeout);
+	serial_reading.emplace_back(pt);
 	pt->start_read();
 	return pt;
 }
 
 ssp dispatcher::make_rw_ss(string device_name) {
 	auto pt = make_ss(device_name);
+	serial_reading.emplace_back(pt);
+	serial_writing.emplace_back(pt);
 	pt->start_read();
 	return pt;
 }
 
 ssp dispatcher::make_rwt_ss(string device_name) {
 	auto pt = make_ss(device_name);
+	serial_reading.emplace_back(pt);
+	serial_writing.emplace_back(pt);
 	pt->start_read();
 	pt->start_write();
 	return pt;
@@ -131,32 +138,33 @@ ssp dispatcher::make_rwt_ss(string device_name) {
 
 ssp dispatcher::make_wt_ss(string device_name) {
 	auto pt = make_ss(device_name);
+	serial_writing.emplace_back(pt);
 	pt->start_write();
 	return pt;
 }
 
 ssp dispatcher::make_w_ss(string device_name) {
-	return make_ss(device_name);
+	auto pt = make_ss(device_name);
+	serial_writing.emplace_back(pt);
+	return pt;
 }
 
 ssp dispatcher::make_ss(string device_name, unsigned short timeout) {
 	auto pt = make_shared<ss>(context_.service, shared_from_this(), device_name,
 			milliseconds(timeout));
-	serial.emplace_back(pt);
 	return pt;
 }
 
 ssp dispatcher::make_ss(string device_name) {
 	auto pt = make_shared<ss>(context_.service, shared_from_this(), device_name);
-	serial.emplace_back(pt);
 	return pt;
 }
 
 /* December 15, 2015 :: network communications */
 
-string dispatcher::execute_network_command(network_command command, nsp reference) {
+void dispatcher::execute_network_command(
+		sentence command, nsp reference, node at = root) {
 	assert(false);
-	return "\n";
 }
 
 void dispatcher::receive(string message_in) {
@@ -165,178 +173,8 @@ void dispatcher::receive(string message_in) {
 	context_.service->post(bind(&dispatcher::forward,self,message));
 }
 
-void dispatcher::forward(string);
-void dispatcher::forward_handler(const error_code&,size_t, bBuffp, nsp);
-void dispatcher::unsub(string channel, nsp to_remove) {
-	assert(false);
-}
-
-/* December 15, 2015 :: basic information */
-shared_ptr<const ss> dispatcher::get_ss_from_name(string name) {
-	for(auto i : serial)
-		if(!i->get_name().compare(name))
-			return i;
-
-	return make_shared<const ss>(context_);
-}
-shared_ptr<const ns> dispatcher::get_ns_from_name(string name) {
-	for(auto i : network)
-		if(!i->get_name().compare(name))
-			return i;
-
-	return make_shared<const ns>(context_);
-}
-
-
-
-string dispatcher::help(sentence c, nssp reference) {
-	auto iter = nullptr;
-	if(c.empty() ||
-		 ((iter = root_map.find(c[0])) == root_map.end()) ||
-		 !c[0].compare("help")) {
-		string msg ("List of commands:\n");
-		for(auto opt : root_map) {
-			msg+='\t';
-			msg+=opt.first;
-			msg+='\n';
-		}
-		msg+="Pair \'help\' with any of the above for more information.\n";
-		return msg;
-	} else {
-		c.push_front(c[0]);
-		c[1]="help";
-		return root_map.find(c[0])->second(c, reference);
-	}
-}
-
-string dispatcher::raw(sentence c, nssp reference) {
-	auto iter = srs_map.find(host);
-	auto oter = raw_map.find(item);
-	if(iter != srs_map.end()){
-		auto sp = iter->second.lock();
-		return sp->get(item);
-	}
-	else if(oter != raw_map.end()) {
-		return oter->second();
-	}
-
-	return "-1";
-}
-
-string dispatcher::hr(sentence vec, nssp reference) {
-	auto iter = hr_map.find(item);
-	if(iter != hr_map.end())
-		return iter->second();
-	else
-		return "nyet\n";
-}
-string dispatcher::sub(sentence vec, nssp reference) {
-	if((!(option.compare("help"))) || (!channel.compare("help"))) {
-		string help("Channels:\n");
-		for(auto channel_pr : channel_sub_map) {
-			help +='\t';
-			help += channel_pr.first;
-			help += '\n';
-		}
-		return help;
-	}
-
-	auto iter = channel_sub_map.find(channel);
-	if(iter==channel_sub_map.end())
-		return "Channel not recognized.  Use \'help subscribe\' to see a list of"
-				" channels.\n";
-
-	for(auto subscriber : iter->second)
-		if(subscriber.lock() == reference)
-			return string("Already subscribed to " + channel + '\n');
-
-	iter->second.emplace_back(nssw(reference));
-
-	return string("Successfully subscribed to channel "+channel+'\n');
-}
-
-string dispatcher::unsub(sentence vec, nssp reference) {
-	if((!(option.compare("help"))) || (!channel.compare("help")))
-		return "subscription help\n";
-
-	auto iter = channel_sub_map.find(channel);
-	if(iter == channel_sub_map.end())
-		return "Channel not recognized.  Use \'help unsubscribe\' to see a list of"
-				" channels.\n";
-
-	bool removed = false;
-
-	for(auto sub_iter = iter->second.begin() ;
-			sub_iter != iter->second.end() ;)
-		if(sub_iter->lock() == reference){
-			iter->second.erase(sub_iter);
-			sub_iter = iter->second.begin();
-			removed=true;
-		} else
-			 ++sub_iter;
-
-	if(removed)
-		return "Successfully unsubscribed from channel "+channel+'\n';
-	else
-		return "You were not subscribed to channel "+channel+'\n';
-}
-
-
-
-
-string dispatcher::brag() {
-	stringstream ss;
-	ss << "All comrades:\r\n";
-	for(auto comrade : comrades)
-		ss << '\t' << comrade->get("name") << endl;
-	return ss.str();
-}
-string dispatcher::bark() {
-	stringstream ss;
-	ss << "get_map:\r\n";
-	for(auto comrade : comrades) {
-		ss << '\t' << comrade->get("name") << endl;
-		for(auto pair : comrade->get_map) {
-			ss << '\t' << '\t' << pair.first << " : " << comrade->get(pair.first) << endl;
-		}
-	}
-	return ss.str();
-}
-/* Supplies a string to be returned to `zabbix ports` network command.
- * list of ports is delivered in JSON format for zabbix discovery capability. */
-string dispatcher::zabbix_ports() {
-	string json ("{\"data\":[");
-	int not_first = 0;
-	for(auto wp : srs_map) {
-		auto sp = wp.second.lock();
-			if(not_first)
-				json += ",";
-			json += "{\"{#DEWDSP}\":\"";
-			json += sp->get("name");
-			json += "\"}";
-			++not_first;
-	}
-	json += "]}";
-	return json;
-}
-
-
-
-
-
-string dispatcher::zabbix_help(vector<string> vec, nssp reference) {
-	return "zabbix help\n";
-}
-
-string dispatcher::hr_help(vector<string> vec, nssp reference) {
-	return "human readable help\n";
-}
-
-
-
 void dispatcher::forward(shared_ptr<string> msg) {
 	flopointpb::FloPointWaveform fpwf;
-	auto self=shared_from_this();
 
 	if(local_logging_enabled){
 		if(!(fpwf.ParseFromString(*msg))) {
@@ -354,52 +192,125 @@ void dispatcher::forward(shared_ptr<string> msg) {
 			std::fwrite(s.c_str(), sizeof(u8), s.length(), log);
 			fclose(log);
 		}
+	}
+
+	if(!(fpwf.ParseFromString(*msg))) {
+		string s (to_string(steady_clock::now()) + ": Could not parse string.\n");
+		cout << s;
 	} else {
-		if(!(fpwf.ParseFromString(*msg))) {
-			string s (to_string(steady_clock::now()) + ": Could not parse string.\n");
-			cout << s;
-		} else {
-			auto buffer_ = make_shared<bBuff>();
-			for(auto wheight : fpwf.waveform().wheight()) {
-				bBuff bytes_(5);
-				bytes_[0] = '\t';
-				bytes_[1] = (wheight >> 24 ) & 0xFF;
-				bytes_[2] = (wheight >> 16 ) & 0xFF;
-				bytes_[3] = (wheight >> 8 ) & 0xFF;
-				bytes_[4] = wheight & 0xFF;
-				copy(bytes_.begin(),bytes_.end(),back_inserter(*buffer_));
-			}
-			buffer_->push_back('\n');
-
-			for(auto pr : channel_sub_map)
-				if(pr.first.find("waveform") != string::npos)
-					for(auto sub : pr.second)
-						async_write(sub.lock()->get_sock(),
-								boost::asio::buffer(*buffer_, buffer_->size()),
-								bind(&dispatcher::forward_handler,self,_1,_2,
-										buffer_,sub.lock()));
-
-			}
+		string wf_str;
+		for(auto wheight : fpwf.waveform().wheight()) {
+			wf_str += '\t';
+			wf_str += (wheight >> 24 ) & 0xFF;
+			wf_str += (wheight >> 16 ) & 0xFF;
+			wf_str += (wheight >> 8 ) & 0xFF;
+			wf_str += wheight & 0xFF;
+		}
+		wf_str += '\n';
+		for(auto channel : subscriptions)
+			if(channel.first.find("waveform") != string::npos)
+				for(auto subscriber : channel.second)
+					subscriber->do_write(wf_str);
 	}
 }
 
-void dispatcher::forward_handler(boost::system::error_code ec, size_t in_length,
-		shared_ptr<bBuff> ptr1, nssp ptr2) {
-	ptr2.reset();
-	ptr1.reset();
+void dispatcher::subscribe(nsp sub, string channel) {
+	auto sub_set = subscriptions.find(channel);
+	if(sub_set->second.find(sub) == sub_set->second.end()) {
+		sub_set->second.emplace(sub);
+	}
+}
+
+void dispatcher::unsubscribe(nsp sub, string channel) {
+	auto sub_set = subscriptions.find(channel);
+	auto locator = sub_set->second.find(sub);
+	if(locator != sub_set->second.end()) {
+		sub_set->second.erase(locator);
+	}
 }
 
 
+void dispatcher::ports_for_zabbix(nsp in) {
+	string json ("{\"data\":[");
+	int not_first = 0;
+	for(auto port : serial_reading) {
+			if(not_first)
+				json += ",";
+			json += "{\"{#DEWDSP}\":\"";
+			json += port->get_name();
+			json += "\"}";
+			++not_first;
+	}
+	json += "]}";
+	in->do_write(json);
+}
 
 
+/* December 16, 2015 :: command tree building */
 
+void dispatcher::build_command_tree() {
+	if(!added_static_leaves)
+		add_static_leaves();
 
-/*-----------------------------------------------------------------------------
- * November 25, 2015 :: basic_session methods
- */
+	purge_dynamic_leaves();
+	add_dynamic_leaves();
+}
 
+void dispatcher::add_static_leaves() {
+	auto self (shared_from_this());
+	root.child("get")->child("ports_for_zabbix")->set_fn(
+			std::function<void(nsp)>(
+					bind(&dispatcher::ports_for_zabbix,self,_1)));
 
+	for(auto channel : subscriptions) {
+		root.child("subscribe")->child("to")->spawn(
+				channel.first,
+				make_shared<node>(
+						std::function<void(nsp)>(
+							bind(&dispatcher::subscribe,self,_1,channel.first))));
+		root.child("unsubscribe")->child("from")->spawn(
+				channel.first,
+				make_shared<node>(
+						std::function<void(nsp)>(
+							bind(&dispatcher::unsubscribe,self,_1,channel.first))));
+	}
+}
 
+void dispatcher::purge_dynamic_leaves() {
+	root.child("get")->child("rx")->purge();
+	root.child("get")->child("tx")->purge();
+	root.child("get")->child("messages_received_tot")->purge();
+	root.child("get")->child("messages_lost_tot")->purge();
+}
+
+void dispatcher::add_dynamic_leaves() {
+	for(auto port : serial_reading) {
+		root.child("get")->child("rx")->spawn(
+			port->get_name(),
+			make_shared<node>(
+					std::function<void(nsp)>(
+							bind(&ss::get_rx,port,_1))));
+		root.child("get")->child("messages_received_tot")->spawn(
+			port->get_name(),
+			make_shared<node>(
+					std::function<void(nsp)>(
+							bind(&ss::get_messages_received_tot,port,_1))));
+		root.child("get")->child("messages_lost_tot")->spawn(
+			port->get_name(),
+			make_shared<node>(
+					std::function<void(nsp)>(
+							bind(&ss::get_messages_lost_tot,port,_1))));
+	}
+
+	for(auto port : serial_writing) {
+		root.child("get")->child("tx")->spawn(
+			port->get_name(),
+			make_shared<node>(
+					std::function<void(nsp)>(
+							bind(&ss::get_tx,port,_1))));
+	}
+
+}
 
 } //namespace
 

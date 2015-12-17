@@ -35,13 +35,11 @@ struct context_struct {
 		dispatch = in.dispatch;
 	}
 
-
 	time_point<steady_clock> start;
 	const shared_ptr<io_service> service;
 	const shared_ptr<dispatcher> dispatch;
 
 	void set_start() { start = steady_clock::now(); }
-
 };
 
 /*
@@ -60,7 +58,7 @@ struct message_counter_struct {
 	int bytes_received;
 	int last_msg;
 	int curr_msg;
-	int lost_msg_count;
+	int messages_lost_tot;
 	int frame_too_long;
 	int frame_too_old;
 	int bad_prefix;
@@ -68,18 +66,6 @@ struct message_counter_struct {
 	int wrapper_bytes_tot;
 	int msg_bytes_tot;
 	int garbage;
-};
-
-
-/*=============================================================================
- * December 14, 2015
- *
- * Dissatisfied with inelegant command parsing.  Hoping that this makes things
- * a bit more structured.
- */
-
-struct command_struct {
-
 };
 
 

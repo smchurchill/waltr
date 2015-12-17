@@ -175,6 +175,8 @@ int main(int argc, char** argv) {
 				dis->make_ns(it);
 		}
 
+		dis->build_command_tree();
+
 		/*
 		 * Set signals to catch for graceful termination.
 		 */

@@ -148,10 +148,14 @@ private:
 /* Method type: basic information */
 public:
 	string get_tx();
+	void get_tx(nsp in) { in->do_write(get_tx()); }
 	string get_rx();
-	string get_message_received_tot() { return to_string(counts.messages_received); }
-	string get_message_sent_tot() 		{ return to_string(counts.messages_sent); }
-	string get_lost_msg_count() 			{ return to_string(counts.lost_msg_count); }
+	void get_rx(nsp in) { in->do_write(get_rx()); }
+	string get_messages_received_tot() { return to_string(counts.messages_received); }
+	void get_messages_received_tot(nsp in) { in->do_write(get_messages_received_tot());}
+	string get_messages_sent_tot() 		{ return to_string(counts.messages_sent); }
+	string get_messages_lost_tot() 			{ return to_string(counts.messages_lost_tot); }
+	void get_messages_lost_tot(nsp in) { in->do_write(get_messages_lost_tot());}
 	string get_frame_too_old() 				{ return to_string(counts.frame_too_old); }
 	string get_frame_too_long() 			{ return to_string(counts.frame_too_long); }
 	string get_bad_prefix() 					{ return to_string(counts.bad_prefix); }

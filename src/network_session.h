@@ -67,6 +67,7 @@ public:
 
 	void start_accept() { if(acceptor_.is_open()) do_accept(); }
 	void start_read() { if(socket_.is_open()) do_read(); }
+	void do_write(string);
 
 /* December 15, 2015
  *
@@ -80,13 +81,13 @@ private:
 	string name_;
 
 	const long BUFFER_LENGTH = 8192;
-	bBuff request = vector<u8>(BUFFER_LENGTH);
-	bBuff reply = vector<u8>(2*BUFFER_LENGTH);
+	bBuff request = bBuff (BUFFER_LENGTH);
 
 
 	void do_accept();
 	void do_read();
-	void handle_read( boost::system::error_code ec, size_t in_length);
+	void handle_read(error_code, size_t);
+	void handle_write(error_code, size_t, bBuffp);
 	void cancel_socket() { if(socket_.is_open()) socket_.cancel(); }
 	sentence buffer_to_sentence(int len);
 

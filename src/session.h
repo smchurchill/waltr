@@ -26,6 +26,7 @@ using ::std::to_string;
 using ::std::vector;
 using ::std::deque;
 using ::std::list;
+using ::std::set;
 using ::std::map;
 using ::std::pair;
 using ::std::make_pair;
@@ -42,52 +43,6 @@ class network_session;
 class serial_session;
 
 class dispatcher : public enable_shared_from_this<dispatcher> {
-
-public:
-
-
-private:
-	map<string, std::function<string(sentence,nssp)> > root_map = {
-			{"help", bind(&dispatcher::help,this,_1,_2)},
-			{"zabbix", bind(&dispatcher::raw,this,_1,_2)},
-			{"query", bind(&dispatcher::hr,this,_1,_2)},
-			{"subscribe", bind(&dispatcher::sub,this,_1,_2)},
-			{"unsubscribe", bind(&dispatcher::unsub,this,_1,_2)}
-		};
-
-	string help(sentence c, nssp reference);
-	string raw(sentence c, nssp reference);
-	string hr(sentence c, nssp reference);
-	string sub(sentence c, nssp reference);
-	string unsub(sentence c, nssp reference);
-	// Layer 0
-
-	/* Layer 1 of network command parsing.
-	 * A resource was called by root_map, and that resource further delegates
-	 * down the decision tree.
-	 */
-private:
-	map<string, std::function<string(vector<string>,nssp)> > raw_map = {
-			{"ports", bind(&dispatcher::zabbix_ports,this,_1,_2)},
-			{"help", bind(&dispatcher::zabbix_help,this,_1,_2)},
-			{"get", bind(&dispatcher::zabbix_get,this,_1,_2)}
-		};
-
-	string zabbix_ports(vector<string> vec, nssp reference);
-	string zabbix_help(vector<string> vec, nssp reference);
-	string zabbix_get(vector<string> vec, nssp reference);
-
-	map<string, std::function<string(vector<string>,nssp)> > hr_map = {
-			{"comrades", bind(&dispatcher::brag, this, _1, _2)},
-			{"map", bind(&dispatcher::bark,this, _1, _2)},
-			{"help", bind(&dispatcher::hr_help,this, _1, _2)}
-		};
-
-	string brag(vector<string> vec, nssp reference);
-	string bark(vector<string> vec, nssp reference);
-	string hr_help(vector<string> vec, nssp reference);
-
-
 public:
 	dispatcher(shared_ptr<io_service> const& io_in, string log_in) :
 		context_{steady_clock::now(), io_in},
@@ -96,20 +51,22 @@ public:
 	}
 	~dispatcher() {}
 
-
-
 private:
 	context_struct context_;
 	string logdir_;
 
-	list<ssp> serial;
+	list<ssp> serial_reading;
+	list<ssp> serial_writing;
 	list<nsp> network;
+	node root;
 
-	vector<list<nsp> > subscriptions = {
-			{} // Channel 0 is raw waveforms.
+
+	map<string,set<nsp> > subscriptions = {
+			{"raw_waveforms",}
 	};
 
 	bool local_logging_enabled = false;
+	bool added_static_leaves = false;
 
 
 /* Method type: creation and destruction of sessions */
@@ -128,23 +85,89 @@ private:
 	ssp make_ss (string);
 
 /* Method type: network communications */
-	string execute_network_command(network_command command, nsp reference);
+public:
+	void execute_network_command(sentence, nsp, node at = root);
 	void receive(string);
-	void forward(string);
+private:
+	void forward(shared_ptr<string>);
 	void forward_handler(const error_code&,size_t, bBuffp, nsp);
 
+	void subscribe(nsp, string);
+	void unsubscribe(nsp, string);
+
+	void ports_for_zabbix(nsp);
 
 
+/* Method type: command tree building */
+public:
+	void build_command_tree();
+private:
+	void purge_dynamic_leaves();
+	void add_dynamic_leaves();
+	void add_static_leaves();
 
-
-
-	void unsub(string, nsp);
 
 /* Method type: basic information */
 public:
 	string get_logdir() { return logdir_; }
 	shared_ptr<const ss> get_ss_from_name(string name);
 	shared_ptr<const ns> get_ns_from_name(string name);
+
+/* Member type: command tree from root */
+private:
+	map<string,nodep> help_nodes = {
+			{string("help"), std::make_shared<node>(
+					std::function<void(nsp)>(&help_help))},
+			{string("get"), std::make_shared<node>(
+					std::function<void(nsp)>(&help_get))},
+			{string("subscribe"), std::make_shared<node>(
+					std::function<void(nsp)>(&help_subscribe))},
+			{string("unsubscribe"), std::make_shared<node>(
+					std::function<void(nsp)>(&help_unsubscribe))}
+	};
+
+	map<string,nodep> get_nodes = {
+			{string("help"),std::make_shared<node>(
+					std::function<void(nsp)>(&get_help))},
+			{string("rx"), std::make_shared<node>(
+					std::function<void(nsp)>(&get_help_rx))},
+			{string("tx"), std::make_shared<node>(
+					std::function<void(nsp)>(&get_help_tx))},
+			{string("messages_received_tot"), std::make_shared<node>(
+					std::function<void(nsp)>(&get_help_messages_received_tot))},
+			{string("messages_lost_tot"), std::make_shared<node>(
+					std::function<void(nsp)>(&get_help_messages_lost_tot))},
+			{string("ports_for_zabbix"), std::make_shared<node>()}
+	};
+
+	map<string,nodep> channel_nodes = {
+			{string("raw_waveforms"), std::make_shared<node>()}
+	};
+
+	map<string,nodep> subscribe_nodes = {
+			{string("help"), std::make_shared<node>(
+					std::function<void(nsp)>(&subscribe_help))},
+			{string("to"), std::make_shared<node>(channel_nodes,
+					std::function<void(nsp)>(&subscribe_help))}
+	};
+
+	map<string,nodep> unsubscribe_nodes = {
+			{string("help"),std::make_shared<node>(
+					std::function<void(nsp)>(&unsubscribe_help))},
+			{string("from"), std::make_shared<node>(channel_nodes,
+					std::function<void(nsp)>(&unsubscribe_help))}
+	};
+
+	map<string,nodep> root_nodes = {
+			{string("help"), std::make_shared<node>(help_nodes,
+					std::function<void(nsp)>(&help))},
+			{string("get"), std::make_shared<node>(get_nodes,
+					std::function<void(nsp)>(&get_help))},
+			{string("subscribe"), std::make_shared<node>(subscribe_nodes,
+					std::function<void(nsp)>(&subscribe_help))},
+			{string("unsubscribe"), std::make_shared<node>(unsubscribe_nodes,
+					std::function<void(nsp)>(&unsubscribe_help))}
+	};
 };
 
 

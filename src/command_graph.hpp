@@ -5,14 +5,15 @@
  *      Author: schurchill
  */
 
-#ifndef NETWORK_COMMAND_HPP_
-#define NETWORK_COMMAND_HPP_
+#ifndef COMMAND_GRAPH_HPP_
+#define COMMAND_GRAPH_HPP_
 
 #include <iostream>
 #include <fstream>
 #include <string>
 #include <sstream>
 #include <vector>
+#include <map>
 #include <utility>
 #include <deque>
 #include <cstdio>
@@ -20,6 +21,7 @@
 #include <ctime>
 #include <cmath>
 #include <iterator>
+#include <functional>
 
 #include <boost/asio.hpp>
 #include <boost/bind.hpp>
@@ -35,7 +37,7 @@
 #include "types.h"
 #include "utils.h"
 #include "session.h"
-#include "network_command.h"
+#include "command_graph.h"
 
 namespace dew {
 
@@ -56,6 +58,9 @@ using ::std::to_string;
 using ::std::string;
 using ::std::vector;
 using ::std::deque;
+using ::std::map;
+using ::std::pair;
+using ::std::make_pair;
 
 using ::std::search;
 using ::std::find;
@@ -63,21 +68,66 @@ using ::std::copy;
 using ::std::reverse_copy;
 
 
-
-
-
-void network_command::read(sentence to_read) {
-	sentence::iterator iter = find(to_read.begin(),to_read.end(),"do");
-	if(iter == to_read.end()) {
-		sentence::iterator iter = find(to_read.begin(),to_read.end(),"what");
-		if(iter == to_read.end()) {
-
-
+void node::spawn(pair<string,nodep> child) {
+	if(child.second->is_owned)
+		return;
+	else {
+		child.second->own();
+		children.emplace(child);
+	}
 }
+void node::spawn(string str_in, nodep node_in) {
+	if(node_in->is_owned)
+		return;
+	else {
+		node_in->own();
+		children.emplace(make_pair(str_in,node_in));
+	}
+}
+
+void node::spawn(map<string,nodep> children_in) {
+	for(auto child : children_in) {
+		spawn(child);
+	}
+}
+
+void node::purge() {
+	if(is_leaf())
+		return;
+	else {
+		for(auto child : children)
+			child.second->purge();
+		children.clear();
+	}
+}
+
+void node::operator()(nsp in) const {
+	if(fn)
+		fn(in);
+}
+
+string node::descendants(const int ancestors) {
+	string d;
+	if(!ancestors)
+		d+="root";
+
+	for(auto child : children) {
+		for(int i = ancestors ; i ; --i)
+			d+='\t';
+		d+='\t';
+		d+=child.first;
+		d+='\n';
+		d+=child.second->descendants(ancestors+1);
+	}
+
+	return d;
+}
+
+
 
 
 } // dew namespace
 
 
 
-#endif /* NETWORK_COMMAND_HPP_ */
+#endif /* COMMAND_GRAPH_HPP_ */

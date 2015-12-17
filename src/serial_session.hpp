@@ -258,7 +258,7 @@ void ss::check_the_deque() {
 			counts.last_msg -= 256;
 		while(counts.last_msg < counts.curr_msg - 1){
 			++counts.last_msg;
-			++counts.lost_msg_count;
+			++counts.messages_lost_tot;
 		}
 		counts.last_msg=counts.curr_msg;
 		deliver(to_send);
