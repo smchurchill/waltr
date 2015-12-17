@@ -100,29 +100,26 @@ void node::purge() {
 	}
 }
 
-void node::operator()(nsp in) const {
-	if(fn)
-		fn(in);
-}
-
-string node::descendants(const int ancestors) {
+string node::descendants(const int ancestors) const {
 	string d;
-	if(!ancestors)
-		d+="root";
 
 	for(auto child : children) {
 		for(int i = ancestors ; i ; --i)
-			d+='\t';
-		d+='\t';
+			d+="  ";
 		d+=child.first;
 		d+='\n';
 		d+=child.second->descendants(ancestors+1);
 	}
-
 	return d;
 }
 
-
+void node::operator()(nsp in) const {
+	if(fn)
+		fn(in);
+	else {
+		in->do_write(descendants(0));
+	}
+}
 
 
 } // dew namespace

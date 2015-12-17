@@ -115,9 +115,9 @@ shared_ptr<serial_session> ss::get_ss() {
 }
 
 void ss::start_write() {
+	write_type_is_test = true;
 	srand(time(0));
 	do_write();
-	set_write_timer();
 }
 
 void ss::start_read() {
@@ -150,6 +150,8 @@ void ss::do_read() {
 }
 
 void ss::handle_write(const error_code& ec, size_t len, bBuffp message) {
+	if(write_type_is_test)
+		do_write();
 	return;
 }
 
@@ -327,7 +329,7 @@ int ss::pop_counters() {
 bBuffp ss::generate_message() {
 	auto message = make_shared<bBuff>();
 
-	while(message->size() < 1024*1024) {
+	while(message->size() < 1024) {
 		++counts.messages_sent;
 		bBuff nonce1 = {0xff, 0xfe}, nonce2;
 		u8 byte;
@@ -400,15 +402,6 @@ bBuffp ss::generate_message() {
 	return message;
 }
 
-void ss::set_write_timer() {
-	auto self (shared_from_this());
-//	int time_to_wait_in_ms = 25 + (rand()%25);
-	milliseconds time_to_wait = milliseconds(100);
-
-	timer_.expires_from_now(time_to_wait);
-	timer_.async_wait(bind(&ss::handle_write_timeout,self,_1));
-}
-
 void ss::set_read_timer() {
 	auto self (shared_from_this());
 	time_point<steady_clock> now =	steady_clock::now();
@@ -417,11 +410,6 @@ void ss::set_read_timer() {
 
 	timer_.expires_at(dead);
 	timer_.async_wait(bind(&ss::handle_read_timeout, self, _1));
-}
-
-void ss::handle_write_timeout(const error_code& ec) {
-	do_write();
-	set_write_timer();
 }
 
 void ss::handle_read_timeout(const error_code& ec) {

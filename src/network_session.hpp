@@ -147,11 +147,7 @@ void ns::handle_read(
 		do_write(exceeds);
 	} else {
 		sentence command = buffer_to_sentence(in_length);
-		if(command.empty()) {
-			do_write(string("No command entered.\n"));
-		} else {
-			context_.dispatch->execute_network_command(command, self);
-		}
+		context_.dispatch->execute_network_command(command, self);
 	}
 	do_read();
 	}

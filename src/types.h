@@ -34,7 +34,7 @@ typedef std::vector<u8> bBuff;
 typedef std::shared_ptr<bBuff> bBuffp;
 typedef std::shared_ptr<pBuff> pBuffp;
 
-typedef std::vector<std::string> sentence;
+typedef std::deque<std::string> sentence;
 
 }; // namespace dew
 

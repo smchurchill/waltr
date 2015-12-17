@@ -176,9 +176,25 @@ ssp dispatcher::make_ss(string device_name) {
 
 /* December 15, 2015 :: network communications */
 
-void dispatcher::execute_network_command(
-		sentence command, nsp reference) {
-	assert(false);
+void dispatcher::execute_network_command( sentence command, nsp reference) {
+	auto rootp = make_shared<node>(root);
+	auto to_exec = execute_tree(command, rootp);
+	(*to_exec)(reference);
+}
+
+nodep dispatcher::execute_tree( sentence command, nodep current) {
+	if( command.empty() || current->is_leaf())
+		return current;
+	else {
+		auto iter = current->get_child(command[0]);
+		if(iter == current->get_end())
+			return current;
+		else {
+			command.pop_front();
+			current = iter->second;
+			return execute_tree(command, current);
+		}
+	}
 }
 
 void dispatcher::delivery(shared_ptr<string> message) {
@@ -187,6 +203,7 @@ void dispatcher::delivery(shared_ptr<string> message) {
 }
 
 void dispatcher::forward(shared_ptr<string> msg) {
+	if(1){
 	auto fpwf = make_shared<flopointpb::FloPointWaveform>();
 
 	if(local_logging_enabled){
@@ -226,13 +243,16 @@ void dispatcher::forward(shared_ptr<string> msg) {
 					subscriber->do_write(wf_str);
 	}
 	fpwf.reset();
+	} // if(0)
 }
 
 void dispatcher::subscribe(nsp sub, string channel) {
 	auto sub_set = subscriptions.find(channel);
 	if(sub_set->second.find(sub) == sub_set->second.end()) {
 		sub_set->second.emplace(sub);
-	}
+		sub->do_write("Subscribed to "+channel+"\n");
+	} else
+		sub->do_write("You are already subscribed to "+channel+"\n");
 }
 
 void dispatcher::unsubscribe(nsp sub, string channel) {
@@ -240,7 +260,9 @@ void dispatcher::unsubscribe(nsp sub, string channel) {
 	auto locator = sub_set->second.find(sub);
 	if(locator != sub_set->second.end()) {
 		sub_set->second.erase(locator);
-	}
+		sub->do_write("Unsubscribed from "+channel+"\n");
+	} else
+		sub->do_write("You are not subscribed to "+channel+"\n");
 }
 
 
@@ -278,15 +300,16 @@ void dispatcher::add_static_leaves() {
 
 	for(auto channel : subscriptions) {
 		root.child("subscribe")->child("to")->spawn(
-				channel.first,
-				make_shared<node>(
-						std::function<void(nsp)>(
-							bind(&dispatcher::subscribe,self,_1,channel.first))));
+				channel.first, make_shared<node>());
 		root.child("unsubscribe")->child("from")->spawn(
-				channel.first,
-				make_shared<node>(
-						std::function<void(nsp)>(
-							bind(&dispatcher::unsubscribe,self,_1,channel.first))));
+				channel.first, make_shared<node>());
+
+		root.child("subscribe")->child("to")->child(channel.first)->set_fn(
+				std::function<void(nsp)>(
+								bind(&dispatcher::subscribe,self,_1,channel.first)));
+		root.child("unsubscribe")->child("from")->child(channel.first)->set_fn(
+				std::function<void(nsp)>(
+						bind(&dispatcher::unsubscribe,self,_1,channel.first)));
 	}
 	added_static_leaves = true;
 }

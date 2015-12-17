@@ -24,14 +24,17 @@ public:
 	void purge();
 
 	void set_fn(std::function<void(nsp)> fn_in) { fn = fn_in; }
-	void operator()(nsp) const;
 	const shared_ptr<node>& child(const string & key) const { return children.at(key); }
+	map<string,nodep>::const_iterator get_child(string& key) const{ return children.find(key); }
+	map<string,nodep>::const_iterator get_end() const{ return children.cend(); }
+	string descendants(const int) const;
 
-	string descendants(const int);
+	void operator()(nsp) const;
 
 	void own() { owned = true; }
 	bool is_owned() { return owned; }
 	bool is_leaf() { return children.empty(); }
+
 
 private:
 	map<string,nodep> children;

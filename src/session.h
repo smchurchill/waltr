@@ -79,7 +79,10 @@ private:
 /* Method type: network communications */
 public:
 	void execute_network_command(sentence, nsp);
+	nodep execute_tree( sentence, nodep);
 	void delivery(shared_ptr<string>);
+	string get_command_tree_from_root();
+
 private:
 	void forward(shared_ptr<string>);
 	void forward_handler(const error_code&,size_t, bBuffp, nsp);
@@ -88,6 +91,7 @@ private:
 	void unsubscribe(nsp, string);
 
 	void ports_for_zabbix(nsp);
+	string command_tree_from(nodep);
 
 
 /* Method type: command tree building */
@@ -132,21 +136,25 @@ private:
 			{string("ports_for_zabbix"), std::make_shared<node>()}
 	};
 
-	map<string,nodep> channel_nodes = {
+	map<string,nodep> to_nodes = {
+			{string("raw_waveforms"), std::make_shared<node>()}
+	};
+
+	map<string,nodep> from_nodes = {
 			{string("raw_waveforms"), std::make_shared<node>()}
 	};
 
 	map<string,nodep> subscribe_nodes = {
 			{string("help"), std::make_shared<node>(
 					std::function<void(nsp)>(&subscribe_help))},
-			{string("to"), std::make_shared<node>(channel_nodes,
+			{string("to"), std::make_shared<node>(to_nodes,
 					std::function<void(nsp)>(&subscribe_help))}
 	};
 
 	map<string,nodep> unsubscribe_nodes = {
 			{string("help"),std::make_shared<node>(
 					std::function<void(nsp)>(&unsubscribe_help))},
-			{string("from"), std::make_shared<node>(channel_nodes,
+			{string("from"), std::make_shared<node>(from_nodes,
 					std::function<void(nsp)>(&unsubscribe_help))}
 	};
 

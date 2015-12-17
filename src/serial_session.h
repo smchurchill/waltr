@@ -92,7 +92,7 @@ private:
   basic_waitable_timer<steady_clock> timer_;
   bool read_type_is_timeout_;
 
-
+  bool write_type_is_test = false;
 	const size_t MAX_FRAME_LENGTH = 4096;
 	const size_t BUFFER_LENGTH = 16000;
 	serial_icounter_struct ioctl_counters {0};
@@ -125,9 +125,7 @@ private:
 	bBuffp generate_message();
 
 /* Method type: time handling */
-	void set_write_timer();
 	void set_read_timer();
-	void handle_write_timeout(const error_code&);
 	void handle_read_timeout(const error_code&);
 
 /* Method type: basic information */
