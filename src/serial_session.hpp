@@ -359,7 +359,7 @@ bBuffp ss::generate_message() {
 		string name (to_string(num) + "of09");
 
 
-		flopointpb::FloPointWaveform fpwf;
+		flopointpb::FloPointMessage fpwf;
 		fpwf.set_name(name);
 
 
@@ -371,7 +371,7 @@ bBuffp ss::generate_message() {
 		 */
 
 		/* Once allocated, this memory is freed when *fpwf is deleted */
-		auto wf = new flopointpb::FloPointWaveform_Waveform;
+		auto wf = new flopointpb::FloPointMessage_Waveform;
 
 		double c = 0.2 + ((static_cast<double>(rand()))/RAND_MAX/10.0);
 

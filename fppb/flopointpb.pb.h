@@ -34,106 +34,107 @@ void  protobuf_AddDesc_flopointpb_2eproto();
 void protobuf_AssignDesc_flopointpb_2eproto();
 void protobuf_ShutdownFile_flopointpb_2eproto();
 
-class FloPointWaveform;
-class FloPointWaveform_Waveform;
-class FloPointWaveform_Jitter;
-class FloPointWaveform_Time;
-class FloPointWaveform_Temp;
-class FloPointWaveform_Volt;
-class FloPointWaveform_CompileInfo;
-class FloPointWaveform_Count;
+class FloPointMultiMessage;
+class FloPointMessage;
+class FloPointMessage_Waveform;
+class FloPointMessage_Jitter;
+class FloPointMessage_Time;
+class FloPointMessage_Temp;
+class FloPointMessage_Volt;
+class FloPointMessage_CompileInfo;
+class FloPointMessage_Count;
 
-enum FloPointWaveform_TimeSource {
-  FloPointWaveform_TimeSource_CLOCK0 = 0,
-  FloPointWaveform_TimeSource_CLOCK1 = 1,
-  FloPointWaveform_TimeSource_CLOCK2 = 2
+enum FloPointMessage_TimeSource {
+  FloPointMessage_TimeSource_CLOCK0 = 0,
+  FloPointMessage_TimeSource_CLOCK1 = 1,
+  FloPointMessage_TimeSource_CLOCK2 = 2
 };
-bool FloPointWaveform_TimeSource_IsValid(int value);
-const FloPointWaveform_TimeSource FloPointWaveform_TimeSource_TimeSource_MIN = FloPointWaveform_TimeSource_CLOCK0;
-const FloPointWaveform_TimeSource FloPointWaveform_TimeSource_TimeSource_MAX = FloPointWaveform_TimeSource_CLOCK2;
-const int FloPointWaveform_TimeSource_TimeSource_ARRAYSIZE = FloPointWaveform_TimeSource_TimeSource_MAX + 1;
+bool FloPointMessage_TimeSource_IsValid(int value);
+const FloPointMessage_TimeSource FloPointMessage_TimeSource_TimeSource_MIN = FloPointMessage_TimeSource_CLOCK0;
+const FloPointMessage_TimeSource FloPointMessage_TimeSource_TimeSource_MAX = FloPointMessage_TimeSource_CLOCK2;
+const int FloPointMessage_TimeSource_TimeSource_ARRAYSIZE = FloPointMessage_TimeSource_TimeSource_MAX + 1;
 
-const ::google::protobuf::EnumDescriptor* FloPointWaveform_TimeSource_descriptor();
-inline const ::std::string& FloPointWaveform_TimeSource_Name(FloPointWaveform_TimeSource value) {
+const ::google::protobuf::EnumDescriptor* FloPointMessage_TimeSource_descriptor();
+inline const ::std::string& FloPointMessage_TimeSource_Name(FloPointMessage_TimeSource value) {
   return ::google::protobuf::internal::NameOfEnum(
-    FloPointWaveform_TimeSource_descriptor(), value);
+    FloPointMessage_TimeSource_descriptor(), value);
 }
-inline bool FloPointWaveform_TimeSource_Parse(
-    const ::std::string& name, FloPointWaveform_TimeSource* value) {
-  return ::google::protobuf::internal::ParseNamedEnum<FloPointWaveform_TimeSource>(
-    FloPointWaveform_TimeSource_descriptor(), name, value);
+inline bool FloPointMessage_TimeSource_Parse(
+    const ::std::string& name, FloPointMessage_TimeSource* value) {
+  return ::google::protobuf::internal::ParseNamedEnum<FloPointMessage_TimeSource>(
+    FloPointMessage_TimeSource_descriptor(), name, value);
 }
-enum FloPointWaveform_TempSource {
-  FloPointWaveform_TempSource_THERM0 = 0,
-  FloPointWaveform_TempSource_THERM1 = 1,
-  FloPointWaveform_TempSource_THERM2 = 2
+enum FloPointMessage_TempSource {
+  FloPointMessage_TempSource_THERM0 = 0,
+  FloPointMessage_TempSource_THERM1 = 1,
+  FloPointMessage_TempSource_THERM2 = 2
 };
-bool FloPointWaveform_TempSource_IsValid(int value);
-const FloPointWaveform_TempSource FloPointWaveform_TempSource_TempSource_MIN = FloPointWaveform_TempSource_THERM0;
-const FloPointWaveform_TempSource FloPointWaveform_TempSource_TempSource_MAX = FloPointWaveform_TempSource_THERM2;
-const int FloPointWaveform_TempSource_TempSource_ARRAYSIZE = FloPointWaveform_TempSource_TempSource_MAX + 1;
+bool FloPointMessage_TempSource_IsValid(int value);
+const FloPointMessage_TempSource FloPointMessage_TempSource_TempSource_MIN = FloPointMessage_TempSource_THERM0;
+const FloPointMessage_TempSource FloPointMessage_TempSource_TempSource_MAX = FloPointMessage_TempSource_THERM2;
+const int FloPointMessage_TempSource_TempSource_ARRAYSIZE = FloPointMessage_TempSource_TempSource_MAX + 1;
 
-const ::google::protobuf::EnumDescriptor* FloPointWaveform_TempSource_descriptor();
-inline const ::std::string& FloPointWaveform_TempSource_Name(FloPointWaveform_TempSource value) {
+const ::google::protobuf::EnumDescriptor* FloPointMessage_TempSource_descriptor();
+inline const ::std::string& FloPointMessage_TempSource_Name(FloPointMessage_TempSource value) {
   return ::google::protobuf::internal::NameOfEnum(
-    FloPointWaveform_TempSource_descriptor(), value);
+    FloPointMessage_TempSource_descriptor(), value);
 }
-inline bool FloPointWaveform_TempSource_Parse(
-    const ::std::string& name, FloPointWaveform_TempSource* value) {
-  return ::google::protobuf::internal::ParseNamedEnum<FloPointWaveform_TempSource>(
-    FloPointWaveform_TempSource_descriptor(), name, value);
+inline bool FloPointMessage_TempSource_Parse(
+    const ::std::string& name, FloPointMessage_TempSource* value) {
+  return ::google::protobuf::internal::ParseNamedEnum<FloPointMessage_TempSource>(
+    FloPointMessage_TempSource_descriptor(), name, value);
 }
-enum FloPointWaveform_VoltSource {
-  FloPointWaveform_VoltSource_VOLTM0 = 0,
-  FloPointWaveform_VoltSource_VOLTM1 = 1,
-  FloPointWaveform_VoltSource_VOLTM2 = 2
+enum FloPointMessage_VoltSource {
+  FloPointMessage_VoltSource_VOLTM0 = 0,
+  FloPointMessage_VoltSource_VOLTM1 = 1,
+  FloPointMessage_VoltSource_VOLTM2 = 2
 };
-bool FloPointWaveform_VoltSource_IsValid(int value);
-const FloPointWaveform_VoltSource FloPointWaveform_VoltSource_VoltSource_MIN = FloPointWaveform_VoltSource_VOLTM0;
-const FloPointWaveform_VoltSource FloPointWaveform_VoltSource_VoltSource_MAX = FloPointWaveform_VoltSource_VOLTM2;
-const int FloPointWaveform_VoltSource_VoltSource_ARRAYSIZE = FloPointWaveform_VoltSource_VoltSource_MAX + 1;
+bool FloPointMessage_VoltSource_IsValid(int value);
+const FloPointMessage_VoltSource FloPointMessage_VoltSource_VoltSource_MIN = FloPointMessage_VoltSource_VOLTM0;
+const FloPointMessage_VoltSource FloPointMessage_VoltSource_VoltSource_MAX = FloPointMessage_VoltSource_VOLTM2;
+const int FloPointMessage_VoltSource_VoltSource_ARRAYSIZE = FloPointMessage_VoltSource_VoltSource_MAX + 1;
 
-const ::google::protobuf::EnumDescriptor* FloPointWaveform_VoltSource_descriptor();
-inline const ::std::string& FloPointWaveform_VoltSource_Name(FloPointWaveform_VoltSource value) {
+const ::google::protobuf::EnumDescriptor* FloPointMessage_VoltSource_descriptor();
+inline const ::std::string& FloPointMessage_VoltSource_Name(FloPointMessage_VoltSource value) {
   return ::google::protobuf::internal::NameOfEnum(
-    FloPointWaveform_VoltSource_descriptor(), value);
+    FloPointMessage_VoltSource_descriptor(), value);
 }
-inline bool FloPointWaveform_VoltSource_Parse(
-    const ::std::string& name, FloPointWaveform_VoltSource* value) {
-  return ::google::protobuf::internal::ParseNamedEnum<FloPointWaveform_VoltSource>(
-    FloPointWaveform_VoltSource_descriptor(), name, value);
+inline bool FloPointMessage_VoltSource_Parse(
+    const ::std::string& name, FloPointMessage_VoltSource* value) {
+  return ::google::protobuf::internal::ParseNamedEnum<FloPointMessage_VoltSource>(
+    FloPointMessage_VoltSource_descriptor(), name, value);
 }
-enum FloPointWaveform_CountType {
-  FloPointWaveform_CountType_MESSAGECOUNT = 0,
-  FloPointWaveform_CountType_UPTIME = 1,
-  FloPointWaveform_CountType_BOOTCYCLE = 2,
-  FloPointWaveform_CountType_COUNT3 = 3
+enum FloPointMessage_CountType {
+  FloPointMessage_CountType_MESSAGECOUNT = 0,
+  FloPointMessage_CountType_UPTIME = 1,
+  FloPointMessage_CountType_BOOTCYCLE = 2,
+  FloPointMessage_CountType_COUNT3 = 3
 };
-bool FloPointWaveform_CountType_IsValid(int value);
-const FloPointWaveform_CountType FloPointWaveform_CountType_CountType_MIN = FloPointWaveform_CountType_MESSAGECOUNT;
-const FloPointWaveform_CountType FloPointWaveform_CountType_CountType_MAX = FloPointWaveform_CountType_COUNT3;
-const int FloPointWaveform_CountType_CountType_ARRAYSIZE = FloPointWaveform_CountType_CountType_MAX + 1;
+bool FloPointMessage_CountType_IsValid(int value);
+const FloPointMessage_CountType FloPointMessage_CountType_CountType_MIN = FloPointMessage_CountType_MESSAGECOUNT;
+const FloPointMessage_CountType FloPointMessage_CountType_CountType_MAX = FloPointMessage_CountType_COUNT3;
+const int FloPointMessage_CountType_CountType_ARRAYSIZE = FloPointMessage_CountType_CountType_MAX + 1;
 
-const ::google::protobuf::EnumDescriptor* FloPointWaveform_CountType_descriptor();
-inline const ::std::string& FloPointWaveform_CountType_Name(FloPointWaveform_CountType value) {
+const ::google::protobuf::EnumDescriptor* FloPointMessage_CountType_descriptor();
+inline const ::std::string& FloPointMessage_CountType_Name(FloPointMessage_CountType value) {
   return ::google::protobuf::internal::NameOfEnum(
-    FloPointWaveform_CountType_descriptor(), value);
+    FloPointMessage_CountType_descriptor(), value);
 }
-inline bool FloPointWaveform_CountType_Parse(
-    const ::std::string& name, FloPointWaveform_CountType* value) {
-  return ::google::protobuf::internal::ParseNamedEnum<FloPointWaveform_CountType>(
-    FloPointWaveform_CountType_descriptor(), name, value);
+inline bool FloPointMessage_CountType_Parse(
+    const ::std::string& name, FloPointMessage_CountType* value) {
+  return ::google::protobuf::internal::ParseNamedEnum<FloPointMessage_CountType>(
+    FloPointMessage_CountType_descriptor(), name, value);
 }
 // ===================================================================
 
-class FloPointWaveform_Waveform : public ::google::protobuf::Message {
+class FloPointMultiMessage : public ::google::protobuf::Message {
  public:
-  FloPointWaveform_Waveform();
-  virtual ~FloPointWaveform_Waveform();
+  FloPointMultiMessage();
+  virtual ~FloPointMultiMessage();
 
-  FloPointWaveform_Waveform(const FloPointWaveform_Waveform& from);
+  FloPointMultiMessage(const FloPointMultiMessage& from);
 
-  inline FloPointWaveform_Waveform& operator=(const FloPointWaveform_Waveform& from) {
+  inline FloPointMultiMessage& operator=(const FloPointMultiMessage& from) {
     CopyFrom(from);
     return *this;
   }
@@ -147,17 +148,99 @@ class FloPointWaveform_Waveform : public ::google::protobuf::Message {
   }
 
   static const ::google::protobuf::Descriptor* descriptor();
-  static const FloPointWaveform_Waveform& default_instance();
+  static const FloPointMultiMessage& default_instance();
 
-  void Swap(FloPointWaveform_Waveform* other);
+  void Swap(FloPointMultiMessage* other);
 
   // implements Message ----------------------------------------------
 
-  FloPointWaveform_Waveform* New() const;
+  FloPointMultiMessage* New() const;
   void CopyFrom(const ::google::protobuf::Message& from);
   void MergeFrom(const ::google::protobuf::Message& from);
-  void CopyFrom(const FloPointWaveform_Waveform& from);
-  void MergeFrom(const FloPointWaveform_Waveform& from);
+  void CopyFrom(const FloPointMultiMessage& from);
+  void MergeFrom(const FloPointMultiMessage& from);
+  void Clear();
+  bool IsInitialized() const;
+
+  int ByteSize() const;
+  bool MergePartialFromCodedStream(
+      ::google::protobuf::io::CodedInputStream* input);
+  void SerializeWithCachedSizes(
+      ::google::protobuf::io::CodedOutputStream* output) const;
+  ::google::protobuf::uint8* SerializeWithCachedSizesToArray(::google::protobuf::uint8* output) const;
+  int GetCachedSize() const { return _cached_size_; }
+  private:
+  void SharedCtor();
+  void SharedDtor();
+  void SetCachedSize(int size) const;
+  public:
+  ::google::protobuf::Metadata GetMetadata() const;
+
+  // nested types ----------------------------------------------------
+
+  // accessors -------------------------------------------------------
+
+  // repeated .flopointpb.FloPointMessage messages = 1;
+  inline int messages_size() const;
+  inline void clear_messages();
+  static const int kMessagesFieldNumber = 1;
+  inline const ::flopointpb::FloPointMessage& messages(int index) const;
+  inline ::flopointpb::FloPointMessage* mutable_messages(int index);
+  inline ::flopointpb::FloPointMessage* add_messages();
+  inline const ::google::protobuf::RepeatedPtrField< ::flopointpb::FloPointMessage >&
+      messages() const;
+  inline ::google::protobuf::RepeatedPtrField< ::flopointpb::FloPointMessage >*
+      mutable_messages();
+
+  // @@protoc_insertion_point(class_scope:flopointpb.FloPointMultiMessage)
+ private:
+
+  ::google::protobuf::UnknownFieldSet _unknown_fields_;
+
+  ::google::protobuf::uint32 _has_bits_[1];
+  mutable int _cached_size_;
+  ::google::protobuf::RepeatedPtrField< ::flopointpb::FloPointMessage > messages_;
+  friend void  protobuf_AddDesc_flopointpb_2eproto();
+  friend void protobuf_AssignDesc_flopointpb_2eproto();
+  friend void protobuf_ShutdownFile_flopointpb_2eproto();
+
+  void InitAsDefaultInstance();
+  static FloPointMultiMessage* default_instance_;
+};
+// -------------------------------------------------------------------
+
+class FloPointMessage_Waveform : public ::google::protobuf::Message {
+ public:
+  FloPointMessage_Waveform();
+  virtual ~FloPointMessage_Waveform();
+
+  FloPointMessage_Waveform(const FloPointMessage_Waveform& from);
+
+  inline FloPointMessage_Waveform& operator=(const FloPointMessage_Waveform& from) {
+    CopyFrom(from);
+    return *this;
+  }
+
+  inline const ::google::protobuf::UnknownFieldSet& unknown_fields() const {
+    return _unknown_fields_;
+  }
+
+  inline ::google::protobuf::UnknownFieldSet* mutable_unknown_fields() {
+    return &_unknown_fields_;
+  }
+
+  static const ::google::protobuf::Descriptor* descriptor();
+  static const FloPointMessage_Waveform& default_instance();
+
+  void Swap(FloPointMessage_Waveform* other);
+
+  // implements Message ----------------------------------------------
+
+  FloPointMessage_Waveform* New() const;
+  void CopyFrom(const ::google::protobuf::Message& from);
+  void MergeFrom(const ::google::protobuf::Message& from);
+  void CopyFrom(const FloPointMessage_Waveform& from);
+  void MergeFrom(const FloPointMessage_Waveform& from);
   void Clear();
   bool IsInitialized() const;
 
@@ -191,7 +274,7 @@ class FloPointWaveform_Waveform : public ::google::protobuf::Message {
   inline ::google::protobuf::RepeatedField< ::google::protobuf::int32 >*
       mutable_wheight();
 
-  // @@protoc_insertion_point(class_scope:flopointpb.FloPointWaveform.Waveform)
+  // @@protoc_insertion_point(class_scope:flopointpb.FloPointMessage.Waveform)
  private:
 
   ::google::protobuf::UnknownFieldSet _unknown_fields_;
@@ -205,18 +288,18 @@ class FloPointWaveform_Waveform : public ::google::protobuf::Message {
   friend void protobuf_ShutdownFile_flopointpb_2eproto();
 
   void InitAsDefaultInstance();
-  static FloPointWaveform_Waveform* default_instance_;
+  static FloPointMessage_Waveform* default_instance_;
 };
 // -------------------------------------------------------------------
 
-class FloPointWaveform_Jitter : public ::google::protobuf::Message {
+class FloPointMessage_Jitter : public ::google::protobuf::Message {
  public:
-  FloPointWaveform_Jitter();
-  virtual ~FloPointWaveform_Jitter();
+  FloPointMessage_Jitter();
+  virtual ~FloPointMessage_Jitter();
 
-  FloPointWaveform_Jitter(const FloPointWaveform_Jitter& from);
+  FloPointMessage_Jitter(const FloPointMessage_Jitter& from);
 
-  inline FloPointWaveform_Jitter& operator=(const FloPointWaveform_Jitter& from) {
+  inline FloPointMessage_Jitter& operator=(const FloPointMessage_Jitter& from) {
     CopyFrom(from);
     return *this;
   }
@@ -230,17 +313,17 @@ class FloPointWaveform_Jitter : public ::google::protobuf::Message {
   }
 
   static const ::google::protobuf::Descriptor* descriptor();
-  static const FloPointWaveform_Jitter& default_instance();
+  static const FloPointMessage_Jitter& default_instance();
 
-  void Swap(FloPointWaveform_Jitter* other);
+  void Swap(FloPointMessage_Jitter* other);
 
   // implements Message ----------------------------------------------
 
-  FloPointWaveform_Jitter* New() const;
+  FloPointMessage_Jitter* New() const;
   void CopyFrom(const ::google::protobuf::Message& from);
   void MergeFrom(const ::google::protobuf::Message& from);
-  void CopyFrom(const FloPointWaveform_Jitter& from);
-  void MergeFrom(const FloPointWaveform_Jitter& from);
+  void CopyFrom(const FloPointMessage_Jitter& from);
+  void MergeFrom(const FloPointMessage_Jitter& from);
   void Clear();
   bool IsInitialized() const;
 
@@ -274,7 +357,7 @@ class FloPointWaveform_Jitter : public ::google::protobuf::Message {
   inline ::google::protobuf::RepeatedField< ::google::protobuf::int32 >*
       mutable_jheight();
 
-  // @@protoc_insertion_point(class_scope:flopointpb.FloPointWaveform.Jitter)
+  // @@protoc_insertion_point(class_scope:flopointpb.FloPointMessage.Jitter)
  private:
 
   ::google::protobuf::UnknownFieldSet _unknown_fields_;
@@ -288,18 +371,18 @@ class FloPointWaveform_Jitter : public ::google::protobuf::Message {
   friend void protobuf_ShutdownFile_flopointpb_2eproto();
 
   void InitAsDefaultInstance();
-  static FloPointWaveform_Jitter* default_instance_;
+  static FloPointMessage_Jitter* default_instance_;
 };
 // -------------------------------------------------------------------
 
-class FloPointWaveform_Time : public ::google::protobuf::Message {
+class FloPointMessage_Time : public ::google::protobuf::Message {
  public:
-  FloPointWaveform_Time();
-  virtual ~FloPointWaveform_Time();
+  FloPointMessage_Time();
+  virtual ~FloPointMessage_Time();
 
-  FloPointWaveform_Time(const FloPointWaveform_Time& from);
+  FloPointMessage_Time(const FloPointMessage_Time& from);
 
-  inline FloPointWaveform_Time& operator=(const FloPointWaveform_Time& from) {
+  inline FloPointMessage_Time& operator=(const FloPointMessage_Time& from) {
     CopyFrom(from);
     return *this;
   }
@@ -313,17 +396,17 @@ class FloPointWaveform_Time : public ::google::protobuf::Message {
   }
 
   static const ::google::protobuf::Descriptor* descriptor();
-  static const FloPointWaveform_Time& default_instance();
+  static const FloPointMessage_Time& default_instance();
 
-  void Swap(FloPointWaveform_Time* other);
+  void Swap(FloPointMessage_Time* other);
 
   // implements Message ----------------------------------------------
 
-  FloPointWaveform_Time* New() const;
+  FloPointMessage_Time* New() const;
   void CopyFrom(const ::google::protobuf::Message& from);
   void MergeFrom(const ::google::protobuf::Message& from);
-  void CopyFrom(const FloPointWaveform_Time& from);
-  void MergeFrom(const FloPointWaveform_Time& from);
+  void CopyFrom(const FloPointMessage_Time& from);
+  void MergeFrom(const FloPointMessage_Time& from);
   void Clear();
   bool IsInitialized() const;
 
@@ -352,14 +435,14 @@ class FloPointWaveform_Time : public ::google::protobuf::Message {
   inline ::google::protobuf::int64 time_point() const;
   inline void set_time_point(::google::protobuf::int64 value);
 
-  // required .flopointpb.FloPointWaveform.TimeSource time_source = 2;
+  // required .flopointpb.FloPointMessage.TimeSource time_source = 2;
   inline bool has_time_source() const;
   inline void clear_time_source();
   static const int kTimeSourceFieldNumber = 2;
-  inline ::flopointpb::FloPointWaveform_TimeSource time_source() const;
-  inline void set_time_source(::flopointpb::FloPointWaveform_TimeSource value);
+  inline ::flopointpb::FloPointMessage_TimeSource time_source() const;
+  inline void set_time_source(::flopointpb::FloPointMessage_TimeSource value);
 
-  // @@protoc_insertion_point(class_scope:flopointpb.FloPointWaveform.Time)
+  // @@protoc_insertion_point(class_scope:flopointpb.FloPointMessage.Time)
  private:
   inline void set_has_time_point();
   inline void clear_has_time_point();
@@ -377,18 +460,18 @@ class FloPointWaveform_Time : public ::google::protobuf::Message {
   friend void protobuf_ShutdownFile_flopointpb_2eproto();
 
   void InitAsDefaultInstance();
-  static FloPointWaveform_Time* default_instance_;
+  static FloPointMessage_Time* default_instance_;
 };
 // -------------------------------------------------------------------
 
-class FloPointWaveform_Temp : public ::google::protobuf::Message {
+class FloPointMessage_Temp : public ::google::protobuf::Message {
  public:
-  FloPointWaveform_Temp();
-  virtual ~FloPointWaveform_Temp();
+  FloPointMessage_Temp();
+  virtual ~FloPointMessage_Temp();
 
-  FloPointWaveform_Temp(const FloPointWaveform_Temp& from);
+  FloPointMessage_Temp(const FloPointMessage_Temp& from);
 
-  inline FloPointWaveform_Temp& operator=(const FloPointWaveform_Temp& from) {
+  inline FloPointMessage_Temp& operator=(const FloPointMessage_Temp& from) {
     CopyFrom(from);
     return *this;
   }
@@ -402,17 +485,17 @@ class FloPointWaveform_Temp : public ::google::protobuf::Message {
   }
 
   static const ::google::protobuf::Descriptor* descriptor();
-  static const FloPointWaveform_Temp& default_instance();
+  static const FloPointMessage_Temp& default_instance();
 
-  void Swap(FloPointWaveform_Temp* other);
+  void Swap(FloPointMessage_Temp* other);
 
   // implements Message ----------------------------------------------
 
-  FloPointWaveform_Temp* New() const;
+  FloPointMessage_Temp* New() const;
   void CopyFrom(const ::google::protobuf::Message& from);
   void MergeFrom(const ::google::protobuf::Message& from);
-  void CopyFrom(const FloPointWaveform_Temp& from);
-  void MergeFrom(const FloPointWaveform_Temp& from);
+  void CopyFrom(const FloPointMessage_Temp& from);
+  void MergeFrom(const FloPointMessage_Temp& from);
   void Clear();
   bool IsInitialized() const;
 
@@ -441,14 +524,14 @@ class FloPointWaveform_Temp : public ::google::protobuf::Message {
   inline ::google::protobuf::int32 temp_point() const;
   inline void set_temp_point(::google::protobuf::int32 value);
 
-  // required .flopointpb.FloPointWaveform.TempSource temp_source = 2;
+  // required .flopointpb.FloPointMessage.TempSource temp_source = 2;
   inline bool has_temp_source() const;
   inline void clear_temp_source();
   static const int kTempSourceFieldNumber = 2;
-  inline ::flopointpb::FloPointWaveform_TempSource temp_source() const;
-  inline void set_temp_source(::flopointpb::FloPointWaveform_TempSource value);
+  inline ::flopointpb::FloPointMessage_TempSource temp_source() const;
+  inline void set_temp_source(::flopointpb::FloPointMessage_TempSource value);
 
-  // @@protoc_insertion_point(class_scope:flopointpb.FloPointWaveform.Temp)
+  // @@protoc_insertion_point(class_scope:flopointpb.FloPointMessage.Temp)
  private:
   inline void set_has_temp_point();
   inline void clear_has_temp_point();
@@ -466,18 +549,18 @@ class FloPointWaveform_Temp : public ::google::protobuf::Message {
   friend void protobuf_ShutdownFile_flopointpb_2eproto();
 
   void InitAsDefaultInstance();
-  static FloPointWaveform_Temp* default_instance_;
+  static FloPointMessage_Temp* default_instance_;
 };
 // -------------------------------------------------------------------
 
-class FloPointWaveform_Volt : public ::google::protobuf::Message {
+class FloPointMessage_Volt : public ::google::protobuf::Message {
  public:
-  FloPointWaveform_Volt();
-  virtual ~FloPointWaveform_Volt();
+  FloPointMessage_Volt();
+  virtual ~FloPointMessage_Volt();
 
-  FloPointWaveform_Volt(const FloPointWaveform_Volt& from);
+  FloPointMessage_Volt(const FloPointMessage_Volt& from);
 
-  inline FloPointWaveform_Volt& operator=(const FloPointWaveform_Volt& from) {
+  inline FloPointMessage_Volt& operator=(const FloPointMessage_Volt& from) {
     CopyFrom(from);
     return *this;
   }
@@ -491,17 +574,17 @@ class FloPointWaveform_Volt : public ::google::protobuf::Message {
   }
 
   static const ::google::protobuf::Descriptor* descriptor();
-  static const FloPointWaveform_Volt& default_instance();
+  static const FloPointMessage_Volt& default_instance();
 
-  void Swap(FloPointWaveform_Volt* other);
+  void Swap(FloPointMessage_Volt* other);
 
   // implements Message ----------------------------------------------
 
-  FloPointWaveform_Volt* New() const;
+  FloPointMessage_Volt* New() const;
   void CopyFrom(const ::google::protobuf::Message& from);
   void MergeFrom(const ::google::protobuf::Message& from);
-  void CopyFrom(const FloPointWaveform_Volt& from);
-  void MergeFrom(const FloPointWaveform_Volt& from);
+  void CopyFrom(const FloPointMessage_Volt& from);
+  void MergeFrom(const FloPointMessage_Volt& from);
   void Clear();
   bool IsInitialized() const;
 
@@ -530,14 +613,14 @@ class FloPointWaveform_Volt : public ::google::protobuf::Message {
   inline ::google::protobuf::int32 volt_point() const;
   inline void set_volt_point(::google::protobuf::int32 value);
 
-  // required .flopointpb.FloPointWaveform.VoltSource volt_source = 2;
+  // required .flopointpb.FloPointMessage.VoltSource volt_source = 2;
   inline bool has_volt_source() const;
   inline void clear_volt_source();
   static const int kVoltSourceFieldNumber = 2;
-  inline ::flopointpb::FloPointWaveform_VoltSource volt_source() const;
-  inline void set_volt_source(::flopointpb::FloPointWaveform_VoltSource value);
+  inline ::flopointpb::FloPointMessage_VoltSource volt_source() const;
+  inline void set_volt_source(::flopointpb::FloPointMessage_VoltSource value);
 
-  // @@protoc_insertion_point(class_scope:flopointpb.FloPointWaveform.Volt)
+  // @@protoc_insertion_point(class_scope:flopointpb.FloPointMessage.Volt)
  private:
   inline void set_has_volt_point();
   inline void clear_has_volt_point();
@@ -555,18 +638,18 @@ class FloPointWaveform_Volt : public ::google::protobuf::Message {
   friend void protobuf_ShutdownFile_flopointpb_2eproto();
 
   void InitAsDefaultInstance();
-  static FloPointWaveform_Volt* default_instance_;
+  static FloPointMessage_Volt* default_instance_;
 };
 // -------------------------------------------------------------------
 
-class FloPointWaveform_CompileInfo : public ::google::protobuf::Message {
+class FloPointMessage_CompileInfo : public ::google::protobuf::Message {
  public:
-  FloPointWaveform_CompileInfo();
-  virtual ~FloPointWaveform_CompileInfo();
+  FloPointMessage_CompileInfo();
+  virtual ~FloPointMessage_CompileInfo();
 
-  FloPointWaveform_CompileInfo(const FloPointWaveform_CompileInfo& from);
+  FloPointMessage_CompileInfo(const FloPointMessage_CompileInfo& from);
 
-  inline FloPointWaveform_CompileInfo& operator=(const FloPointWaveform_CompileInfo& from) {
+  inline FloPointMessage_CompileInfo& operator=(const FloPointMessage_CompileInfo& from) {
     CopyFrom(from);
     return *this;
   }
@@ -580,17 +663,17 @@ class FloPointWaveform_CompileInfo : public ::google::protobuf::Message {
   }
 
   static const ::google::protobuf::Descriptor* descriptor();
-  static const FloPointWaveform_CompileInfo& default_instance();
+  static const FloPointMessage_CompileInfo& default_instance();
 
-  void Swap(FloPointWaveform_CompileInfo* other);
+  void Swap(FloPointMessage_CompileInfo* other);
 
   // implements Message ----------------------------------------------
 
-  FloPointWaveform_CompileInfo* New() const;
+  FloPointMessage_CompileInfo* New() const;
   void CopyFrom(const ::google::protobuf::Message& from);
   void MergeFrom(const ::google::protobuf::Message& from);
-  void CopyFrom(const FloPointWaveform_CompileInfo& from);
-  void MergeFrom(const FloPointWaveform_CompileInfo& from);
+  void CopyFrom(const FloPointMessage_CompileInfo& from);
+  void MergeFrom(const FloPointMessage_CompileInfo& from);
   void Clear();
   bool IsInitialized() const;
 
@@ -648,7 +731,7 @@ class FloPointWaveform_CompileInfo : public ::google::protobuf::Message {
   inline ::std::string* release_operating_system();
   inline void set_allocated_operating_system(::std::string* operating_system);
 
-  // @@protoc_insertion_point(class_scope:flopointpb.FloPointWaveform.CompileInfo)
+  // @@protoc_insertion_point(class_scope:flopointpb.FloPointMessage.CompileInfo)
  private:
   inline void set_has_compiler();
   inline void clear_has_compiler();
@@ -669,18 +752,18 @@ class FloPointWaveform_CompileInfo : public ::google::protobuf::Message {
   friend void protobuf_ShutdownFile_flopointpb_2eproto();
 
   void InitAsDefaultInstance();
-  static FloPointWaveform_CompileInfo* default_instance_;
+  static FloPointMessage_CompileInfo* default_instance_;
 };
 // -------------------------------------------------------------------
 
-class FloPointWaveform_Count : public ::google::protobuf::Message {
+class FloPointMessage_Count : public ::google::protobuf::Message {
  public:
-  FloPointWaveform_Count();
-  virtual ~FloPointWaveform_Count();
+  FloPointMessage_Count();
+  virtual ~FloPointMessage_Count();
 
-  FloPointWaveform_Count(const FloPointWaveform_Count& from);
+  FloPointMessage_Count(const FloPointMessage_Count& from);
 
-  inline FloPointWaveform_Count& operator=(const FloPointWaveform_Count& from) {
+  inline FloPointMessage_Count& operator=(const FloPointMessage_Count& from) {
     CopyFrom(from);
     return *this;
   }
@@ -694,17 +777,17 @@ class FloPointWaveform_Count : public ::google::protobuf::Message {
   }
 
   static const ::google::protobuf::Descriptor* descriptor();
-  static const FloPointWaveform_Count& default_instance();
+  static const FloPointMessage_Count& default_instance();
 
-  void Swap(FloPointWaveform_Count* other);
+  void Swap(FloPointMessage_Count* other);
 
   // implements Message ----------------------------------------------
 
-  FloPointWaveform_Count* New() const;
+  FloPointMessage_Count* New() const;
   void CopyFrom(const ::google::protobuf::Message& from);
   void MergeFrom(const ::google::protobuf::Message& from);
-  void CopyFrom(const FloPointWaveform_Count& from);
-  void MergeFrom(const FloPointWaveform_Count& from);
+  void CopyFrom(const FloPointMessage_Count& from);
+  void MergeFrom(const FloPointMessage_Count& from);
   void Clear();
   bool IsInitialized() const;
 
@@ -733,14 +816,14 @@ class FloPointWaveform_Count : public ::google::protobuf::Message {
   inline ::google::protobuf::int32 count_value() const;
   inline void set_count_value(::google::protobuf::int32 value);
 
-  // required .flopointpb.FloPointWaveform.CountType count_type = 2;
+  // required .flopointpb.FloPointMessage.CountType count_type = 2;
   inline bool has_count_type() const;
   inline void clear_count_type();
   static const int kCountTypeFieldNumber = 2;
-  inline ::flopointpb::FloPointWaveform_CountType count_type() const;
-  inline void set_count_type(::flopointpb::FloPointWaveform_CountType value);
+  inline ::flopointpb::FloPointMessage_CountType count_type() const;
+  inline void set_count_type(::flopointpb::FloPointMessage_CountType value);
 
-  // @@protoc_insertion_point(class_scope:flopointpb.FloPointWaveform.Count)
+  // @@protoc_insertion_point(class_scope:flopointpb.FloPointMessage.Count)
  private:
   inline void set_has_count_value();
   inline void clear_has_count_value();
@@ -758,18 +841,18 @@ class FloPointWaveform_Count : public ::google::protobuf::Message {
   friend void protobuf_ShutdownFile_flopointpb_2eproto();
 
   void InitAsDefaultInstance();
-  static FloPointWaveform_Count* default_instance_;
+  static FloPointMessage_Count* default_instance_;
 };
 // -------------------------------------------------------------------
 
-class FloPointWaveform : public ::google::protobuf::Message {
+class FloPointMessage : public ::google::protobuf::Message {
  public:
-  FloPointWaveform();
-  virtual ~FloPointWaveform();
+  FloPointMessage();
+  virtual ~FloPointMessage();
 
-  FloPointWaveform(const FloPointWaveform& from);
+  FloPointMessage(const FloPointMessage& from);
 
-  inline FloPointWaveform& operator=(const FloPointWaveform& from) {
+  inline FloPointMessage& operator=(const FloPointMessage& from) {
     CopyFrom(from);
     return *this;
   }
@@ -783,17 +866,17 @@ class FloPointWaveform : public ::google::protobuf::Message {
   }
 
   static const ::google::protobuf::Descriptor* descriptor();
-  static const FloPointWaveform& default_instance();
+  static const FloPointMessage& default_instance();
 
-  void Swap(FloPointWaveform* other);
+  void Swap(FloPointMessage* other);
 
   // implements Message ----------------------------------------------
 
-  FloPointWaveform* New() const;
+  FloPointMessage* New() const;
   void CopyFrom(const ::google::protobuf::Message& from);
   void MergeFrom(const ::google::protobuf::Message& from);
-  void CopyFrom(const FloPointWaveform& from);
-  void MergeFrom(const FloPointWaveform& from);
+  void CopyFrom(const FloPointMessage& from);
+  void MergeFrom(const FloPointMessage& from);
   void Clear();
   bool IsInitialized() const;
 
@@ -813,113 +896,113 @@ class FloPointWaveform : public ::google::protobuf::Message {
 
   // nested types ----------------------------------------------------
 
-  typedef FloPointWaveform_Waveform Waveform;
-  typedef FloPointWaveform_Jitter Jitter;
-  typedef FloPointWaveform_Time Time;
-  typedef FloPointWaveform_Temp Temp;
-  typedef FloPointWaveform_Volt Volt;
-  typedef FloPointWaveform_CompileInfo CompileInfo;
-  typedef FloPointWaveform_Count Count;
+  typedef FloPointMessage_Waveform Waveform;
+  typedef FloPointMessage_Jitter Jitter;
+  typedef FloPointMessage_Time Time;
+  typedef FloPointMessage_Temp Temp;
+  typedef FloPointMessage_Volt Volt;
+  typedef FloPointMessage_CompileInfo CompileInfo;
+  typedef FloPointMessage_Count Count;
 
-  typedef FloPointWaveform_TimeSource TimeSource;
-  static const TimeSource CLOCK0 = FloPointWaveform_TimeSource_CLOCK0;
-  static const TimeSource CLOCK1 = FloPointWaveform_TimeSource_CLOCK1;
-  static const TimeSource CLOCK2 = FloPointWaveform_TimeSource_CLOCK2;
+  typedef FloPointMessage_TimeSource TimeSource;
+  static const TimeSource CLOCK0 = FloPointMessage_TimeSource_CLOCK0;
+  static const TimeSource CLOCK1 = FloPointMessage_TimeSource_CLOCK1;
+  static const TimeSource CLOCK2 = FloPointMessage_TimeSource_CLOCK2;
   static inline bool TimeSource_IsValid(int value) {
-    return FloPointWaveform_TimeSource_IsValid(value);
+    return FloPointMessage_TimeSource_IsValid(value);
   }
   static const TimeSource TimeSource_MIN =
-    FloPointWaveform_TimeSource_TimeSource_MIN;
+    FloPointMessage_TimeSource_TimeSource_MIN;
   static const TimeSource TimeSource_MAX =
-    FloPointWaveform_TimeSource_TimeSource_MAX;
+    FloPointMessage_TimeSource_TimeSource_MAX;
   static const int TimeSource_ARRAYSIZE =
-    FloPointWaveform_TimeSource_TimeSource_ARRAYSIZE;
+    FloPointMessage_TimeSource_TimeSource_ARRAYSIZE;
   static inline const ::google::protobuf::EnumDescriptor*
   TimeSource_descriptor() {
-    return FloPointWaveform_TimeSource_descriptor();
+    return FloPointMessage_TimeSource_descriptor();
   }
   static inline const ::std::string& TimeSource_Name(TimeSource value) {
-    return FloPointWaveform_TimeSource_Name(value);
+    return FloPointMessage_TimeSource_Name(value);
   }
   static inline bool TimeSource_Parse(const ::std::string& name,
       TimeSource* value) {
-    return FloPointWaveform_TimeSource_Parse(name, value);
+    return FloPointMessage_TimeSource_Parse(name, value);
   }
 
-  typedef FloPointWaveform_TempSource TempSource;
-  static const TempSource THERM0 = FloPointWaveform_TempSource_THERM0;
-  static const TempSource THERM1 = FloPointWaveform_TempSource_THERM1;
-  static const TempSource THERM2 = FloPointWaveform_TempSource_THERM2;
+  typedef FloPointMessage_TempSource TempSource;
+  static const TempSource THERM0 = FloPointMessage_TempSource_THERM0;
+  static const TempSource THERM1 = FloPointMessage_TempSource_THERM1;
+  static const TempSource THERM2 = FloPointMessage_TempSource_THERM2;
   static inline bool TempSource_IsValid(int value) {
-    return FloPointWaveform_TempSource_IsValid(value);
+    return FloPointMessage_TempSource_IsValid(value);
   }
   static const TempSource TempSource_MIN =
-    FloPointWaveform_TempSource_TempSource_MIN;
+    FloPointMessage_TempSource_TempSource_MIN;
   static const TempSource TempSource_MAX =
-    FloPointWaveform_TempSource_TempSource_MAX;
+    FloPointMessage_TempSource_TempSource_MAX;
   static const int TempSource_ARRAYSIZE =
-    FloPointWaveform_TempSource_TempSource_ARRAYSIZE;
+    FloPointMessage_TempSource_TempSource_ARRAYSIZE;
   static inline const ::google::protobuf::EnumDescriptor*
   TempSource_descriptor() {
-    return FloPointWaveform_TempSource_descriptor();
+    return FloPointMessage_TempSource_descriptor();
   }
   static inline const ::std::string& TempSource_Name(TempSource value) {
-    return FloPointWaveform_TempSource_Name(value);
+    return FloPointMessage_TempSource_Name(value);
   }
   static inline bool TempSource_Parse(const ::std::string& name,
       TempSource* value) {
-    return FloPointWaveform_TempSource_Parse(name, value);
+    return FloPointMessage_TempSource_Parse(name, value);
   }
 
-  typedef FloPointWaveform_VoltSource VoltSource;
-  static const VoltSource VOLTM0 = FloPointWaveform_VoltSource_VOLTM0;
-  static const VoltSource VOLTM1 = FloPointWaveform_VoltSource_VOLTM1;
-  static const VoltSource VOLTM2 = FloPointWaveform_VoltSource_VOLTM2;
+  typedef FloPointMessage_VoltSource VoltSource;
+  static const VoltSource VOLTM0 = FloPointMessage_VoltSource_VOLTM0;
+  static const VoltSource VOLTM1 = FloPointMessage_VoltSource_VOLTM1;
+  static const VoltSource VOLTM2 = FloPointMessage_VoltSource_VOLTM2;
   static inline bool VoltSource_IsValid(int value) {
-    return FloPointWaveform_VoltSource_IsValid(value);
+    return FloPointMessage_VoltSource_IsValid(value);
   }
   static const VoltSource VoltSource_MIN =
-    FloPointWaveform_VoltSource_VoltSource_MIN;
+    FloPointMessage_VoltSource_VoltSource_MIN;
   static const VoltSource VoltSource_MAX =
-    FloPointWaveform_VoltSource_VoltSource_MAX;
+    FloPointMessage_VoltSource_VoltSource_MAX;
   static const int VoltSource_ARRAYSIZE =
-    FloPointWaveform_VoltSource_VoltSource_ARRAYSIZE;
+    FloPointMessage_VoltSource_VoltSource_ARRAYSIZE;
   static inline const ::google::protobuf::EnumDescriptor*
   VoltSource_descriptor() {
-    return FloPointWaveform_VoltSource_descriptor();
+    return FloPointMessage_VoltSource_descriptor();
   }
   static inline const ::std::string& VoltSource_Name(VoltSource value) {
-    return FloPointWaveform_VoltSource_Name(value);
+    return FloPointMessage_VoltSource_Name(value);
   }
   static inline bool VoltSource_Parse(const ::std::string& name,
       VoltSource* value) {
-    return FloPointWaveform_VoltSource_Parse(name, value);
+    return FloPointMessage_VoltSource_Parse(name, value);
   }
 
-  typedef FloPointWaveform_CountType CountType;
-  static const CountType MESSAGECOUNT = FloPointWaveform_CountType_MESSAGECOUNT;
-  static const CountType UPTIME = FloPointWaveform_CountType_UPTIME;
-  static const CountType BOOTCYCLE = FloPointWaveform_CountType_BOOTCYCLE;
-  static const CountType COUNT3 = FloPointWaveform_CountType_COUNT3;
+  typedef FloPointMessage_CountType CountType;
+  static const CountType MESSAGECOUNT = FloPointMessage_CountType_MESSAGECOUNT;
+  static const CountType UPTIME = FloPointMessage_CountType_UPTIME;
+  static const CountType BOOTCYCLE = FloPointMessage_CountType_BOOTCYCLE;
+  static const CountType COUNT3 = FloPointMessage_CountType_COUNT3;
   static inline bool CountType_IsValid(int value) {
-    return FloPointWaveform_CountType_IsValid(value);
+    return FloPointMessage_CountType_IsValid(value);
   }
   static const CountType CountType_MIN =
-    FloPointWaveform_CountType_CountType_MIN;
+    FloPointMessage_CountType_CountType_MIN;
   static const CountType CountType_MAX =
-    FloPointWaveform_CountType_CountType_MAX;
+    FloPointMessage_CountType_CountType_MAX;
   static const int CountType_ARRAYSIZE =
-    FloPointWaveform_CountType_CountType_ARRAYSIZE;
+    FloPointMessage_CountType_CountType_ARRAYSIZE;
   static inline const ::google::protobuf::EnumDescriptor*
   CountType_descriptor() {
-    return FloPointWaveform_CountType_descriptor();
+    return FloPointMessage_CountType_descriptor();
   }
   static inline const ::std::string& CountType_Name(CountType value) {
-    return FloPointWaveform_CountType_Name(value);
+    return FloPointMessage_CountType_Name(value);
   }
   static inline bool CountType_Parse(const ::std::string& name,
       CountType* value) {
-    return FloPointWaveform_CountType_Parse(name, value);
+    return FloPointMessage_CountType_Parse(name, value);
   }
 
   // accessors -------------------------------------------------------
@@ -936,68 +1019,68 @@ class FloPointWaveform : public ::google::protobuf::Message {
   inline ::std::string* release_name();
   inline void set_allocated_name(::std::string* name);
 
-  // required .flopointpb.FloPointWaveform.Waveform waveform = 2;
+  // required .flopointpb.FloPointMessage.Waveform waveform = 2;
   inline bool has_waveform() const;
   inline void clear_waveform();
   static const int kWaveformFieldNumber = 2;
-  inline const ::flopointpb::FloPointWaveform_Waveform& waveform() const;
-  inline ::flopointpb::FloPointWaveform_Waveform* mutable_waveform();
-  inline ::flopointpb::FloPointWaveform_Waveform* release_waveform();
-  inline void set_allocated_waveform(::flopointpb::FloPointWaveform_Waveform* waveform);
+  inline const ::flopointpb::FloPointMessage_Waveform& waveform() const;
+  inline ::flopointpb::FloPointMessage_Waveform* mutable_waveform();
+  inline ::flopointpb::FloPointMessage_Waveform* release_waveform();
+  inline void set_allocated_waveform(::flopointpb::FloPointMessage_Waveform* waveform);
 
-  // optional .flopointpb.FloPointWaveform.Jitter jitter = 3;
+  // optional .flopointpb.FloPointMessage.Jitter jitter = 3;
   inline bool has_jitter() const;
   inline void clear_jitter();
   static const int kJitterFieldNumber = 3;
-  inline const ::flopointpb::FloPointWaveform_Jitter& jitter() const;
-  inline ::flopointpb::FloPointWaveform_Jitter* mutable_jitter();
-  inline ::flopointpb::FloPointWaveform_Jitter* release_jitter();
-  inline void set_allocated_jitter(::flopointpb::FloPointWaveform_Jitter* jitter);
+  inline const ::flopointpb::FloPointMessage_Jitter& jitter() const;
+  inline ::flopointpb::FloPointMessage_Jitter* mutable_jitter();
+  inline ::flopointpb::FloPointMessage_Jitter* release_jitter();
+  inline void set_allocated_jitter(::flopointpb::FloPointMessage_Jitter* jitter);
 
-  // repeated .flopointpb.FloPointWaveform.Time time_reading = 4;
+  // repeated .flopointpb.FloPointMessage.Time time_reading = 4;
   inline int time_reading_size() const;
   inline void clear_time_reading();
   static const int kTimeReadingFieldNumber = 4;
-  inline const ::flopointpb::FloPointWaveform_Time& time_reading(int index) const;
-  inline ::flopointpb::FloPointWaveform_Time* mutable_time_reading(int index);
-  inline ::flopointpb::FloPointWaveform_Time* add_time_reading();
-  inline const ::google::protobuf::RepeatedPtrField< ::flopointpb::FloPointWaveform_Time >&
+  inline const ::flopointpb::FloPointMessage_Time& time_reading(int index) const;
+  inline ::flopointpb::FloPointMessage_Time* mutable_time_reading(int index);
+  inline ::flopointpb::FloPointMessage_Time* add_time_reading();
+  inline const ::google::protobuf::RepeatedPtrField< ::flopointpb::FloPointMessage_Time >&
       time_reading() const;
-  inline ::google::protobuf::RepeatedPtrField< ::flopointpb::FloPointWaveform_Time >*
+  inline ::google::protobuf::RepeatedPtrField< ::flopointpb::FloPointMessage_Time >*
       mutable_time_reading();
 
-  // repeated .flopointpb.FloPointWaveform.Temp temp_reading = 5;
+  // repeated .flopointpb.FloPointMessage.Temp temp_reading = 5;
   inline int temp_reading_size() const;
   inline void clear_temp_reading();
   static const int kTempReadingFieldNumber = 5;
-  inline const ::flopointpb::FloPointWaveform_Temp& temp_reading(int index) const;
-  inline ::flopointpb::FloPointWaveform_Temp* mutable_temp_reading(int index);
-  inline ::flopointpb::FloPointWaveform_Temp* add_temp_reading();
-  inline const ::google::protobuf::RepeatedPtrField< ::flopointpb::FloPointWaveform_Temp >&
+  inline const ::flopointpb::FloPointMessage_Temp& temp_reading(int index) const;
+  inline ::flopointpb::FloPointMessage_Temp* mutable_temp_reading(int index);
+  inline ::flopointpb::FloPointMessage_Temp* add_temp_reading();
+  inline const ::google::protobuf::RepeatedPtrField< ::flopointpb::FloPointMessage_Temp >&
       temp_reading() const;
-  inline ::google::protobuf::RepeatedPtrField< ::flopointpb::FloPointWaveform_Temp >*
+  inline ::google::protobuf::RepeatedPtrField< ::flopointpb::FloPointMessage_Temp >*
       mutable_temp_reading();
 
-  // repeated .flopointpb.FloPointWaveform.Volt volt_reading = 6;
+  // repeated .flopointpb.FloPointMessage.Volt volt_reading = 6;
   inline int volt_reading_size() const;
   inline void clear_volt_reading();
   static const int kVoltReadingFieldNumber = 6;
-  inline const ::flopointpb::FloPointWaveform_Volt& volt_reading(int index) const;
-  inline ::flopointpb::FloPointWaveform_Volt* mutable_volt_reading(int index);
-  inline ::flopointpb::FloPointWaveform_Volt* add_volt_reading();
-  inline const ::google::protobuf::RepeatedPtrField< ::flopointpb::FloPointWaveform_Volt >&
+  inline const ::flopointpb::FloPointMessage_Volt& volt_reading(int index) const;
+  inline ::flopointpb::FloPointMessage_Volt* mutable_volt_reading(int index);
+  inline ::flopointpb::FloPointMessage_Volt* add_volt_reading();
+  inline const ::google::protobuf::RepeatedPtrField< ::flopointpb::FloPointMessage_Volt >&
       volt_reading() const;
-  inline ::google::protobuf::RepeatedPtrField< ::flopointpb::FloPointWaveform_Volt >*
+  inline ::google::protobuf::RepeatedPtrField< ::flopointpb::FloPointMessage_Volt >*
       mutable_volt_reading();
 
-  // optional .flopointpb.FloPointWaveform.CompileInfo compile_info = 7;
+  // optional .flopointpb.FloPointMessage.CompileInfo compile_info = 7;
   inline bool has_compile_info() const;
   inline void clear_compile_info();
   static const int kCompileInfoFieldNumber = 7;
-  inline const ::flopointpb::FloPointWaveform_CompileInfo& compile_info() const;
-  inline ::flopointpb::FloPointWaveform_CompileInfo* mutable_compile_info();
-  inline ::flopointpb::FloPointWaveform_CompileInfo* release_compile_info();
-  inline void set_allocated_compile_info(::flopointpb::FloPointWaveform_CompileInfo* compile_info);
+  inline const ::flopointpb::FloPointMessage_CompileInfo& compile_info() const;
+  inline ::flopointpb::FloPointMessage_CompileInfo* mutable_compile_info();
+  inline ::flopointpb::FloPointMessage_CompileInfo* release_compile_info();
+  inline void set_allocated_compile_info(::flopointpb::FloPointMessage_CompileInfo* compile_info);
 
   // optional int32 dipswitches = 8;
   inline bool has_dipswitches() const;
@@ -1006,19 +1089,19 @@ class FloPointWaveform : public ::google::protobuf::Message {
   inline ::google::protobuf::int32 dipswitches() const;
   inline void set_dipswitches(::google::protobuf::int32 value);
 
-  // repeated .flopointpb.FloPointWaveform.Count count = 9;
+  // repeated .flopointpb.FloPointMessage.Count count = 9;
   inline int count_size() const;
   inline void clear_count();
   static const int kCountFieldNumber = 9;
-  inline const ::flopointpb::FloPointWaveform_Count& count(int index) const;
-  inline ::flopointpb::FloPointWaveform_Count* mutable_count(int index);
-  inline ::flopointpb::FloPointWaveform_Count* add_count();
-  inline const ::google::protobuf::RepeatedPtrField< ::flopointpb::FloPointWaveform_Count >&
+  inline const ::flopointpb::FloPointMessage_Count& count(int index) const;
+  inline ::flopointpb::FloPointMessage_Count* mutable_count(int index);
+  inline ::flopointpb::FloPointMessage_Count* add_count();
+  inline const ::google::protobuf::RepeatedPtrField< ::flopointpb::FloPointMessage_Count >&
       count() const;
-  inline ::google::protobuf::RepeatedPtrField< ::flopointpb::FloPointWaveform_Count >*
+  inline ::google::protobuf::RepeatedPtrField< ::flopointpb::FloPointMessage_Count >*
       mutable_count();
 
-  // @@protoc_insertion_point(class_scope:flopointpb.FloPointWaveform)
+  // @@protoc_insertion_point(class_scope:flopointpb.FloPointMessage)
  private:
   inline void set_has_name();
   inline void clear_has_name();
@@ -1036,308 +1119,342 @@ class FloPointWaveform : public ::google::protobuf::Message {
   ::google::protobuf::uint32 _has_bits_[1];
   mutable int _cached_size_;
   ::std::string* name_;
-  ::flopointpb::FloPointWaveform_Waveform* waveform_;
-  ::flopointpb::FloPointWaveform_Jitter* jitter_;
-  ::google::protobuf::RepeatedPtrField< ::flopointpb::FloPointWaveform_Time > time_reading_;
-  ::google::protobuf::RepeatedPtrField< ::flopointpb::FloPointWaveform_Temp > temp_reading_;
-  ::google::protobuf::RepeatedPtrField< ::flopointpb::FloPointWaveform_Volt > volt_reading_;
-  ::flopointpb::FloPointWaveform_CompileInfo* compile_info_;
-  ::google::protobuf::RepeatedPtrField< ::flopointpb::FloPointWaveform_Count > count_;
+  ::flopointpb::FloPointMessage_Waveform* waveform_;
+  ::flopointpb::FloPointMessage_Jitter* jitter_;
+  ::google::protobuf::RepeatedPtrField< ::flopointpb::FloPointMessage_Time > time_reading_;
+  ::google::protobuf::RepeatedPtrField< ::flopointpb::FloPointMessage_Temp > temp_reading_;
+  ::google::protobuf::RepeatedPtrField< ::flopointpb::FloPointMessage_Volt > volt_reading_;
+  ::flopointpb::FloPointMessage_CompileInfo* compile_info_;
+  ::google::protobuf::RepeatedPtrField< ::flopointpb::FloPointMessage_Count > count_;
   ::google::protobuf::int32 dipswitches_;
   friend void  protobuf_AddDesc_flopointpb_2eproto();
   friend void protobuf_AssignDesc_flopointpb_2eproto();
   friend void protobuf_ShutdownFile_flopointpb_2eproto();
 
   void InitAsDefaultInstance();
-  static FloPointWaveform* default_instance_;
+  static FloPointMessage* default_instance_;
 };
 // ===================================================================
 
 
 // ===================================================================
 
-// FloPointWaveform_Waveform
+// FloPointMultiMessage
+
+// repeated .flopointpb.FloPointMessage messages = 1;
+inline int FloPointMultiMessage::messages_size() const {
+  return messages_.size();
+}
+inline void FloPointMultiMessage::clear_messages() {
+  messages_.Clear();
+}
+inline const ::flopointpb::FloPointMessage& FloPointMultiMessage::messages(int index) const {
+  // @@protoc_insertion_point(field_get:flopointpb.FloPointMultiMessage.messages)
+  return messages_.Get(index);
+}
+inline ::flopointpb::FloPointMessage* FloPointMultiMessage::mutable_messages(int index) {
+  // @@protoc_insertion_point(field_mutable:flopointpb.FloPointMultiMessage.messages)
+  return messages_.Mutable(index);
+}
+inline ::flopointpb::FloPointMessage* FloPointMultiMessage::add_messages() {
+  // @@protoc_insertion_point(field_add:flopointpb.FloPointMultiMessage.messages)
+  return messages_.Add();
+}
+inline const ::google::protobuf::RepeatedPtrField< ::flopointpb::FloPointMessage >&
+FloPointMultiMessage::messages() const {
+  // @@protoc_insertion_point(field_list:flopointpb.FloPointMultiMessage.messages)
+  return messages_;
+}
+inline ::google::protobuf::RepeatedPtrField< ::flopointpb::FloPointMessage >*
+FloPointMultiMessage::mutable_messages() {
+  // @@protoc_insertion_point(field_mutable_list:flopointpb.FloPointMultiMessage.messages)
+  return &messages_;
+}
+
+// -------------------------------------------------------------------
+
+// FloPointMessage_Waveform
 
 // repeated int32 wheight = 1 [packed = true];
-inline int FloPointWaveform_Waveform::wheight_size() const {
+inline int FloPointMessage_Waveform::wheight_size() const {
   return wheight_.size();
 }
-inline void FloPointWaveform_Waveform::clear_wheight() {
+inline void FloPointMessage_Waveform::clear_wheight() {
   wheight_.Clear();
 }
-inline ::google::protobuf::int32 FloPointWaveform_Waveform::wheight(int index) const {
-  // @@protoc_insertion_point(field_get:flopointpb.FloPointWaveform.Waveform.wheight)
+inline ::google::protobuf::int32 FloPointMessage_Waveform::wheight(int index) const {
+  // @@protoc_insertion_point(field_get:flopointpb.FloPointMessage.Waveform.wheight)
   return wheight_.Get(index);
 }
-inline void FloPointWaveform_Waveform::set_wheight(int index, ::google::protobuf::int32 value) {
+inline void FloPointMessage_Waveform::set_wheight(int index, ::google::protobuf::int32 value) {
   wheight_.Set(index, value);
-  // @@protoc_insertion_point(field_set:flopointpb.FloPointWaveform.Waveform.wheight)
+  // @@protoc_insertion_point(field_set:flopointpb.FloPointMessage.Waveform.wheight)
 }
-inline void FloPointWaveform_Waveform::add_wheight(::google::protobuf::int32 value) {
+inline void FloPointMessage_Waveform::add_wheight(::google::protobuf::int32 value) {
   wheight_.Add(value);
-  // @@protoc_insertion_point(field_add:flopointpb.FloPointWaveform.Waveform.wheight)
+  // @@protoc_insertion_point(field_add:flopointpb.FloPointMessage.Waveform.wheight)
 }
 inline const ::google::protobuf::RepeatedField< ::google::protobuf::int32 >&
-FloPointWaveform_Waveform::wheight() const {
-  // @@protoc_insertion_point(field_list:flopointpb.FloPointWaveform.Waveform.wheight)
+FloPointMessage_Waveform::wheight() const {
+  // @@protoc_insertion_point(field_list:flopointpb.FloPointMessage.Waveform.wheight)
   return wheight_;
 }
 inline ::google::protobuf::RepeatedField< ::google::protobuf::int32 >*
-FloPointWaveform_Waveform::mutable_wheight() {
-  // @@protoc_insertion_point(field_mutable_list:flopointpb.FloPointWaveform.Waveform.wheight)
+FloPointMessage_Waveform::mutable_wheight() {
+  // @@protoc_insertion_point(field_mutable_list:flopointpb.FloPointMessage.Waveform.wheight)
   return &wheight_;
 }
 
 // -------------------------------------------------------------------
 
-// FloPointWaveform_Jitter
+// FloPointMessage_Jitter
 
 // repeated int32 jheight = 1 [packed = true];
-inline int FloPointWaveform_Jitter::jheight_size() const {
+inline int FloPointMessage_Jitter::jheight_size() const {
   return jheight_.size();
 }
-inline void FloPointWaveform_Jitter::clear_jheight() {
+inline void FloPointMessage_Jitter::clear_jheight() {
   jheight_.Clear();
 }
-inline ::google::protobuf::int32 FloPointWaveform_Jitter::jheight(int index) const {
-  // @@protoc_insertion_point(field_get:flopointpb.FloPointWaveform.Jitter.jheight)
+inline ::google::protobuf::int32 FloPointMessage_Jitter::jheight(int index) const {
+  // @@protoc_insertion_point(field_get:flopointpb.FloPointMessage.Jitter.jheight)
   return jheight_.Get(index);
 }
-inline void FloPointWaveform_Jitter::set_jheight(int index, ::google::protobuf::int32 value) {
+inline void FloPointMessage_Jitter::set_jheight(int index, ::google::protobuf::int32 value) {
   jheight_.Set(index, value);
-  // @@protoc_insertion_point(field_set:flopointpb.FloPointWaveform.Jitter.jheight)
+  // @@protoc_insertion_point(field_set:flopointpb.FloPointMessage.Jitter.jheight)
 }
-inline void FloPointWaveform_Jitter::add_jheight(::google::protobuf::int32 value) {
+inline void FloPointMessage_Jitter::add_jheight(::google::protobuf::int32 value) {
   jheight_.Add(value);
-  // @@protoc_insertion_point(field_add:flopointpb.FloPointWaveform.Jitter.jheight)
+  // @@protoc_insertion_point(field_add:flopointpb.FloPointMessage.Jitter.jheight)
 }
 inline const ::google::protobuf::RepeatedField< ::google::protobuf::int32 >&
-FloPointWaveform_Jitter::jheight() const {
-  // @@protoc_insertion_point(field_list:flopointpb.FloPointWaveform.Jitter.jheight)
+FloPointMessage_Jitter::jheight() const {
+  // @@protoc_insertion_point(field_list:flopointpb.FloPointMessage.Jitter.jheight)
   return jheight_;
 }
 inline ::google::protobuf::RepeatedField< ::google::protobuf::int32 >*
-FloPointWaveform_Jitter::mutable_jheight() {
-  // @@protoc_insertion_point(field_mutable_list:flopointpb.FloPointWaveform.Jitter.jheight)
+FloPointMessage_Jitter::mutable_jheight() {
+  // @@protoc_insertion_point(field_mutable_list:flopointpb.FloPointMessage.Jitter.jheight)
   return &jheight_;
 }
 
 // -------------------------------------------------------------------
 
-// FloPointWaveform_Time
+// FloPointMessage_Time
 
 // required int64 time_point = 1;
-inline bool FloPointWaveform_Time::has_time_point() const {
+inline bool FloPointMessage_Time::has_time_point() const {
   return (_has_bits_[0] & 0x00000001u) != 0;
 }
-inline void FloPointWaveform_Time::set_has_time_point() {
+inline void FloPointMessage_Time::set_has_time_point() {
   _has_bits_[0] |= 0x00000001u;
 }
-inline void FloPointWaveform_Time::clear_has_time_point() {
+inline void FloPointMessage_Time::clear_has_time_point() {
   _has_bits_[0] &= ~0x00000001u;
 }
-inline void FloPointWaveform_Time::clear_time_point() {
+inline void FloPointMessage_Time::clear_time_point() {
   time_point_ = GOOGLE_LONGLONG(0);
   clear_has_time_point();
 }
-inline ::google::protobuf::int64 FloPointWaveform_Time::time_point() const {
-  // @@protoc_insertion_point(field_get:flopointpb.FloPointWaveform.Time.time_point)
+inline ::google::protobuf::int64 FloPointMessage_Time::time_point() const {
+  // @@protoc_insertion_point(field_get:flopointpb.FloPointMessage.Time.time_point)
   return time_point_;
 }
-inline void FloPointWaveform_Time::set_time_point(::google::protobuf::int64 value) {
+inline void FloPointMessage_Time::set_time_point(::google::protobuf::int64 value) {
   set_has_time_point();
   time_point_ = value;
-  // @@protoc_insertion_point(field_set:flopointpb.FloPointWaveform.Time.time_point)
+  // @@protoc_insertion_point(field_set:flopointpb.FloPointMessage.Time.time_point)
 }
 
-// required .flopointpb.FloPointWaveform.TimeSource time_source = 2;
-inline bool FloPointWaveform_Time::has_time_source() const {
+// required .flopointpb.FloPointMessage.TimeSource time_source = 2;
+inline bool FloPointMessage_Time::has_time_source() const {
   return (_has_bits_[0] & 0x00000002u) != 0;
 }
-inline void FloPointWaveform_Time::set_has_time_source() {
+inline void FloPointMessage_Time::set_has_time_source() {
   _has_bits_[0] |= 0x00000002u;
 }
-inline void FloPointWaveform_Time::clear_has_time_source() {
+inline void FloPointMessage_Time::clear_has_time_source() {
   _has_bits_[0] &= ~0x00000002u;
 }
-inline void FloPointWaveform_Time::clear_time_source() {
+inline void FloPointMessage_Time::clear_time_source() {
   time_source_ = 0;
   clear_has_time_source();
 }
-inline ::flopointpb::FloPointWaveform_TimeSource FloPointWaveform_Time::time_source() const {
-  // @@protoc_insertion_point(field_get:flopointpb.FloPointWaveform.Time.time_source)
-  return static_cast< ::flopointpb::FloPointWaveform_TimeSource >(time_source_);
+inline ::flopointpb::FloPointMessage_TimeSource FloPointMessage_Time::time_source() const {
+  // @@protoc_insertion_point(field_get:flopointpb.FloPointMessage.Time.time_source)
+  return static_cast< ::flopointpb::FloPointMessage_TimeSource >(time_source_);
 }
-inline void FloPointWaveform_Time::set_time_source(::flopointpb::FloPointWaveform_TimeSource value) {
-  assert(::flopointpb::FloPointWaveform_TimeSource_IsValid(value));
+inline void FloPointMessage_Time::set_time_source(::flopointpb::FloPointMessage_TimeSource value) {
+  assert(::flopointpb::FloPointMessage_TimeSource_IsValid(value));
   set_has_time_source();
   time_source_ = value;
-  // @@protoc_insertion_point(field_set:flopointpb.FloPointWaveform.Time.time_source)
+  // @@protoc_insertion_point(field_set:flopointpb.FloPointMessage.Time.time_source)
 }
 
 // -------------------------------------------------------------------
 
-// FloPointWaveform_Temp
+// FloPointMessage_Temp
 
 // required int32 temp_point = 1;
-inline bool FloPointWaveform_Temp::has_temp_point() const {
+inline bool FloPointMessage_Temp::has_temp_point() const {
   return (_has_bits_[0] & 0x00000001u) != 0;
 }
-inline void FloPointWaveform_Temp::set_has_temp_point() {
+inline void FloPointMessage_Temp::set_has_temp_point() {
   _has_bits_[0] |= 0x00000001u;
 }
-inline void FloPointWaveform_Temp::clear_has_temp_point() {
+inline void FloPointMessage_Temp::clear_has_temp_point() {
   _has_bits_[0] &= ~0x00000001u;
 }
-inline void FloPointWaveform_Temp::clear_temp_point() {
+inline void FloPointMessage_Temp::clear_temp_point() {
   temp_point_ = 0;
   clear_has_temp_point();
 }
-inline ::google::protobuf::int32 FloPointWaveform_Temp::temp_point() const {
-  // @@protoc_insertion_point(field_get:flopointpb.FloPointWaveform.Temp.temp_point)
+inline ::google::protobuf::int32 FloPointMessage_Temp::temp_point() const {
+  // @@protoc_insertion_point(field_get:flopointpb.FloPointMessage.Temp.temp_point)
   return temp_point_;
 }
-inline void FloPointWaveform_Temp::set_temp_point(::google::protobuf::int32 value) {
+inline void FloPointMessage_Temp::set_temp_point(::google::protobuf::int32 value) {
   set_has_temp_point();
   temp_point_ = value;
-  // @@protoc_insertion_point(field_set:flopointpb.FloPointWaveform.Temp.temp_point)
+  // @@protoc_insertion_point(field_set:flopointpb.FloPointMessage.Temp.temp_point)
 }
 
-// required .flopointpb.FloPointWaveform.TempSource temp_source = 2;
-inline bool FloPointWaveform_Temp::has_temp_source() const {
+// required .flopointpb.FloPointMessage.TempSource temp_source = 2;
+inline bool FloPointMessage_Temp::has_temp_source() const {
   return (_has_bits_[0] & 0x00000002u) != 0;
 }
-inline void FloPointWaveform_Temp::set_has_temp_source() {
+inline void FloPointMessage_Temp::set_has_temp_source() {
   _has_bits_[0] |= 0x00000002u;
 }
-inline void FloPointWaveform_Temp::clear_has_temp_source() {
+inline void FloPointMessage_Temp::clear_has_temp_source() {
   _has_bits_[0] &= ~0x00000002u;
 }
-inline void FloPointWaveform_Temp::clear_temp_source() {
+inline void FloPointMessage_Temp::clear_temp_source() {
   temp_source_ = 0;
   clear_has_temp_source();
 }
-inline ::flopointpb::FloPointWaveform_TempSource FloPointWaveform_Temp::temp_source() const {
-  // @@protoc_insertion_point(field_get:flopointpb.FloPointWaveform.Temp.temp_source)
-  return static_cast< ::flopointpb::FloPointWaveform_TempSource >(temp_source_);
+inline ::flopointpb::FloPointMessage_TempSource FloPointMessage_Temp::temp_source() const {
+  // @@protoc_insertion_point(field_get:flopointpb.FloPointMessage.Temp.temp_source)
+  return static_cast< ::flopointpb::FloPointMessage_TempSource >(temp_source_);
 }
-inline void FloPointWaveform_Temp::set_temp_source(::flopointpb::FloPointWaveform_TempSource value) {
-  assert(::flopointpb::FloPointWaveform_TempSource_IsValid(value));
+inline void FloPointMessage_Temp::set_temp_source(::flopointpb::FloPointMessage_TempSource value) {
+  assert(::flopointpb::FloPointMessage_TempSource_IsValid(value));
   set_has_temp_source();
   temp_source_ = value;
-  // @@protoc_insertion_point(field_set:flopointpb.FloPointWaveform.Temp.temp_source)
+  // @@protoc_insertion_point(field_set:flopointpb.FloPointMessage.Temp.temp_source)
 }
 
 // -------------------------------------------------------------------
 
-// FloPointWaveform_Volt
+// FloPointMessage_Volt
 
 // required int32 volt_point = 1;
-inline bool FloPointWaveform_Volt::has_volt_point() const {
+inline bool FloPointMessage_Volt::has_volt_point() const {
   return (_has_bits_[0] & 0x00000001u) != 0;
 }
-inline void FloPointWaveform_Volt::set_has_volt_point() {
+inline void FloPointMessage_Volt::set_has_volt_point() {
   _has_bits_[0] |= 0x00000001u;
 }
-inline void FloPointWaveform_Volt::clear_has_volt_point() {
+inline void FloPointMessage_Volt::clear_has_volt_point() {
   _has_bits_[0] &= ~0x00000001u;
 }
-inline void FloPointWaveform_Volt::clear_volt_point() {
+inline void FloPointMessage_Volt::clear_volt_point() {
   volt_point_ = 0;
   clear_has_volt_point();
 }
-inline ::google::protobuf::int32 FloPointWaveform_Volt::volt_point() const {
-  // @@protoc_insertion_point(field_get:flopointpb.FloPointWaveform.Volt.volt_point)
+inline ::google::protobuf::int32 FloPointMessage_Volt::volt_point() const {
+  // @@protoc_insertion_point(field_get:flopointpb.FloPointMessage.Volt.volt_point)
   return volt_point_;
 }
-inline void FloPointWaveform_Volt::set_volt_point(::google::protobuf::int32 value) {
+inline void FloPointMessage_Volt::set_volt_point(::google::protobuf::int32 value) {
   set_has_volt_point();
   volt_point_ = value;
-  // @@protoc_insertion_point(field_set:flopointpb.FloPointWaveform.Volt.volt_point)
+  // @@protoc_insertion_point(field_set:flopointpb.FloPointMessage.Volt.volt_point)
 }
 
-// required .flopointpb.FloPointWaveform.VoltSource volt_source = 2;
-inline bool FloPointWaveform_Volt::has_volt_source() const {
+// required .flopointpb.FloPointMessage.VoltSource volt_source = 2;
+inline bool FloPointMessage_Volt::has_volt_source() const {
   return (_has_bits_[0] & 0x00000002u) != 0;
 }
-inline void FloPointWaveform_Volt::set_has_volt_source() {
+inline void FloPointMessage_Volt::set_has_volt_source() {
   _has_bits_[0] |= 0x00000002u;
 }
-inline void FloPointWaveform_Volt::clear_has_volt_source() {
+inline void FloPointMessage_Volt::clear_has_volt_source() {
   _has_bits_[0] &= ~0x00000002u;
 }
-inline void FloPointWaveform_Volt::clear_volt_source() {
+inline void FloPointMessage_Volt::clear_volt_source() {
   volt_source_ = 0;
   clear_has_volt_source();
 }
-inline ::flopointpb::FloPointWaveform_VoltSource FloPointWaveform_Volt::volt_source() const {
-  // @@protoc_insertion_point(field_get:flopointpb.FloPointWaveform.Volt.volt_source)
-  return static_cast< ::flopointpb::FloPointWaveform_VoltSource >(volt_source_);
+inline ::flopointpb::FloPointMessage_VoltSource FloPointMessage_Volt::volt_source() const {
+  // @@protoc_insertion_point(field_get:flopointpb.FloPointMessage.Volt.volt_source)
+  return static_cast< ::flopointpb::FloPointMessage_VoltSource >(volt_source_);
 }
-inline void FloPointWaveform_Volt::set_volt_source(::flopointpb::FloPointWaveform_VoltSource value) {
-  assert(::flopointpb::FloPointWaveform_VoltSource_IsValid(value));
+inline void FloPointMessage_Volt::set_volt_source(::flopointpb::FloPointMessage_VoltSource value) {
+  assert(::flopointpb::FloPointMessage_VoltSource_IsValid(value));
   set_has_volt_source();
   volt_source_ = value;
-  // @@protoc_insertion_point(field_set:flopointpb.FloPointWaveform.Volt.volt_source)
+  // @@protoc_insertion_point(field_set:flopointpb.FloPointMessage.Volt.volt_source)
 }
 
 // -------------------------------------------------------------------
 
-// FloPointWaveform_CompileInfo
+// FloPointMessage_CompileInfo
 
 // required string compiler = 1;
-inline bool FloPointWaveform_CompileInfo::has_compiler() const {
+inline bool FloPointMessage_CompileInfo::has_compiler() const {
   return (_has_bits_[0] & 0x00000001u) != 0;
 }
-inline void FloPointWaveform_CompileInfo::set_has_compiler() {
+inline void FloPointMessage_CompileInfo::set_has_compiler() {
   _has_bits_[0] |= 0x00000001u;
 }
-inline void FloPointWaveform_CompileInfo::clear_has_compiler() {
+inline void FloPointMessage_CompileInfo::clear_has_compiler() {
   _has_bits_[0] &= ~0x00000001u;
 }
-inline void FloPointWaveform_CompileInfo::clear_compiler() {
+inline void FloPointMessage_CompileInfo::clear_compiler() {
   if (compiler_ != &::google::protobuf::internal::GetEmptyStringAlreadyInited()) {
     compiler_->clear();
   }
   clear_has_compiler();
 }
-inline const ::std::string& FloPointWaveform_CompileInfo::compiler() const {
-  // @@protoc_insertion_point(field_get:flopointpb.FloPointWaveform.CompileInfo.compiler)
+inline const ::std::string& FloPointMessage_CompileInfo::compiler() const {
+  // @@protoc_insertion_point(field_get:flopointpb.FloPointMessage.CompileInfo.compiler)
   return *compiler_;
 }
-inline void FloPointWaveform_CompileInfo::set_compiler(const ::std::string& value) {
+inline void FloPointMessage_CompileInfo::set_compiler(const ::std::string& value) {
   set_has_compiler();
   if (compiler_ == &::google::protobuf::internal::GetEmptyStringAlreadyInited()) {
     compiler_ = new ::std::string;
   }
   compiler_->assign(value);
-  // @@protoc_insertion_point(field_set:flopointpb.FloPointWaveform.CompileInfo.compiler)
+  // @@protoc_insertion_point(field_set:flopointpb.FloPointMessage.CompileInfo.compiler)
 }
-inline void FloPointWaveform_CompileInfo::set_compiler(const char* value) {
+inline void FloPointMessage_CompileInfo::set_compiler(const char* value) {
   set_has_compiler();
   if (compiler_ == &::google::protobuf::internal::GetEmptyStringAlreadyInited()) {
     compiler_ = new ::std::string;
   }
   compiler_->assign(value);
-  // @@protoc_insertion_point(field_set_char:flopointpb.FloPointWaveform.CompileInfo.compiler)
+  // @@protoc_insertion_point(field_set_char:flopointpb.FloPointMessage.CompileInfo.compiler)
 }
-inline void FloPointWaveform_CompileInfo::set_compiler(const char* value, size_t size) {
+inline void FloPointMessage_CompileInfo::set_compiler(const char* value, size_t size) {
   set_has_compiler();
   if (compiler_ == &::google::protobuf::internal::GetEmptyStringAlreadyInited()) {
     compiler_ = new ::std::string;
   }
   compiler_->assign(reinterpret_cast<const char*>(value), size);
-  // @@protoc_insertion_point(field_set_pointer:flopointpb.FloPointWaveform.CompileInfo.compiler)
+  // @@protoc_insertion_point(field_set_pointer:flopointpb.FloPointMessage.CompileInfo.compiler)
 }
-inline ::std::string* FloPointWaveform_CompileInfo::mutable_compiler() {
+inline ::std::string* FloPointMessage_CompileInfo::mutable_compiler() {
   set_has_compiler();
   if (compiler_ == &::google::protobuf::internal::GetEmptyStringAlreadyInited()) {
     compiler_ = new ::std::string;
   }
-  // @@protoc_insertion_point(field_mutable:flopointpb.FloPointWaveform.CompileInfo.compiler)
+  // @@protoc_insertion_point(field_mutable:flopointpb.FloPointMessage.CompileInfo.compiler)
   return compiler_;
 }
-inline ::std::string* FloPointWaveform_CompileInfo::release_compiler() {
+inline ::std::string* FloPointMessage_CompileInfo::release_compiler() {
   clear_has_compiler();
   if (compiler_ == &::google::protobuf::internal::GetEmptyStringAlreadyInited()) {
     return NULL;
@@ -1347,7 +1464,7 @@ inline ::std::string* FloPointWaveform_CompileInfo::release_compiler() {
     return temp;
   }
 }
-inline void FloPointWaveform_CompileInfo::set_allocated_compiler(::std::string* compiler) {
+inline void FloPointMessage_CompileInfo::set_allocated_compiler(::std::string* compiler) {
   if (compiler_ != &::google::protobuf::internal::GetEmptyStringAlreadyInited()) {
     delete compiler_;
   }
@@ -1358,62 +1475,62 @@ inline void FloPointWaveform_CompileInfo::set_allocated_compiler(::std::string* 
     clear_has_compiler();
     compiler_ = const_cast< ::std::string*>(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
   }
-  // @@protoc_insertion_point(field_set_allocated:flopointpb.FloPointWaveform.CompileInfo.compiler)
+  // @@protoc_insertion_point(field_set_allocated:flopointpb.FloPointMessage.CompileInfo.compiler)
 }
 
 // optional string date = 2;
-inline bool FloPointWaveform_CompileInfo::has_date() const {
+inline bool FloPointMessage_CompileInfo::has_date() const {
   return (_has_bits_[0] & 0x00000002u) != 0;
 }
-inline void FloPointWaveform_CompileInfo::set_has_date() {
+inline void FloPointMessage_CompileInfo::set_has_date() {
   _has_bits_[0] |= 0x00000002u;
 }
-inline void FloPointWaveform_CompileInfo::clear_has_date() {
+inline void FloPointMessage_CompileInfo::clear_has_date() {
   _has_bits_[0] &= ~0x00000002u;
 }
-inline void FloPointWaveform_CompileInfo::clear_date() {
+inline void FloPointMessage_CompileInfo::clear_date() {
   if (date_ != &::google::protobuf::internal::GetEmptyStringAlreadyInited()) {
     date_->clear();
   }
   clear_has_date();
 }
-inline const ::std::string& FloPointWaveform_CompileInfo::date() const {
-  // @@protoc_insertion_point(field_get:flopointpb.FloPointWaveform.CompileInfo.date)
+inline const ::std::string& FloPointMessage_CompileInfo::date() const {
+  // @@protoc_insertion_point(field_get:flopointpb.FloPointMessage.CompileInfo.date)
   return *date_;
 }
-inline void FloPointWaveform_CompileInfo::set_date(const ::std::string& value) {
+inline void FloPointMessage_CompileInfo::set_date(const ::std::string& value) {
   set_has_date();
   if (date_ == &::google::protobuf::internal::GetEmptyStringAlreadyInited()) {
     date_ = new ::std::string;
   }
   date_->assign(value);
-  // @@protoc_insertion_point(field_set:flopointpb.FloPointWaveform.CompileInfo.date)
+  // @@protoc_insertion_point(field_set:flopointpb.FloPointMessage.CompileInfo.date)
 }
-inline void FloPointWaveform_CompileInfo::set_date(const char* value) {
+inline void FloPointMessage_CompileInfo::set_date(const char* value) {
   set_has_date();
   if (date_ == &::google::protobuf::internal::GetEmptyStringAlreadyInited()) {
     date_ = new ::std::string;
   }
   date_->assign(value);
-  // @@protoc_insertion_point(field_set_char:flopointpb.FloPointWaveform.CompileInfo.date)
+  // @@protoc_insertion_point(field_set_char:flopointpb.FloPointMessage.CompileInfo.date)
 }
-inline void FloPointWaveform_CompileInfo::set_date(const char* value, size_t size) {
+inline void FloPointMessage_CompileInfo::set_date(const char* value, size_t size) {
   set_has_date();
   if (date_ == &::google::protobuf::internal::GetEmptyStringAlreadyInited()) {
     date_ = new ::std::string;
   }
   date_->assign(reinterpret_cast<const char*>(value), size);
-  // @@protoc_insertion_point(field_set_pointer:flopointpb.FloPointWaveform.CompileInfo.date)
+  // @@protoc_insertion_point(field_set_pointer:flopointpb.FloPointMessage.CompileInfo.date)
 }
-inline ::std::string* FloPointWaveform_CompileInfo::mutable_date() {
+inline ::std::string* FloPointMessage_CompileInfo::mutable_date() {
   set_has_date();
   if (date_ == &::google::protobuf::internal::GetEmptyStringAlreadyInited()) {
     date_ = new ::std::string;
   }
-  // @@protoc_insertion_point(field_mutable:flopointpb.FloPointWaveform.CompileInfo.date)
+  // @@protoc_insertion_point(field_mutable:flopointpb.FloPointMessage.CompileInfo.date)
   return date_;
 }
-inline ::std::string* FloPointWaveform_CompileInfo::release_date() {
+inline ::std::string* FloPointMessage_CompileInfo::release_date() {
   clear_has_date();
   if (date_ == &::google::protobuf::internal::GetEmptyStringAlreadyInited()) {
     return NULL;
@@ -1423,7 +1540,7 @@ inline ::std::string* FloPointWaveform_CompileInfo::release_date() {
     return temp;
   }
 }
-inline void FloPointWaveform_CompileInfo::set_allocated_date(::std::string* date) {
+inline void FloPointMessage_CompileInfo::set_allocated_date(::std::string* date) {
   if (date_ != &::google::protobuf::internal::GetEmptyStringAlreadyInited()) {
     delete date_;
   }
@@ -1434,62 +1551,62 @@ inline void FloPointWaveform_CompileInfo::set_allocated_date(::std::string* date
     clear_has_date();
     date_ = const_cast< ::std::string*>(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
   }
-  // @@protoc_insertion_point(field_set_allocated:flopointpb.FloPointWaveform.CompileInfo.date)
+  // @@protoc_insertion_point(field_set_allocated:flopointpb.FloPointMessage.CompileInfo.date)
 }
 
 // optional string operating_system = 3;
-inline bool FloPointWaveform_CompileInfo::has_operating_system() const {
+inline bool FloPointMessage_CompileInfo::has_operating_system() const {
   return (_has_bits_[0] & 0x00000004u) != 0;
 }
-inline void FloPointWaveform_CompileInfo::set_has_operating_system() {
+inline void FloPointMessage_CompileInfo::set_has_operating_system() {
   _has_bits_[0] |= 0x00000004u;
 }
-inline void FloPointWaveform_CompileInfo::clear_has_operating_system() {
+inline void FloPointMessage_CompileInfo::clear_has_operating_system() {
   _has_bits_[0] &= ~0x00000004u;
 }
-inline void FloPointWaveform_CompileInfo::clear_operating_system() {
+inline void FloPointMessage_CompileInfo::clear_operating_system() {
   if (operating_system_ != &::google::protobuf::internal::GetEmptyStringAlreadyInited()) {
     operating_system_->clear();
   }
   clear_has_operating_system();
 }
-inline const ::std::string& FloPointWaveform_CompileInfo::operating_system() const {
-  // @@protoc_insertion_point(field_get:flopointpb.FloPointWaveform.CompileInfo.operating_system)
+inline const ::std::string& FloPointMessage_CompileInfo::operating_system() const {
+  // @@protoc_insertion_point(field_get:flopointpb.FloPointMessage.CompileInfo.operating_system)
   return *operating_system_;
 }
-inline void FloPointWaveform_CompileInfo::set_operating_system(const ::std::string& value) {
+inline void FloPointMessage_CompileInfo::set_operating_system(const ::std::string& value) {
   set_has_operating_system();
   if (operating_system_ == &::google::protobuf::internal::GetEmptyStringAlreadyInited()) {
     operating_system_ = new ::std::string;
   }
   operating_system_->assign(value);
-  // @@protoc_insertion_point(field_set:flopointpb.FloPointWaveform.CompileInfo.operating_system)
+  // @@protoc_insertion_point(field_set:flopointpb.FloPointMessage.CompileInfo.operating_system)
 }
-inline void FloPointWaveform_CompileInfo::set_operating_system(const char* value) {
+inline void FloPointMessage_CompileInfo::set_operating_system(const char* value) {
   set_has_operating_system();
   if (operating_system_ == &::google::protobuf::internal::GetEmptyStringAlreadyInited()) {
     operating_system_ = new ::std::string;
   }
   operating_system_->assign(value);
-  // @@protoc_insertion_point(field_set_char:flopointpb.FloPointWaveform.CompileInfo.operating_system)
+  // @@protoc_insertion_point(field_set_char:flopointpb.FloPointMessage.CompileInfo.operating_system)
 }
-inline void FloPointWaveform_CompileInfo::set_operating_system(const char* value, size_t size) {
+inline void FloPointMessage_CompileInfo::set_operating_system(const char* value, size_t size) {
   set_has_operating_system();
   if (operating_system_ == &::google::protobuf::internal::GetEmptyStringAlreadyInited()) {
     operating_system_ = new ::std::string;
   }
   operating_system_->assign(reinterpret_cast<const char*>(value), size);
-  // @@protoc_insertion_point(field_set_pointer:flopointpb.FloPointWaveform.CompileInfo.operating_system)
+  // @@protoc_insertion_point(field_set_pointer:flopointpb.FloPointMessage.CompileInfo.operating_system)
 }
-inline ::std::string* FloPointWaveform_CompileInfo::mutable_operating_system() {
+inline ::std::string* FloPointMessage_CompileInfo::mutable_operating_system() {
   set_has_operating_system();
   if (operating_system_ == &::google::protobuf::internal::GetEmptyStringAlreadyInited()) {
     operating_system_ = new ::std::string;
   }
-  // @@protoc_insertion_point(field_mutable:flopointpb.FloPointWaveform.CompileInfo.operating_system)
+  // @@protoc_insertion_point(field_mutable:flopointpb.FloPointMessage.CompileInfo.operating_system)
   return operating_system_;
 }
-inline ::std::string* FloPointWaveform_CompileInfo::release_operating_system() {
+inline ::std::string* FloPointMessage_CompileInfo::release_operating_system() {
   clear_has_operating_system();
   if (operating_system_ == &::google::protobuf::internal::GetEmptyStringAlreadyInited()) {
     return NULL;
@@ -1499,7 +1616,7 @@ inline ::std::string* FloPointWaveform_CompileInfo::release_operating_system() {
     return temp;
   }
 }
-inline void FloPointWaveform_CompileInfo::set_allocated_operating_system(::std::string* operating_system) {
+inline void FloPointMessage_CompileInfo::set_allocated_operating_system(::std::string* operating_system) {
   if (operating_system_ != &::google::protobuf::internal::GetEmptyStringAlreadyInited()) {
     delete operating_system_;
   }
@@ -1510,119 +1627,119 @@ inline void FloPointWaveform_CompileInfo::set_allocated_operating_system(::std::
     clear_has_operating_system();
     operating_system_ = const_cast< ::std::string*>(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
   }
-  // @@protoc_insertion_point(field_set_allocated:flopointpb.FloPointWaveform.CompileInfo.operating_system)
+  // @@protoc_insertion_point(field_set_allocated:flopointpb.FloPointMessage.CompileInfo.operating_system)
 }
 
 // -------------------------------------------------------------------
 
-// FloPointWaveform_Count
+// FloPointMessage_Count
 
 // required int32 count_value = 1;
-inline bool FloPointWaveform_Count::has_count_value() const {
+inline bool FloPointMessage_Count::has_count_value() const {
   return (_has_bits_[0] & 0x00000001u) != 0;
 }
-inline void FloPointWaveform_Count::set_has_count_value() {
+inline void FloPointMessage_Count::set_has_count_value() {
   _has_bits_[0] |= 0x00000001u;
 }
-inline void FloPointWaveform_Count::clear_has_count_value() {
+inline void FloPointMessage_Count::clear_has_count_value() {
   _has_bits_[0] &= ~0x00000001u;
 }
-inline void FloPointWaveform_Count::clear_count_value() {
+inline void FloPointMessage_Count::clear_count_value() {
   count_value_ = 0;
   clear_has_count_value();
 }
-inline ::google::protobuf::int32 FloPointWaveform_Count::count_value() const {
-  // @@protoc_insertion_point(field_get:flopointpb.FloPointWaveform.Count.count_value)
+inline ::google::protobuf::int32 FloPointMessage_Count::count_value() const {
+  // @@protoc_insertion_point(field_get:flopointpb.FloPointMessage.Count.count_value)
   return count_value_;
 }
-inline void FloPointWaveform_Count::set_count_value(::google::protobuf::int32 value) {
+inline void FloPointMessage_Count::set_count_value(::google::protobuf::int32 value) {
   set_has_count_value();
   count_value_ = value;
-  // @@protoc_insertion_point(field_set:flopointpb.FloPointWaveform.Count.count_value)
+  // @@protoc_insertion_point(field_set:flopointpb.FloPointMessage.Count.count_value)
 }
 
-// required .flopointpb.FloPointWaveform.CountType count_type = 2;
-inline bool FloPointWaveform_Count::has_count_type() const {
+// required .flopointpb.FloPointMessage.CountType count_type = 2;
+inline bool FloPointMessage_Count::has_count_type() const {
   return (_has_bits_[0] & 0x00000002u) != 0;
 }
-inline void FloPointWaveform_Count::set_has_count_type() {
+inline void FloPointMessage_Count::set_has_count_type() {
   _has_bits_[0] |= 0x00000002u;
 }
-inline void FloPointWaveform_Count::clear_has_count_type() {
+inline void FloPointMessage_Count::clear_has_count_type() {
   _has_bits_[0] &= ~0x00000002u;
 }
-inline void FloPointWaveform_Count::clear_count_type() {
+inline void FloPointMessage_Count::clear_count_type() {
   count_type_ = 0;
   clear_has_count_type();
 }
-inline ::flopointpb::FloPointWaveform_CountType FloPointWaveform_Count::count_type() const {
-  // @@protoc_insertion_point(field_get:flopointpb.FloPointWaveform.Count.count_type)
-  return static_cast< ::flopointpb::FloPointWaveform_CountType >(count_type_);
+inline ::flopointpb::FloPointMessage_CountType FloPointMessage_Count::count_type() const {
+  // @@protoc_insertion_point(field_get:flopointpb.FloPointMessage.Count.count_type)
+  return static_cast< ::flopointpb::FloPointMessage_CountType >(count_type_);
 }
-inline void FloPointWaveform_Count::set_count_type(::flopointpb::FloPointWaveform_CountType value) {
-  assert(::flopointpb::FloPointWaveform_CountType_IsValid(value));
+inline void FloPointMessage_Count::set_count_type(::flopointpb::FloPointMessage_CountType value) {
+  assert(::flopointpb::FloPointMessage_CountType_IsValid(value));
   set_has_count_type();
   count_type_ = value;
-  // @@protoc_insertion_point(field_set:flopointpb.FloPointWaveform.Count.count_type)
+  // @@protoc_insertion_point(field_set:flopointpb.FloPointMessage.Count.count_type)
 }
 
 // -------------------------------------------------------------------
 
-// FloPointWaveform
+// FloPointMessage
 
 // required string name = 1;
-inline bool FloPointWaveform::has_name() const {
+inline bool FloPointMessage::has_name() const {
   return (_has_bits_[0] & 0x00000001u) != 0;
 }
-inline void FloPointWaveform::set_has_name() {
+inline void FloPointMessage::set_has_name() {
   _has_bits_[0] |= 0x00000001u;
 }
-inline void FloPointWaveform::clear_has_name() {
+inline void FloPointMessage::clear_has_name() {
   _has_bits_[0] &= ~0x00000001u;
 }
-inline void FloPointWaveform::clear_name() {
+inline void FloPointMessage::clear_name() {
   if (name_ != &::google::protobuf::internal::GetEmptyStringAlreadyInited()) {
     name_->clear();
   }
   clear_has_name();
 }
-inline const ::std::string& FloPointWaveform::name() const {
-  // @@protoc_insertion_point(field_get:flopointpb.FloPointWaveform.name)
+inline const ::std::string& FloPointMessage::name() const {
+  // @@protoc_insertion_point(field_get:flopointpb.FloPointMessage.name)
   return *name_;
 }
-inline void FloPointWaveform::set_name(const ::std::string& value) {
+inline void FloPointMessage::set_name(const ::std::string& value) {
   set_has_name();
   if (name_ == &::google::protobuf::internal::GetEmptyStringAlreadyInited()) {
     name_ = new ::std::string;
   }
   name_->assign(value);
-  // @@protoc_insertion_point(field_set:flopointpb.FloPointWaveform.name)
+  // @@protoc_insertion_point(field_set:flopointpb.FloPointMessage.name)
 }
-inline void FloPointWaveform::set_name(const char* value) {
+inline void FloPointMessage::set_name(const char* value) {
   set_has_name();
   if (name_ == &::google::protobuf::internal::GetEmptyStringAlreadyInited()) {
     name_ = new ::std::string;
   }
   name_->assign(value);
-  // @@protoc_insertion_point(field_set_char:flopointpb.FloPointWaveform.name)
+  // @@protoc_insertion_point(field_set_char:flopointpb.FloPointMessage.name)
 }
-inline void FloPointWaveform::set_name(const char* value, size_t size) {
+inline void FloPointMessage::set_name(const char* value, size_t size) {
   set_has_name();
   if (name_ == &::google::protobuf::internal::GetEmptyStringAlreadyInited()) {
     name_ = new ::std::string;
   }
   name_->assign(reinterpret_cast<const char*>(value), size);
-  // @@protoc_insertion_point(field_set_pointer:flopointpb.FloPointWaveform.name)
+  // @@protoc_insertion_point(field_set_pointer:flopointpb.FloPointMessage.name)
 }
-inline ::std::string* FloPointWaveform::mutable_name() {
+inline ::std::string* FloPointMessage::mutable_name() {
   set_has_name();
   if (name_ == &::google::protobuf::internal::GetEmptyStringAlreadyInited()) {
     name_ = new ::std::string;
   }
-  // @@protoc_insertion_point(field_mutable:flopointpb.FloPointWaveform.name)
+  // @@protoc_insertion_point(field_mutable:flopointpb.FloPointMessage.name)
   return name_;
 }
-inline ::std::string* FloPointWaveform::release_name() {
+inline ::std::string* FloPointMessage::release_name() {
   clear_has_name();
   if (name_ == &::google::protobuf::internal::GetEmptyStringAlreadyInited()) {
     return NULL;
@@ -1632,7 +1749,7 @@ inline ::std::string* FloPointWaveform::release_name() {
     return temp;
   }
 }
-inline void FloPointWaveform::set_allocated_name(::std::string* name) {
+inline void FloPointMessage::set_allocated_name(::std::string* name) {
   if (name_ != &::google::protobuf::internal::GetEmptyStringAlreadyInited()) {
     delete name_;
   }
@@ -1643,40 +1760,40 @@ inline void FloPointWaveform::set_allocated_name(::std::string* name) {
     clear_has_name();
     name_ = const_cast< ::std::string*>(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
   }
-  // @@protoc_insertion_point(field_set_allocated:flopointpb.FloPointWaveform.name)
+  // @@protoc_insertion_point(field_set_allocated:flopointpb.FloPointMessage.name)
 }
 
-// required .flopointpb.FloPointWaveform.Waveform waveform = 2;
-inline bool FloPointWaveform::has_waveform() const {
+// required .flopointpb.FloPointMessage.Waveform waveform = 2;
+inline bool FloPointMessage::has_waveform() const {
   return (_has_bits_[0] & 0x00000002u) != 0;
 }
-inline void FloPointWaveform::set_has_waveform() {
+inline void FloPointMessage::set_has_waveform() {
   _has_bits_[0] |= 0x00000002u;
 }
-inline void FloPointWaveform::clear_has_waveform() {
+inline void FloPointMessage::clear_has_waveform() {
   _has_bits_[0] &= ~0x00000002u;
 }
-inline void FloPointWaveform::clear_waveform() {
-  if (waveform_ != NULL) waveform_->::flopointpb::FloPointWaveform_Waveform::Clear();
+inline void FloPointMessage::clear_waveform() {
+  if (waveform_ != NULL) waveform_->::flopointpb::FloPointMessage_Waveform::Clear();
   clear_has_waveform();
 }
-inline const ::flopointpb::FloPointWaveform_Waveform& FloPointWaveform::waveform() const {
-  // @@protoc_insertion_point(field_get:flopointpb.FloPointWaveform.waveform)
+inline const ::flopointpb::FloPointMessage_Waveform& FloPointMessage::waveform() const {
+  // @@protoc_insertion_point(field_get:flopointpb.FloPointMessage.waveform)
   return waveform_ != NULL ? *waveform_ : *default_instance_->waveform_;
 }
-inline ::flopointpb::FloPointWaveform_Waveform* FloPointWaveform::mutable_waveform() {
+inline ::flopointpb::FloPointMessage_Waveform* FloPointMessage::mutable_waveform() {
   set_has_waveform();
-  if (waveform_ == NULL) waveform_ = new ::flopointpb::FloPointWaveform_Waveform;
-  // @@protoc_insertion_point(field_mutable:flopointpb.FloPointWaveform.waveform)
+  if (waveform_ == NULL) waveform_ = new ::flopointpb::FloPointMessage_Waveform;
+  // @@protoc_insertion_point(field_mutable:flopointpb.FloPointMessage.waveform)
   return waveform_;
 }
-inline ::flopointpb::FloPointWaveform_Waveform* FloPointWaveform::release_waveform() {
+inline ::flopointpb::FloPointMessage_Waveform* FloPointMessage::release_waveform() {
   clear_has_waveform();
-  ::flopointpb::FloPointWaveform_Waveform* temp = waveform_;
+  ::flopointpb::FloPointMessage_Waveform* temp = waveform_;
   waveform_ = NULL;
   return temp;
 }
-inline void FloPointWaveform::set_allocated_waveform(::flopointpb::FloPointWaveform_Waveform* waveform) {
+inline void FloPointMessage::set_allocated_waveform(::flopointpb::FloPointMessage_Waveform* waveform) {
   delete waveform_;
   waveform_ = waveform;
   if (waveform) {
@@ -1684,40 +1801,40 @@ inline void FloPointWaveform::set_allocated_waveform(::flopointpb::FloPointWavef
   } else {
     clear_has_waveform();
   }
-  // @@protoc_insertion_point(field_set_allocated:flopointpb.FloPointWaveform.waveform)
+  // @@protoc_insertion_point(field_set_allocated:flopointpb.FloPointMessage.waveform)
 }
 
-// optional .flopointpb.FloPointWaveform.Jitter jitter = 3;
-inline bool FloPointWaveform::has_jitter() const {
+// optional .flopointpb.FloPointMessage.Jitter jitter = 3;
+inline bool FloPointMessage::has_jitter() const {
   return (_has_bits_[0] & 0x00000004u) != 0;
 }
-inline void FloPointWaveform::set_has_jitter() {
+inline void FloPointMessage::set_has_jitter() {
   _has_bits_[0] |= 0x00000004u;
 }
-inline void FloPointWaveform::clear_has_jitter() {
+inline void FloPointMessage::clear_has_jitter() {
   _has_bits_[0] &= ~0x00000004u;
 }
-inline void FloPointWaveform::clear_jitter() {
-  if (jitter_ != NULL) jitter_->::flopointpb::FloPointWaveform_Jitter::Clear();
+inline void FloPointMessage::clear_jitter() {
+  if (jitter_ != NULL) jitter_->::flopointpb::FloPointMessage_Jitter::Clear();
   clear_has_jitter();
 }
-inline const ::flopointpb::FloPointWaveform_Jitter& FloPointWaveform::jitter() const {
-  // @@protoc_insertion_point(field_get:flopointpb.FloPointWaveform.jitter)
+inline const ::flopointpb::FloPointMessage_Jitter& FloPointMessage::jitter() const {
+  // @@protoc_insertion_point(field_get:flopointpb.FloPointMessage.jitter)
   return jitter_ != NULL ? *jitter_ : *default_instance_->jitter_;
 }
-inline ::flopointpb::FloPointWaveform_Jitter* FloPointWaveform::mutable_jitter() {
+inline ::flopointpb::FloPointMessage_Jitter* FloPointMessage::mutable_jitter() {
   set_has_jitter();
-  if (jitter_ == NULL) jitter_ = new ::flopointpb::FloPointWaveform_Jitter;
-  // @@protoc_insertion_point(field_mutable:flopointpb.FloPointWaveform.jitter)
+  if (jitter_ == NULL) jitter_ = new ::flopointpb::FloPointMessage_Jitter;
+  // @@protoc_insertion_point(field_mutable:flopointpb.FloPointMessage.jitter)
   return jitter_;
 }
-inline ::flopointpb::FloPointWaveform_Jitter* FloPointWaveform::release_jitter() {
+inline ::flopointpb::FloPointMessage_Jitter* FloPointMessage::release_jitter() {
   clear_has_jitter();
-  ::flopointpb::FloPointWaveform_Jitter* temp = jitter_;
+  ::flopointpb::FloPointMessage_Jitter* temp = jitter_;
   jitter_ = NULL;
   return temp;
 }
-inline void FloPointWaveform::set_allocated_jitter(::flopointpb::FloPointWaveform_Jitter* jitter) {
+inline void FloPointMessage::set_allocated_jitter(::flopointpb::FloPointMessage_Jitter* jitter) {
   delete jitter_;
   jitter_ = jitter;
   if (jitter) {
@@ -1725,130 +1842,130 @@ inline void FloPointWaveform::set_allocated_jitter(::flopointpb::FloPointWavefor
   } else {
     clear_has_jitter();
   }
-  // @@protoc_insertion_point(field_set_allocated:flopointpb.FloPointWaveform.jitter)
+  // @@protoc_insertion_point(field_set_allocated:flopointpb.FloPointMessage.jitter)
 }
 
-// repeated .flopointpb.FloPointWaveform.Time time_reading = 4;
-inline int FloPointWaveform::time_reading_size() const {
+// repeated .flopointpb.FloPointMessage.Time time_reading = 4;
+inline int FloPointMessage::time_reading_size() const {
   return time_reading_.size();
 }
-inline void FloPointWaveform::clear_time_reading() {
+inline void FloPointMessage::clear_time_reading() {
   time_reading_.Clear();
 }
-inline const ::flopointpb::FloPointWaveform_Time& FloPointWaveform::time_reading(int index) const {
-  // @@protoc_insertion_point(field_get:flopointpb.FloPointWaveform.time_reading)
+inline const ::flopointpb::FloPointMessage_Time& FloPointMessage::time_reading(int index) const {
+  // @@protoc_insertion_point(field_get:flopointpb.FloPointMessage.time_reading)
   return time_reading_.Get(index);
 }
-inline ::flopointpb::FloPointWaveform_Time* FloPointWaveform::mutable_time_reading(int index) {
-  // @@protoc_insertion_point(field_mutable:flopointpb.FloPointWaveform.time_reading)
+inline ::flopointpb::FloPointMessage_Time* FloPointMessage::mutable_time_reading(int index) {
+  // @@protoc_insertion_point(field_mutable:flopointpb.FloPointMessage.time_reading)
   return time_reading_.Mutable(index);
 }
-inline ::flopointpb::FloPointWaveform_Time* FloPointWaveform::add_time_reading() {
-  // @@protoc_insertion_point(field_add:flopointpb.FloPointWaveform.time_reading)
+inline ::flopointpb::FloPointMessage_Time* FloPointMessage::add_time_reading() {
+  // @@protoc_insertion_point(field_add:flopointpb.FloPointMessage.time_reading)
   return time_reading_.Add();
 }
-inline const ::google::protobuf::RepeatedPtrField< ::flopointpb::FloPointWaveform_Time >&
-FloPointWaveform::time_reading() const {
-  // @@protoc_insertion_point(field_list:flopointpb.FloPointWaveform.time_reading)
+inline const ::google::protobuf::RepeatedPtrField< ::flopointpb::FloPointMessage_Time >&
+FloPointMessage::time_reading() const {
+  // @@protoc_insertion_point(field_list:flopointpb.FloPointMessage.time_reading)
   return time_reading_;
 }
-inline ::google::protobuf::RepeatedPtrField< ::flopointpb::FloPointWaveform_Time >*
-FloPointWaveform::mutable_time_reading() {
-  // @@protoc_insertion_point(field_mutable_list:flopointpb.FloPointWaveform.time_reading)
+inline ::google::protobuf::RepeatedPtrField< ::flopointpb::FloPointMessage_Time >*
+FloPointMessage::mutable_time_reading() {
+  // @@protoc_insertion_point(field_mutable_list:flopointpb.FloPointMessage.time_reading)
   return &time_reading_;
 }
 
-// repeated .flopointpb.FloPointWaveform.Temp temp_reading = 5;
-inline int FloPointWaveform::temp_reading_size() const {
+// repeated .flopointpb.FloPointMessage.Temp temp_reading = 5;
+inline int FloPointMessage::temp_reading_size() const {
   return temp_reading_.size();
 }
-inline void FloPointWaveform::clear_temp_reading() {
+inline void FloPointMessage::clear_temp_reading() {
   temp_reading_.Clear();
 }
-inline const ::flopointpb::FloPointWaveform_Temp& FloPointWaveform::temp_reading(int index) const {
-  // @@protoc_insertion_point(field_get:flopointpb.FloPointWaveform.temp_reading)
+inline const ::flopointpb::FloPointMessage_Temp& FloPointMessage::temp_reading(int index) const {
+  // @@protoc_insertion_point(field_get:flopointpb.FloPointMessage.temp_reading)
   return temp_reading_.Get(index);
 }
-inline ::flopointpb::FloPointWaveform_Temp* FloPointWaveform::mutable_temp_reading(int index) {
-  // @@protoc_insertion_point(field_mutable:flopointpb.FloPointWaveform.temp_reading)
+inline ::flopointpb::FloPointMessage_Temp* FloPointMessage::mutable_temp_reading(int index) {
+  // @@protoc_insertion_point(field_mutable:flopointpb.FloPointMessage.temp_reading)
   return temp_reading_.Mutable(index);
 }
-inline ::flopointpb::FloPointWaveform_Temp* FloPointWaveform::add_temp_reading() {
-  // @@protoc_insertion_point(field_add:flopointpb.FloPointWaveform.temp_reading)
+inline ::flopointpb::FloPointMessage_Temp* FloPointMessage::add_temp_reading() {
+  // @@protoc_insertion_point(field_add:flopointpb.FloPointMessage.temp_reading)
   return temp_reading_.Add();
 }
-inline const ::google::protobuf::RepeatedPtrField< ::flopointpb::FloPointWaveform_Temp >&
-FloPointWaveform::temp_reading() const {
-  // @@protoc_insertion_point(field_list:flopointpb.FloPointWaveform.temp_reading)
+inline const ::google::protobuf::RepeatedPtrField< ::flopointpb::FloPointMessage_Temp >&
+FloPointMessage::temp_reading() const {
+  // @@protoc_insertion_point(field_list:flopointpb.FloPointMessage.temp_reading)
   return temp_reading_;
 }
-inline ::google::protobuf::RepeatedPtrField< ::flopointpb::FloPointWaveform_Temp >*
-FloPointWaveform::mutable_temp_reading() {
-  // @@protoc_insertion_point(field_mutable_list:flopointpb.FloPointWaveform.temp_reading)
+inline ::google::protobuf::RepeatedPtrField< ::flopointpb::FloPointMessage_Temp >*
+FloPointMessage::mutable_temp_reading() {
+  // @@protoc_insertion_point(field_mutable_list:flopointpb.FloPointMessage.temp_reading)
   return &temp_reading_;
 }
 
-// repeated .flopointpb.FloPointWaveform.Volt volt_reading = 6;
-inline int FloPointWaveform::volt_reading_size() const {
+// repeated .flopointpb.FloPointMessage.Volt volt_reading = 6;
+inline int FloPointMessage::volt_reading_size() const {
   return volt_reading_.size();
 }
-inline void FloPointWaveform::clear_volt_reading() {
+inline void FloPointMessage::clear_volt_reading() {
   volt_reading_.Clear();
 }
-inline const ::flopointpb::FloPointWaveform_Volt& FloPointWaveform::volt_reading(int index) const {
-  // @@protoc_insertion_point(field_get:flopointpb.FloPointWaveform.volt_reading)
+inline const ::flopointpb::FloPointMessage_Volt& FloPointMessage::volt_reading(int index) const {
+  // @@protoc_insertion_point(field_get:flopointpb.FloPointMessage.volt_reading)
   return volt_reading_.Get(index);
 }
-inline ::flopointpb::FloPointWaveform_Volt* FloPointWaveform::mutable_volt_reading(int index) {
-  // @@protoc_insertion_point(field_mutable:flopointpb.FloPointWaveform.volt_reading)
+inline ::flopointpb::FloPointMessage_Volt* FloPointMessage::mutable_volt_reading(int index) {
+  // @@protoc_insertion_point(field_mutable:flopointpb.FloPointMessage.volt_reading)
   return volt_reading_.Mutable(index);
 }
-inline ::flopointpb::FloPointWaveform_Volt* FloPointWaveform::add_volt_reading() {
-  // @@protoc_insertion_point(field_add:flopointpb.FloPointWaveform.volt_reading)
+inline ::flopointpb::FloPointMessage_Volt* FloPointMessage::add_volt_reading() {
+  // @@protoc_insertion_point(field_add:flopointpb.FloPointMessage.volt_reading)
   return volt_reading_.Add();
 }
-inline const ::google::protobuf::RepeatedPtrField< ::flopointpb::FloPointWaveform_Volt >&
-FloPointWaveform::volt_reading() const {
-  // @@protoc_insertion_point(field_list:flopointpb.FloPointWaveform.volt_reading)
+inline const ::google::protobuf::RepeatedPtrField< ::flopointpb::FloPointMessage_Volt >&
+FloPointMessage::volt_reading() const {
+  // @@protoc_insertion_point(field_list:flopointpb.FloPointMessage.volt_reading)
   return volt_reading_;
 }
-inline ::google::protobuf::RepeatedPtrField< ::flopointpb::FloPointWaveform_Volt >*
-FloPointWaveform::mutable_volt_reading() {
-  // @@protoc_insertion_point(field_mutable_list:flopointpb.FloPointWaveform.volt_reading)
+inline ::google::protobuf::RepeatedPtrField< ::flopointpb::FloPointMessage_Volt >*
+FloPointMessage::mutable_volt_reading() {
+  // @@protoc_insertion_point(field_mutable_list:flopointpb.FloPointMessage.volt_reading)
   return &volt_reading_;
 }
 
-// optional .flopointpb.FloPointWaveform.CompileInfo compile_info = 7;
-inline bool FloPointWaveform::has_compile_info() const {
+// optional .flopointpb.FloPointMessage.CompileInfo compile_info = 7;
+inline bool FloPointMessage::has_compile_info() const {
   return (_has_bits_[0] & 0x00000040u) != 0;
 }
-inline void FloPointWaveform::set_has_compile_info() {
+inline void FloPointMessage::set_has_compile_info() {
   _has_bits_[0] |= 0x00000040u;
 }
-inline void FloPointWaveform::clear_has_compile_info() {
+inline void FloPointMessage::clear_has_compile_info() {
   _has_bits_[0] &= ~0x00000040u;
 }
-inline void FloPointWaveform::clear_compile_info() {
-  if (compile_info_ != NULL) compile_info_->::flopointpb::FloPointWaveform_CompileInfo::Clear();
+inline void FloPointMessage::clear_compile_info() {
+  if (compile_info_ != NULL) compile_info_->::flopointpb::FloPointMessage_CompileInfo::Clear();
   clear_has_compile_info();
 }
-inline const ::flopointpb::FloPointWaveform_CompileInfo& FloPointWaveform::compile_info() const {
-  // @@protoc_insertion_point(field_get:flopointpb.FloPointWaveform.compile_info)
+inline const ::flopointpb::FloPointMessage_CompileInfo& FloPointMessage::compile_info() const {
+  // @@protoc_insertion_point(field_get:flopointpb.FloPointMessage.compile_info)
   return compile_info_ != NULL ? *compile_info_ : *default_instance_->compile_info_;
 }
-inline ::flopointpb::FloPointWaveform_CompileInfo* FloPointWaveform::mutable_compile_info() {
+inline ::flopointpb::FloPointMessage_CompileInfo* FloPointMessage::mutable_compile_info() {
   set_has_compile_info();
-  if (compile_info_ == NULL) compile_info_ = new ::flopointpb::FloPointWaveform_CompileInfo;
-  // @@protoc_insertion_point(field_mutable:flopointpb.FloPointWaveform.compile_info)
+  if (compile_info_ == NULL) compile_info_ = new ::flopointpb::FloPointMessage_CompileInfo;
+  // @@protoc_insertion_point(field_mutable:flopointpb.FloPointMessage.compile_info)
   return compile_info_;
 }
-inline ::flopointpb::FloPointWaveform_CompileInfo* FloPointWaveform::release_compile_info() {
+inline ::flopointpb::FloPointMessage_CompileInfo* FloPointMessage::release_compile_info() {
   clear_has_compile_info();
-  ::flopointpb::FloPointWaveform_CompileInfo* temp = compile_info_;
+  ::flopointpb::FloPointMessage_CompileInfo* temp = compile_info_;
   compile_info_ = NULL;
   return temp;
 }
-inline void FloPointWaveform::set_allocated_compile_info(::flopointpb::FloPointWaveform_CompileInfo* compile_info) {
+inline void FloPointMessage::set_allocated_compile_info(::flopointpb::FloPointMessage_CompileInfo* compile_info) {
   delete compile_info_;
   compile_info_ = compile_info;
   if (compile_info) {
@@ -1856,60 +1973,60 @@ inline void FloPointWaveform::set_allocated_compile_info(::flopointpb::FloPointW
   } else {
     clear_has_compile_info();
   }
-  // @@protoc_insertion_point(field_set_allocated:flopointpb.FloPointWaveform.compile_info)
+  // @@protoc_insertion_point(field_set_allocated:flopointpb.FloPointMessage.compile_info)
 }
 
 // optional int32 dipswitches = 8;
-inline bool FloPointWaveform::has_dipswitches() const {
+inline bool FloPointMessage::has_dipswitches() const {
   return (_has_bits_[0] & 0x00000080u) != 0;
 }
-inline void FloPointWaveform::set_has_dipswitches() {
+inline void FloPointMessage::set_has_dipswitches() {
   _has_bits_[0] |= 0x00000080u;
 }
-inline void FloPointWaveform::clear_has_dipswitches() {
+inline void FloPointMessage::clear_has_dipswitches() {
   _has_bits_[0] &= ~0x00000080u;
 }
-inline void FloPointWaveform::clear_dipswitches() {
+inline void FloPointMessage::clear_dipswitches() {
   dipswitches_ = 0;
   clear_has_dipswitches();
 }
-inline ::google::protobuf::int32 FloPointWaveform::dipswitches() const {
-  // @@protoc_insertion_point(field_get:flopointpb.FloPointWaveform.dipswitches)
+inline ::google::protobuf::int32 FloPointMessage::dipswitches() const {
+  // @@protoc_insertion_point(field_get:flopointpb.FloPointMessage.dipswitches)
   return dipswitches_;
 }
-inline void FloPointWaveform::set_dipswitches(::google::protobuf::int32 value) {
+inline void FloPointMessage::set_dipswitches(::google::protobuf::int32 value) {
   set_has_dipswitches();
   dipswitches_ = value;
-  // @@protoc_insertion_point(field_set:flopointpb.FloPointWaveform.dipswitches)
+  // @@protoc_insertion_point(field_set:flopointpb.FloPointMessage.dipswitches)
 }
 
-// repeated .flopointpb.FloPointWaveform.Count count = 9;
-inline int FloPointWaveform::count_size() const {
+// repeated .flopointpb.FloPointMessage.Count count = 9;
+inline int FloPointMessage::count_size() const {
   return count_.size();
 }
-inline void FloPointWaveform::clear_count() {
+inline void FloPointMessage::clear_count() {
   count_.Clear();
 }
-inline const ::flopointpb::FloPointWaveform_Count& FloPointWaveform::count(int index) const {
-  // @@protoc_insertion_point(field_get:flopointpb.FloPointWaveform.count)
+inline const ::flopointpb::FloPointMessage_Count& FloPointMessage::count(int index) const {
+  // @@protoc_insertion_point(field_get:flopointpb.FloPointMessage.count)
   return count_.Get(index);
 }
-inline ::flopointpb::FloPointWaveform_Count* FloPointWaveform::mutable_count(int index) {
-  // @@protoc_insertion_point(field_mutable:flopointpb.FloPointWaveform.count)
+inline ::flopointpb::FloPointMessage_Count* FloPointMessage::mutable_count(int index) {
+  // @@protoc_insertion_point(field_mutable:flopointpb.FloPointMessage.count)
   return count_.Mutable(index);
 }
-inline ::flopointpb::FloPointWaveform_Count* FloPointWaveform::add_count() {
-  // @@protoc_insertion_point(field_add:flopointpb.FloPointWaveform.count)
+inline ::flopointpb::FloPointMessage_Count* FloPointMessage::add_count() {
+  // @@protoc_insertion_point(field_add:flopointpb.FloPointMessage.count)
   return count_.Add();
 }
-inline const ::google::protobuf::RepeatedPtrField< ::flopointpb::FloPointWaveform_Count >&
-FloPointWaveform::count() const {
-  // @@protoc_insertion_point(field_list:flopointpb.FloPointWaveform.count)
+inline const ::google::protobuf::RepeatedPtrField< ::flopointpb::FloPointMessage_Count >&
+FloPointMessage::count() const {
+  // @@protoc_insertion_point(field_list:flopointpb.FloPointMessage.count)
   return count_;
 }
-inline ::google::protobuf::RepeatedPtrField< ::flopointpb::FloPointWaveform_Count >*
-FloPointWaveform::mutable_count() {
-  // @@protoc_insertion_point(field_mutable_list:flopointpb.FloPointWaveform.count)
+inline ::google::protobuf::RepeatedPtrField< ::flopointpb::FloPointMessage_Count >*
+FloPointMessage::mutable_count() {
+  // @@protoc_insertion_point(field_mutable_list:flopointpb.FloPointMessage.count)
   return &count_;
 }
 
@@ -1922,25 +2039,25 @@ FloPointWaveform::mutable_count() {
 namespace google {
 namespace protobuf {
 
-template <> struct is_proto_enum< ::flopointpb::FloPointWaveform_TimeSource> : ::google::protobuf::internal::true_type {};
+template <> struct is_proto_enum< ::flopointpb::FloPointMessage_TimeSource> : ::google::protobuf::internal::true_type {};
 template <>
-inline const EnumDescriptor* GetEnumDescriptor< ::flopointpb::FloPointWaveform_TimeSource>() {
-  return ::flopointpb::FloPointWaveform_TimeSource_descriptor();
+inline const EnumDescriptor* GetEnumDescriptor< ::flopointpb::FloPointMessage_TimeSource>() {
+  return ::flopointpb::FloPointMessage_TimeSource_descriptor();
 }
-template <> struct is_proto_enum< ::flopointpb::FloPointWaveform_TempSource> : ::google::protobuf::internal::true_type {};
+template <> struct is_proto_enum< ::flopointpb::FloPointMessage_TempSource> : ::google::protobuf::internal::true_type {};
 template <>
-inline const EnumDescriptor* GetEnumDescriptor< ::flopointpb::FloPointWaveform_TempSource>() {
-  return ::flopointpb::FloPointWaveform_TempSource_descriptor();
+inline const EnumDescriptor* GetEnumDescriptor< ::flopointpb::FloPointMessage_TempSource>() {
+  return ::flopointpb::FloPointMessage_TempSource_descriptor();
 }
-template <> struct is_proto_enum< ::flopointpb::FloPointWaveform_VoltSource> : ::google::protobuf::internal::true_type {};
+template <> struct is_proto_enum< ::flopointpb::FloPointMessage_VoltSource> : ::google::protobuf::internal::true_type {};
 template <>
-inline const EnumDescriptor* GetEnumDescriptor< ::flopointpb::FloPointWaveform_VoltSource>() {
-  return ::flopointpb::FloPointWaveform_VoltSource_descriptor();
+inline const EnumDescriptor* GetEnumDescriptor< ::flopointpb::FloPointMessage_VoltSource>() {
+  return ::flopointpb::FloPointMessage_VoltSource_descriptor();
 }
-template <> struct is_proto_enum< ::flopointpb::FloPointWaveform_CountType> : ::google::protobuf::internal::true_type {};
+template <> struct is_proto_enum< ::flopointpb::FloPointMessage_CountType> : ::google::protobuf::internal::true_type {};
 template <>
-inline const EnumDescriptor* GetEnumDescriptor< ::flopointpb::FloPointWaveform_CountType>() {
-  return ::flopointpb::FloPointWaveform_CountType_descriptor();
+inline const EnumDescriptor* GetEnumDescriptor< ::flopointpb::FloPointMessage_CountType>() {
+  return ::flopointpb::FloPointMessage_CountType_descriptor();
 }
 
 }  // namespace google

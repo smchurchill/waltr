@@ -55,9 +55,13 @@ private:
 
 	map<string,set<nsp> > subscriptions = {
 			{"raw_waveforms",{}},
-			{"ascii_waveforms",{}}
+			{"ascii_waveforms",{}},
+			{"protobuf",{}}
 	};
 
+	deque<stringp> pbs_locations;
+
+	const int max_size = 10000;
 	bool local_logging_enabled = false;
 	bool added_static_leaves = false;
 
@@ -92,7 +96,10 @@ private:
 	void unsubscribe(nsp, string);
 
 	void ports_for_zabbix(nsp);
+	void stored_pbs(nsp);
 	string command_tree_from(nodep);
+
+	int store_pbs(stringp);
 
 
 /* Method type: command tree building */
@@ -134,7 +141,8 @@ private:
 					std::function<void(nsp)>(&get_help_messages_received_tot))},
 			{string("messages_lost_tot"), std::make_shared<node>(
 					std::function<void(nsp)>(&get_help_messages_lost_tot))},
-			{string("ports_for_zabbix"), std::make_shared<node>()}
+			{string("ports_for_zabbix"), std::make_shared<node>()},
+			{string("stored_pbs"), std::make_shared<node>()}
 	};
 
 	map<string,nodep> subscribe_nodes = {

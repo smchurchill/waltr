@@ -202,34 +202,15 @@ void dispatcher::delivery(shared_ptr<string> message) {
 	context_.service->post(bind(&dispatcher::forward,self,message));
 }
 
-void dispatcher::forward(shared_ptr<string> msg) {
-	if(1){
-	auto fpwf = make_shared<flopointpb::FloPointWaveform>();
+void dispatcher::forward(shared_ptr<string> message) {
 
-	if(local_logging_enabled){
-		if(!(fpwf->ParseFromString(*msg))) {
-			FILE * log = fopen((logdir_ + "dispatch.failure.log").c_str(),"a");
-			string s (to_string(steady_clock::now()) + ": Could not parse string.\n");
-			std::fwrite(s.c_str(), sizeof(u8), s.length(), log);
-			fclose(log);
-		} else {
-			FILE * log = fopen((logdir_ + "dispatch.message.log").c_str(),"a");
-			string s (to_string(steady_clock::now()) + ": Message received:\n");
-			s += "\tName: " + fpwf->name() + '\n';
-			s += "\tWaveform: ";
-			for(int i = 0; i < fpwf->waveform().wheight().size(); ++i)
-				s += to_string(fpwf->waveform().wheight(i)) + '\n';
-			std::fwrite(s.c_str(), sizeof(u8), s.length(), log);
-			fclose(log);
-		}
-	}
+	auto fpm = make_shared<flopointpb::FloPointMessage>();
+	bool parse_successful = fpm->ParseFromString(*message);
 
-	if(!(fpwf->ParseFromString(*msg))) {
-		string s (to_string(steady_clock::now()) + ": Could not parse string.\n");
-		cout << s;
-	} else {
+	if(parse_successful) {
+		store_pbs(message);
 		string ascii_wf_str, raw_wf_str;
-		for(auto wheight : fpwf->waveform().wheight()) {
+		for(auto wheight : fpm->waveform().wheight()) {
 			ascii_wf_str += '\t';
 			ascii_wf_str += to_string(wheight);
 
@@ -243,19 +224,37 @@ void dispatcher::forward(shared_ptr<string> msg) {
 		ascii_wf_str += '\n';
 		auto raw_wf_str_p = make_shared<string>(raw_wf_str);
 		auto ascii_wf_str_p = make_shared<string>(ascii_wf_str);
-		for(auto channel : subscriptions)
-			if(channel.first.find("waveform") != string::npos) {
-				if(channel.first.find("raw") != string::npos) {
-					for(auto subscriber : channel.second)
-						subscriber->do_write(raw_wf_str_p);
-				} else if(channel.first.find("ascii") != string::npos) {
-					for(auto subscriber : channel.second)
-						subscriber->do_write(ascii_wf_str_p);
-				}
-			}
+
+		for(auto subscriber : subscriptions["raw_waveforms"])
+				subscriber->do_write(raw_wf_str_p);
+
+		for(auto subscriber : subscriptions["ascii_waveforms"])
+				subscriber->do_write(ascii_wf_str_p);
+
+		for(auto subscriber : subscriptions["protobuf"])
+					subscriber->do_write(message);
+
+		if(local_logging_enabled){
+			FILE * log = fopen((logdir_ + "dispatch.message.log").c_str(),"a");
+			string s (to_string(steady_clock::now()) + ": Message received:\n");
+			s += "\tName: " + fpm->name() + '\n';
+			s += "\tWaveform: ";
+			for(int i = 0; i < fpm->waveform().wheight().size(); ++i)
+				s += to_string(fpm->waveform().wheight(i)) + '\n';
+			std::fwrite(s.c_str(), sizeof(u8), s.length(), log);
+			fclose(log);
+		}
+	} else {
+		if(local_logging_enabled){
+			FILE * log = fopen((logdir_ + "dispatch.failure.log").c_str(),"a");
+			string s (to_string(steady_clock::now()) + ": Could not parse string.\n");
+			std::fwrite(s.c_str(), sizeof(u8), s.length(), log);
+			fclose(log);
+		} else {
+			string s (to_string(steady_clock::now()) + ": Could not parse string.\n");
+			cout << s;
+		}
 	}
-	fpwf.reset();
-	} // if(0)
 }
 
 void dispatcher::subscribe(nsp sub, string channel) {
@@ -292,6 +291,19 @@ void dispatcher::ports_for_zabbix(nsp in) {
 	in->do_write(make_shared<string>(json));
 }
 
+void dispatcher::stored_pbs(nsp in) {
+	for(auto pbs : pbs_locations)
+		in->do_write(pbs);
+}
+
+int dispatcher::store_pbs(stringp str_in) {
+	pbs_locations.emplace_back(str_in);
+	while(pbs_locations.size()>max_size)
+		pbs_locations.pop_front();
+
+	return (max_size - pbs_locations.size());
+}
+
 
 /* December 16, 2015 :: command tree building */
 
@@ -308,6 +320,9 @@ void dispatcher::add_static_leaves() {
 	root.child("get")->child("ports_for_zabbix")->set_fn(
 			std::function<void(nsp)>(
 					bind(&dispatcher::ports_for_zabbix,self,_1)));
+	root.child("get")->child("stored_pbs")->set_fn(
+			std::function<void(nsp)>(
+					bind(&dispatcher::stored_pbs,self,_1)));
 
 	for(auto channel : subscriptions) {
 		root.child("subscribe")->child("to")->spawn(
