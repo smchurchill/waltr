@@ -364,19 +364,21 @@ bBuffp ss::generate_message() {
 
 
 		/*=========================================================================
-		 * Waveform generated is Gompertz function samples at x = 0 .. 63
-		 * with parameters a=2^32-1, b=rand(1), c=rand(2)
+		 * Waveform generated is simple sigmoid
+		 *  65000 / ( 1 + e^ (c * (i-32)))
+		 * where c is a constant between .2 and .3 and i is evaluated on integers
+		 * 0 to 63.
 		 */
 
 		/* Once allocated, this memory is freed when *fpwf is deleted */
 		auto wf = new flopointpb::FloPointWaveform_Waveform;
 
-		double gomp_b = 1 - (static_cast<double>(rand())/RAND_MAX);
-		double gomp_c = 1 - (static_cast<double>(rand())/RAND_MAX);
+		double c = 0.2 + ((static_cast<double>(rand()))/RAND_MAX/10.0);
 
 		for(int i = 0  ; i<64 ; ++i) {
-			wf->add_wheight(
-					static_cast<int>(65000*exp((-1)*gomp_b*exp((-1)*gomp_c)))*i);
+			double value = 65000.0 / (1 + exp(c*(32-i)));
+			u32 int_value = static_cast<u32>(value);
+			wf->add_wheight(int_value);
 		}
 
 		fpwf.set_allocated_waveform(wf);
@@ -431,10 +433,10 @@ string ss::get_rx() {
 }
 
 void ss::get_tx(nsp in) {
-	in->do_write(get_tx());
+	in->do_write(make_shared<string>(get_tx()));
 }
 void ss::get_rx(nsp in) {
-	in->do_write(get_rx());
+	in->do_write(make_shared<string>(get_rx()));
 }
 
 string ss::get_messages_received_tot() {
@@ -445,10 +447,10 @@ string ss::get_messages_lost_tot() {
 }
 
 void ss::get_messages_received_tot(nsp in) {
-	in->do_write(get_messages_received_tot());
+	in->do_write(make_shared<string>(get_messages_received_tot()));
 }
 void ss::get_messages_lost_tot(nsp in) {
-	in->do_write(get_messages_lost_tot());
+	in->do_write(make_shared<string>(get_messages_lost_tot()));
 }
 
 string ss::get_messages_sent_tot() {

@@ -117,7 +117,7 @@ void node::operator()(nsp in) const {
 	if(fn)
 		fn(in);
 	else {
-		in->do_write(descendants(0));
+		in->do_write(make_shared<string>(descendants(0)));
 	}
 }
 

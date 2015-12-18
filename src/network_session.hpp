@@ -105,10 +105,10 @@ shared_ptr<network_session> ns::get_ns() {
 	return shared_from_this();
 }
 
-void ns::do_write(string message) {
+void ns::do_write(stringp message) {
 	auto self (shared_from_this());
 	if(socket_.is_open()) {
-		auto messagep = make_shared<bBuff>(message.begin(),message.end());
+		auto messagep = make_shared<bBuff>(message->begin(),message->end());
 		auto Message = boost::asio::buffer(*messagep);
 		boost::asio::async_write(
 					socket_, Message, bind(&ns::handle_write, self, _1, _2, messagep));
@@ -144,7 +144,7 @@ void ns::handle_read(
 	/* Cut out edge cases */
 	if (in_length >= BUFFER_LENGTH) {
 		string exceeds ("Request exceeds length.\r\n");
-		do_write(exceeds);
+		do_write(make_shared<string>(exceeds));
 	} else {
 		sentence command = buffer_to_sentence(in_length);
 		context_.dispatch->execute_network_command(command, self);

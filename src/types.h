@@ -23,18 +23,20 @@ class node;
 
 typedef serial_session ss;
 typedef network_session ns;
-typedef std::shared_ptr<ss> ssp;
-typedef std::shared_ptr<ns> nsp;
-typedef std::shared_ptr<node> nodep;
+typedef ::std::shared_ptr<ss> ssp;
+typedef ::std::shared_ptr<ns> nsp;
+typedef ::std::shared_ptr<node> nodep;
 
 typedef uint8_t u8;
 typedef uint16_t u16;
-typedef std::deque<u8> pBuff;
-typedef std::vector<u8> bBuff;
-typedef std::shared_ptr<bBuff> bBuffp;
-typedef std::shared_ptr<pBuff> pBuffp;
+typedef uint32_t u32;
+typedef ::std::deque<u8> pBuff;
+typedef ::std::vector<u8> bBuff;
+typedef ::std::shared_ptr<bBuff> bBuffp;
+typedef ::std::shared_ptr<pBuff> pBuffp;
 
-typedef std::deque<std::string> sentence;
+typedef ::std::deque<::std::string> sentence;
+typedef ::std::shared_ptr<::std::string> stringp;
 
 }; // namespace dew
 

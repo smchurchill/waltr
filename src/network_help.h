@@ -9,12 +9,14 @@
 #define NETWORK_HELP_H_
 
 #include <string>
+#include <memory>
 
 #include "network_session.h"
 
 namespace dew {
 
 using ::std::string;
+using ::std::make_shared;
 
 /*=============================================================================
  * December 16, 2015
@@ -24,42 +26,42 @@ using ::std::string;
 
 void help(nsp in) {
 	string to_write ("help called.\n");
-	in->do_write(to_write);
+	in->do_write(make_shared<string>(to_write));
 }
 
 void help_help(nsp in) {
 	string to_write ("help_help called.\n");
-	in->do_write(to_write);
+	in->do_write(make_shared<string>(to_write));
 }
 
 void get_help(nsp in) {
 	string to_write ("get_help called.\n");
-	in->do_write(to_write);
+	in->do_write(make_shared<string>(to_write));
 }
 
 void get_help_rx(nsp in) {
 	string to_write ("get_help_rx(called.\n");
-	in->do_write(to_write);
+	in->do_write(make_shared<string>(to_write));
 }
 
 void get_help_tx(nsp in) {
 	string to_write ("get_help_tx called.\n");
-	in->do_write(to_write);
+	in->do_write(make_shared<string>(to_write));
 }
 
 void get_help_messages_received_tot(nsp in) {
 	string to_write ("get_help_messages_received_tot called.\n");
-	in->do_write(to_write);
+	in->do_write(make_shared<string>(to_write));
 }
 
 void get_help_messages_lost_tot(nsp in) {
 	string to_write ("get_help_messages_lost_tot called.\n");
-	in->do_write(to_write);
+	in->do_write(make_shared<string>(to_write));
 }
 
 void get_help_ports_for_zabbix(nsp in) {
 	string to_write ("get_help_ports_for_zabbix called.\n");
-	in->do_write(to_write);
+	in->do_write(make_shared<string>(to_write));
 }
 
 void help_get(nsp in) {
@@ -68,7 +70,7 @@ void help_get(nsp in) {
 
 void subscribe_help(nsp in) {
 	string to_write ("subscribe_help() called.\n");
-	in->do_write(to_write);
+	in->do_write(make_shared<string>(to_write));
 }
 
 void help_subscribe(nsp in) {
@@ -77,7 +79,7 @@ void help_subscribe(nsp in) {
 
 void unsubscribe_help(nsp in) {
 	string to_write ("unsubscribe_help called.\n");
-	in->do_write(to_write);
+	in->do_write(make_shared<string>(to_write));
 }
 
 void help_unsubscribe(nsp in) {

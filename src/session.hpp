@@ -228,19 +228,31 @@ void dispatcher::forward(shared_ptr<string> msg) {
 		string s (to_string(steady_clock::now()) + ": Could not parse string.\n");
 		cout << s;
 	} else {
-		string wf_str;
+		string ascii_wf_str, raw_wf_str;
 		for(auto wheight : fpwf->waveform().wheight()) {
-			wf_str += '\t';
-			wf_str += (wheight >> 24 ) & 0xFF;
-			wf_str += (wheight >> 16 ) & 0xFF;
-			wf_str += (wheight >> 8 ) & 0xFF;
-			wf_str += wheight & 0xFF;
+			ascii_wf_str += '\t';
+			ascii_wf_str += to_string(wheight);
+
+			raw_wf_str += '\t';
+			raw_wf_str += (wheight >> 24 ) & 0xFF;
+			raw_wf_str += (wheight >> 16 ) & 0xFF;
+			raw_wf_str += (wheight >> 8 ) & 0xFF;
+			raw_wf_str += wheight & 0xFF;
 		}
-		wf_str += '\n';
+		raw_wf_str += '\n';
+		ascii_wf_str += '\n';
+		auto raw_wf_str_p = make_shared<string>(raw_wf_str);
+		auto ascii_wf_str_p = make_shared<string>(ascii_wf_str);
 		for(auto channel : subscriptions)
-			if(channel.first.find("waveform") != string::npos)
-				for(auto subscriber : channel.second)
-					subscriber->do_write(wf_str);
+			if(channel.first.find("waveform") != string::npos) {
+				if(channel.first.find("raw") != string::npos) {
+					for(auto subscriber : channel.second)
+						subscriber->do_write(raw_wf_str_p);
+				} else if(channel.first.find("ascii") != string::npos) {
+					for(auto subscriber : channel.second)
+						subscriber->do_write(ascii_wf_str_p);
+				}
+			}
 	}
 	fpwf.reset();
 	} // if(0)
@@ -250,9 +262,8 @@ void dispatcher::subscribe(nsp sub, string channel) {
 	auto sub_set = subscriptions.find(channel);
 	if(sub_set->second.find(sub) == sub_set->second.end()) {
 		sub_set->second.emplace(sub);
-		sub->do_write("Subscribed to "+channel+"\n");
 	} else
-		sub->do_write("You are already subscribed to "+channel+"\n");
+		sub->do_write(make_shared<string>("You are already subscribed to "+channel+"\n"));
 }
 
 void dispatcher::unsubscribe(nsp sub, string channel) {
@@ -260,9 +271,9 @@ void dispatcher::unsubscribe(nsp sub, string channel) {
 	auto locator = sub_set->second.find(sub);
 	if(locator != sub_set->second.end()) {
 		sub_set->second.erase(locator);
-		sub->do_write("Unsubscribed from "+channel+"\n");
+		sub->do_write(make_shared<string>("Unsubscribed from "+channel+"\n"));
 	} else
-		sub->do_write("You are not subscribed to "+channel+"\n");
+		sub->do_write(make_shared<string>("You are not subscribed to "+channel+"\n"));
 }
 
 
@@ -278,7 +289,7 @@ void dispatcher::ports_for_zabbix(nsp in) {
 			++not_first;
 	}
 	json += "]}";
-	in->do_write(json);
+	in->do_write(make_shared<string>(json));
 }
 
 

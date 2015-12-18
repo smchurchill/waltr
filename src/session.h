@@ -54,7 +54,8 @@ private:
 	list<nsp> network;
 
 	map<string,set<nsp> > subscriptions = {
-			{"raw_waveforms",{}}
+			{"raw_waveforms",{}},
+			{"ascii_waveforms",{}}
 	};
 
 	bool local_logging_enabled = false;
@@ -136,25 +137,17 @@ private:
 			{string("ports_for_zabbix"), std::make_shared<node>()}
 	};
 
-	map<string,nodep> to_nodes = {
-			{string("raw_waveforms"), std::make_shared<node>()}
-	};
-
-	map<string,nodep> from_nodes = {
-			{string("raw_waveforms"), std::make_shared<node>()}
-	};
-
 	map<string,nodep> subscribe_nodes = {
 			{string("help"), std::make_shared<node>(
 					std::function<void(nsp)>(&subscribe_help))},
-			{string("to"), std::make_shared<node>(to_nodes,
+			{string("to"), std::make_shared<node>(
 					std::function<void(nsp)>(&subscribe_help))}
 	};
 
 	map<string,nodep> unsubscribe_nodes = {
 			{string("help"),std::make_shared<node>(
 					std::function<void(nsp)>(&unsubscribe_help))},
-			{string("from"), std::make_shared<node>(from_nodes,
+			{string("from"), std::make_shared<node>(
 					std::function<void(nsp)>(&unsubscribe_help))}
 	};
 

@@ -47,7 +47,7 @@ public:
 
 	void start_accept() { if(acceptor_.is_open()) do_accept(); }
 	void start_read() { if(socket_.is_open()) do_read(); }
-	void do_write(string);
+	void do_write(stringp);
 
 	void cancel_socket() { if(socket_.is_open()) socket_.cancel(); }
 
