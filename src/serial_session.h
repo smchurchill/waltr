@@ -49,6 +49,12 @@ public:
 			string device_in
 	);
 
+	serial_session(
+				context_struct context_in,
+				string device_in,
+				write_test_struct wts_in
+		);
+
 	shared_ptr<serial_session> get_ss();
 
 	/* It is recommended to only invoke _timeout_read if the port is not writing
@@ -91,6 +97,7 @@ private:
 	milliseconds timeout_;
   basic_waitable_timer<steady_clock> timer_;
   bool read_type_is_timeout_;
+  write_test_struct wts_{0};
 
   bool write_type_is_test = false;
 	const size_t MAX_FRAME_LENGTH = 4096;

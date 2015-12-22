@@ -78,6 +78,12 @@ struct message_counter_struct {
 	int garbage;
 };
 
+struct write_test_struct {
+	double min_c;
+	double max_c;
+	int sample_size;
+	double peak;
+};
 
 } //namespace dew
 

@@ -100,13 +100,23 @@ serial_session::serial_session(
 		context_struct context_in,
 		string device_in
 ) :
+		serial_session(context_in, device_in, {0,0,0,0})
+{
+}
+
+serial_session::serial_session(
+		context_struct context_in,
+		string device_in,
+		write_test_struct wts_in
+) :
 		context_(context_in),
 		port_(*context_.service, device_in),
 		fd_(port_.native_handle()),
 		name_(device_in),
 		timeout_(milliseconds(0)),
 		timer_(*context_.service),
-		read_type_is_timeout_(false)
+		read_type_is_timeout_(false),
+		wts_(wts_in)
 {
 }
 
@@ -366,17 +376,23 @@ bBuffp ss::generate_message() {
 		/*=========================================================================
 		 * Waveform generated is simple sigmoid
 		 *  65000 / ( 1 + e^ (c * (i-32)))
-		 * where c is a constant between .2 and .3 and i is evaluated on integers
+		 * where c is a constant between .16 and .4 and i is evaluated on integers
 		 * 0 to 63.
 		 */
 
 		/* Once allocated, this memory is freed when *fpwf is deleted */
 		auto wf = new flopointpb::FloPointMessage_Waveform;
 
-		double c = 0.2 + ((static_cast<double>(rand()))/RAND_MAX/10.0);
+		double to_add = 0.0;
+		if(wts_.sample_size > 0)
+			to_add = (wts_.max_c-wts_.min_c)*mod(counts.messages_sent,wts_.sample_size)/wts_.sample_size;
+		else
+			to_add = (wts_.max_c-wts_.min_c)*(rand()/RAND_MAX);
+
+		double c = wts_.min_c + to_add;
 
 		for(int i = 0  ; i<64 ; ++i) {
-			double value = 65000.0 / (1 + exp(c*(32-i)));
+			double value = wts_.peak / (1 + exp(c*(32-i)));
 			u32 int_value = static_cast<u32>(value);
 			wf->add_wheight(int_value);
 		}

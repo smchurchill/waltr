@@ -80,15 +80,28 @@ using ::std::enable_shared_from_this;
 
 /* December 16, 2015 :: constructors */
 
-dispatcher::dispatcher(shared_ptr<io_service> const& io_in) :
-	context_(io_in),
-	root(root_nodes)
+dispatcher::dispatcher(
+		shared_ptr<io_service> const& io_in
+) :
+		dispatcher(io_in, "/dev/null")
 {
 }
-dispatcher::dispatcher(shared_ptr<io_service> const& io_in, string log_in) :
-	context_(io_in),
-	logdir_(log_in),
-	root(root_nodes)
+dispatcher::dispatcher(
+		shared_ptr<io_service> const& io_in,
+		string log_in
+) :
+		dispatcher(io_in, log_in, {0,0,0,0})
+{
+}
+dispatcher::dispatcher(
+		shared_ptr<io_service> const& io_in,
+		string log_in,
+		write_test_struct wts_in
+) :
+		context_(io_in),
+		logdir_(log_in),
+		wts_(wts_in),
+		root(root_nodes)
 {
 }
 
@@ -142,7 +155,7 @@ ssp dispatcher::make_rw_ss(string device_name) {
 }
 
 ssp dispatcher::make_rwt_ss(string device_name) {
-	auto pt = make_ss(device_name);
+	auto pt = make_sst(device_name);
 	serial_reading.emplace_back(pt->get_ss());
 	serial_writing.emplace_back(pt->get_ss());
 	pt->start_read();
@@ -151,7 +164,7 @@ ssp dispatcher::make_rwt_ss(string device_name) {
 }
 
 ssp dispatcher::make_wt_ss(string device_name) {
-	auto pt = make_ss(device_name);
+	auto pt = make_sst(device_name);
 	serial_writing.emplace_back(pt->get_ss());
 	pt->start_write();
 	return pt->get_ss();
@@ -166,6 +179,12 @@ ssp dispatcher::make_w_ss(string device_name) {
 ssp dispatcher::make_ss(string device_name, unsigned short timeout) {
 	auto pt = make_shared<ss>(context_struct(context_, shared_from_this()), device_name,
 			milliseconds(timeout));
+	return pt->get_ss();
+}
+
+ssp dispatcher::make_sst(string device_name) {
+	auto pt = make_shared<ss>(context_struct(context_, shared_from_this()), device_name,
+			wts_);
 	return pt->get_ss();
 }
 
@@ -209,27 +228,13 @@ void dispatcher::forward(shared_ptr<string> message) {
 
 	if(parse_successful) {
 		store_pbs(message);
-		string ascii_wf_str, raw_wf_str;
-		for(auto wheight : fpm->waveform().wheight()) {
-			ascii_wf_str += '\t';
-			ascii_wf_str += to_string(wheight);
-
-			raw_wf_str += '\t';
-			raw_wf_str += (wheight >> 24 ) & 0xFF;
-			raw_wf_str += (wheight >> 16 ) & 0xFF;
-			raw_wf_str += (wheight >> 8 ) & 0xFF;
-			raw_wf_str += wheight & 0xFF;
-		}
-		raw_wf_str += '\n';
-		ascii_wf_str += '\n';
-		auto raw_wf_str_p = make_shared<string>(raw_wf_str);
-		auto ascii_wf_str_p = make_shared<string>(ascii_wf_str);
+		auto fpwf = make_shared<::flopointpb::FloPointMessage_Waveform>(fpm->waveform());
 
 		for(auto subscriber : subscriptions["raw_waveforms"])
-				subscriber->do_write(raw_wf_str_p);
+				subscriber->do_write(waveform_ts_bytes(fpwf));
 
 		for(auto subscriber : subscriptions["ascii_waveforms"])
-				subscriber->do_write(ascii_wf_str_p);
+				subscriber->do_write(waveform_ts_ascii(fpwf));
 
 		for(auto subscriber : subscriptions["protobuf"])
 					subscriber->do_write(message);
@@ -256,6 +261,33 @@ void dispatcher::forward(shared_ptr<string> message) {
 		}
 	}
 }
+
+stringp dispatcher::waveform_ts_ascii(shared_ptr<::flopointpb::FloPointMessage_Waveform> fpm_p) {
+	auto ascii_wf_str = make_shared<string>();
+	for(auto wheight : fpm_p->wheight()) {
+		ascii_wf_str->append("\t");
+		ascii_wf_str->append(to_string(wheight));
+	}
+	ascii_wf_str->append("\n");
+	return ascii_wf_str;
+}
+
+
+stringp dispatcher::waveform_ts_bytes(shared_ptr<::flopointpb::FloPointMessage_Waveform> fpm_p) {
+	auto raw_wf_str = make_shared<string>();
+	for(auto wheight : fpm_p->wheight()) {
+		raw_wf_str->append("\t");
+		raw_wf_str->append(to_string((wheight >> 24 ) & 0xFF));
+		raw_wf_str->append(to_string((wheight >> 16 ) & 0xFF));
+		raw_wf_str->append(to_string((wheight >> 8 ) & 0xFF));
+		raw_wf_str->append(to_string(wheight & 0xFF));
+	}
+	raw_wf_str->append("\n");
+
+	return raw_wf_str;
+}
+
+
 
 void dispatcher::subscribe(nsp sub, string channel) {
 	auto sub_set = subscriptions.find(channel);
@@ -292,8 +324,27 @@ void dispatcher::ports_for_zabbix(nsp in) {
 }
 
 void dispatcher::stored_pbs(nsp in) {
-	for(auto pbs : pbs_locations)
-		in->do_write(pbs);
+	::flopointpb::FloPointMultiMessage fpmm;
+
+	for(auto pbs : pbs_locations) {
+		auto fpm = fpmm.add_messages();
+		fpm->ParseFromString(*pbs);
+	}
+
+	in->do_write(make_shared<string>(fpmm.SerializeAsString()));
+}
+
+void dispatcher::stored_ascii_waveforms(nsp in) {
+	auto to_send = make_shared<string>();
+	::flopointpb::FloPointMessage fpm;
+
+	for(auto pbs : pbs_locations) {
+			fpm.ParseFromString(*pbs);
+			auto fpwf = make_shared<::flopointpb::FloPointMessage_Waveform>(fpm.waveform());
+			to_send->append(*waveform_ts_ascii(fpwf));
+			fpm.Clear();
+		}
+	in->do_write(to_send);
 }
 
 int dispatcher::store_pbs(stringp str_in) {
@@ -323,6 +374,9 @@ void dispatcher::add_static_leaves() {
 	root.child("get")->child("stored_pbs")->set_fn(
 			std::function<void(nsp)>(
 					bind(&dispatcher::stored_pbs,self,_1)));
+	root.child("get")->child("stored_ascii_waveforms")->set_fn(
+			std::function<void(nsp)>(
+					bind(&dispatcher::stored_ascii_waveforms,self,_1)));
 
 	for(auto channel : subscriptions) {
 		root.child("subscribe")->child("to")->spawn(

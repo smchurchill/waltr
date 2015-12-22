@@ -41,13 +41,15 @@ using ::std::enable_shared_from_this;
 
 class dispatcher : public enable_shared_from_this<dispatcher> {
 public:
-	dispatcher(shared_ptr<io_service> const& io_in);
-	dispatcher(shared_ptr<io_service> const& io_in, string log_in);
+	dispatcher(shared_ptr<io_service> const&);
+	dispatcher(shared_ptr<io_service> const&, string);
+	dispatcher(shared_ptr<io_service> const&, string, write_test_struct);
 	~dispatcher() {}
 
 private:
 	context_struct_lite context_;
 	string logdir_;
+	write_test_struct wts_;
 
 	list<ssp> serial_reading;
 	list<ssp> serial_writing;
@@ -79,28 +81,33 @@ public:
 	ssp make_w_ss(string);
 private:
 	ssp make_ss (string, unsigned short);
+	ssp make_sst (string);
 	ssp make_ss (string);
 
 /* Method type: network communications */
 public:
 	void execute_network_command(sentence, nsp);
 	nodep execute_tree( sentence, nodep);
-	void delivery(shared_ptr<string>);
+	void delivery(stringp);
 	string get_command_tree_from_root();
 
 private:
-	void forward(shared_ptr<string>);
+	void forward(stringp);
 	void forward_handler(const error_code&,size_t, bBuffp, nsp);
+
+	stringp waveform_ts_ascii(shared_ptr<::flopointpb::FloPointMessage_Waveform>);
+	stringp waveform_ts_bytes(shared_ptr<::flopointpb::FloPointMessage_Waveform>);
 
 	void subscribe(nsp, string);
 	void unsubscribe(nsp, string);
 
 	void ports_for_zabbix(nsp);
 	void stored_pbs(nsp);
-	string command_tree_from(nodep);
+	void stored_ascii_waveforms(nsp);
 
 	int store_pbs(stringp);
 
+	string command_tree_from(nodep);
 
 /* Method type: command tree building */
 public:
@@ -142,7 +149,8 @@ private:
 			{string("messages_lost_tot"), std::make_shared<node>(
 					std::function<void(nsp)>(&get_help_messages_lost_tot))},
 			{string("ports_for_zabbix"), std::make_shared<node>()},
-			{string("stored_pbs"), std::make_shared<node>()}
+			{string("stored_pbs"), std::make_shared<node>()},
+			{string("stored_ascii_waveforms"), std::make_shared<node>()},
 	};
 
 	map<string,nodep> subscribe_nodes = {
