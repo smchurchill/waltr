@@ -375,7 +375,7 @@ bBuffp ss::generate_message() {
 
 		/*=========================================================================
 		 * Waveform generated is simple sigmoid
-		 *  65000 / ( 1 + e^ (c * (i-32)))
+		 *  peak / ( 1 + e^ (c * (i-32)))
 		 * where c is a constant between .16 and .4 and i is evaluated on integers
 		 * 0 to 63.
 		 */
