@@ -365,7 +365,7 @@ bBuffp ss::generate_message() {
 		/* crc byte */
 		message->push_back(crc);
 
-		int num = mod(rand(),9);
+		int num = mod(rand(),8);
 		string name (to_string(num) + "of09");
 
 

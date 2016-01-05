@@ -205,12 +205,6 @@ void graceful_exit(const boost::system::error_code& error, int signal_number)
 	exit(0);
 }
 
-void set_endpoints(vector<tcp::endpoint>* end, vector<string>* addr, const int port_num){
-	for(auto it : *addr)
-		end->emplace_back(address_v4::from_string(it),port_num);
-}
-
-
 
 }; // namespace dew
 

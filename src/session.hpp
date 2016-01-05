@@ -123,6 +123,11 @@ nsp dispatcher::make_ns (tcp::endpoint& ep_in) {
 	return pt->get_ns();
 }
 
+nsp dispatcher::make_ns (address_v4 addr_in, const int port_in) {
+	tcp::endpoint end (addr_in, port_in);
+	return make_ns(end);
+}
+
 nsp dispatcher::make_ns (tcp::socket& sock_in) {
 	auto pt = make_shared<ns>(context_struct(context_, shared_from_this()), sock_in);
 	pt->start_read();
@@ -229,6 +234,7 @@ void dispatcher::forward(shared_ptr<string> message) {
 	if(parse_successful) {
 		store_pbs(message);
 		auto fpwf = make_shared<::flopointpb::FloPointMessage_Waveform>(fpm->waveform());
+		string pb_name("protobuf_"+fpm->name());
 
 		for(auto subscriber : subscriptions["raw_waveforms"])
 				subscriber->do_write(waveform_ts_bytes(fpwf));
@@ -236,8 +242,11 @@ void dispatcher::forward(shared_ptr<string> message) {
 		for(auto subscriber : subscriptions["ascii_waveforms"])
 				subscriber->do_write(waveform_ts_ascii(fpwf));
 
-		for(auto subscriber : subscriptions["protobuf"])
-					subscriber->do_write(message);
+		for(auto subscriber : subscriptions["protobuf_all"])
+				subscriber->do_write(message);
+
+		for(auto subscriber : subscriptions[pb_name])
+				subscriber->do_write(message);
 
 		if(local_logging_enabled){
 			FILE * log = fopen((logdir_ + "dispatch.message.log").c_str(),"a");

@@ -58,7 +58,15 @@ private:
 	map<string,set<nsp> > subscriptions = {
 			{"raw_waveforms",{}},
 			{"ascii_waveforms",{}},
-			{"protobuf",{}}
+			{"protobuf_all",{}},
+			{"protobuf_0of09",{}},
+			{"protobuf_1of09",{}},
+			{"protobuf_2of09",{}},
+			{"protobuf_3of09",{}},
+			{"protobuf_4of09",{}},
+			{"protobuf_5of09",{}},
+			{"protobuf_6of09",{}},
+			{"protobuf_7of09",{}},
 	};
 
 	deque<stringp> pbs_locations;
@@ -71,6 +79,7 @@ private:
 /* Method type: creation and destruction of sessions */
 public:
 	nsp make_ns (tcp::endpoint&);
+	nsp make_ns (address_v4, const int);
 	nsp make_ns (tcp::socket&);
 	void remove_ns (nsp);
 
