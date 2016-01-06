@@ -115,6 +115,11 @@ void ns::do_write(stringp message) {
 	}
 }
 
+void ns::do_connect() {
+	auto self (shared_from_this());
+	socket_.async_connect(endpoint_, bind(&ns::handle_connect, self, _1));
+}
+
 void ns::do_accept() {
 	auto self (shared_from_this());
 	acceptor_.async_accept(socket_,
@@ -156,6 +161,13 @@ void ns::handle_read(
 void ns::handle_write(
 		boost::system::error_code ec, size_t in_length, bBuffp buffer) {
 	buffer.reset();
+	return;
+}
+
+void ns::handle_connect(boost::system::error_code ec) {
+	if(ec) {
+		//oh no!
+	}
 	return;
 }
 

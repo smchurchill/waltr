@@ -55,18 +55,32 @@ private:
 	list<ssp> serial_writing;
 	list<nsp> network;
 
+	sentence boards = {
+			"0of09",
+			"1of09",
+			"2of09",
+			"3of09",
+			"4of09",
+			"5of09",
+			"6of09",
+			"7of09"
+	};
+
 	map<string,set<nsp> > subscriptions = {
 			{"raw_waveforms",{}},
 			{"ascii_waveforms",{}},
-			{"protobuf_all",{}},
-			{"protobuf_0of09",{}},
-			{"protobuf_1of09",{}},
-			{"protobuf_2of09",{}},
-			{"protobuf_3of09",{}},
-			{"protobuf_4of09",{}},
-			{"protobuf_5of09",{}},
-			{"protobuf_6of09",{}},
-			{"protobuf_7of09",{}},
+			{"protobuf_all",{}}
+	};
+
+	map<string,set<nsp> > board_subscriptions = {
+			{"0of09",{}},
+			{"1of09",{}},
+			{"2of09",{}},
+			{"3of09",{}},
+			{"4of09",{}},
+			{"5of09",{}},
+			{"6of09",{}},
+			{"7of09",{}}
 	};
 
 	deque<stringp> pbs_locations;
@@ -110,6 +124,9 @@ private:
 	void subscribe(nsp, string);
 	void unsubscribe(nsp, string);
 
+	void board_subscribe(nsp, string);
+	void board_unsubscribe(nsp, string);
+
 	void ports_for_zabbix(nsp);
 	void stored_pbs(nsp);
 	void stored_ascii_waveforms(nsp);
@@ -130,8 +147,7 @@ private:
 /* Method type: basic information */
 public:
 	string get_logdir() { return logdir_; }
-	shared_ptr<const ss> get_ss_from_name(string name);
-	shared_ptr<const ns> get_ns_from_name(string name);
+	sentence get_known_boards() { return boards; }
 
 /* Member type: command tree from root */
 private:

@@ -135,6 +135,7 @@ nsp dispatcher::make_ns (tcp::socket& sock_in) {
 	return pt->get_ns();
 }
 
+
 void dispatcher::remove_ns (nsp to_remove) {
 	to_remove->cancel_socket();
 
@@ -234,7 +235,6 @@ void dispatcher::forward(shared_ptr<string> message) {
 	if(parse_successful) {
 		store_pbs(message);
 		auto fpwf = make_shared<::flopointpb::FloPointMessage_Waveform>(fpm->waveform());
-		string pb_name("protobuf_"+fpm->name());
 
 		for(auto subscriber : subscriptions["raw_waveforms"])
 				subscriber->do_write(waveform_ts_bytes(fpwf));
@@ -245,7 +245,7 @@ void dispatcher::forward(shared_ptr<string> message) {
 		for(auto subscriber : subscriptions["protobuf_all"])
 				subscriber->do_write(message);
 
-		for(auto subscriber : subscriptions[pb_name])
+		for(auto subscriber : board_subscriptions[fpm->name()])
 				subscriber->do_write(message);
 
 		if(local_logging_enabled){
@@ -271,7 +271,8 @@ void dispatcher::forward(shared_ptr<string> message) {
 	}
 }
 
-stringp dispatcher::waveform_ts_ascii(shared_ptr<::flopointpb::FloPointMessage_Waveform> fpm_p) {
+stringp dispatcher::waveform_ts_ascii(
+		shared_ptr<::flopointpb::FloPointMessage_Waveform> fpm_p) {
 	auto ascii_wf_str = make_shared<string>();
 	for(auto wheight : fpm_p->wheight()) {
 		ascii_wf_str->append("\t");
@@ -282,7 +283,8 @@ stringp dispatcher::waveform_ts_ascii(shared_ptr<::flopointpb::FloPointMessage_W
 }
 
 
-stringp dispatcher::waveform_ts_bytes(shared_ptr<::flopointpb::FloPointMessage_Waveform> fpm_p) {
+stringp dispatcher::waveform_ts_bytes(
+		shared_ptr<::flopointpb::FloPointMessage_Waveform> fpm_p) {
 	auto raw_wf_str = make_shared<string>();
 	for(auto wheight : fpm_p->wheight()) {
 		raw_wf_str->append("\t");
@@ -296,8 +298,6 @@ stringp dispatcher::waveform_ts_bytes(shared_ptr<::flopointpb::FloPointMessage_W
 	return raw_wf_str;
 }
 
-
-
 void dispatcher::subscribe(nsp sub, string channel) {
 	auto sub_set = subscriptions.find(channel);
 	if(sub_set->second.find(sub) == sub_set->second.end()) {
@@ -308,6 +308,24 @@ void dispatcher::subscribe(nsp sub, string channel) {
 
 void dispatcher::unsubscribe(nsp sub, string channel) {
 	auto sub_set = subscriptions.find(channel);
+	auto locator = sub_set->second.find(sub);
+	if(locator != sub_set->second.end()) {
+		sub_set->second.erase(locator);
+		sub->do_write(make_shared<string>("Unsubscribed from "+channel+"\n"));
+	} else
+		sub->do_write(make_shared<string>("You are not subscribed to "+channel+"\n"));
+}
+
+void dispatcher::board_subscribe(nsp sub, string channel) {
+	auto sub_set = board_subscriptions.find(channel);
+	if(sub_set->second.find(sub) == sub_set->second.end()) {
+		sub_set->second.emplace(sub);
+	} else
+		sub->do_write(make_shared<string>("You are already subscribed to "+channel+"\n"));
+}
+
+void dispatcher::board_unsubscribe(nsp sub, string channel) {
+	auto sub_set = board_subscriptions.find(channel);
 	auto locator = sub_set->second.find(sub);
 	if(locator != sub_set->second.end()) {
 		sub_set->second.erase(locator);
@@ -400,6 +418,25 @@ void dispatcher::add_static_leaves() {
 				std::function<void(nsp)>(
 						bind(&dispatcher::unsubscribe,self,_1,channel.first)));
 	}
+
+	root.child("subscribe")->child("to")->spawn(
+			"board", make_shared<node>());
+	root.child("unsubscribe")->child("to")->spawn(
+				"board", make_shared<node>());
+
+	for(auto channel : board_subscriptions) {
+		root.child("subscribe")->child("to")->child("board")->spawn(
+				channel.first, make_shared<node>());
+		root.child("unsubscribe")->child("from")->child("board")->spawn(
+				channel.first, make_shared<node>());
+
+		root.child("subscribe")->child("to")->child(channel.first)->set_fn(
+				std::function<void(nsp)>(
+								bind(&dispatcher::board_subscribe,self,_1,channel.first)));
+		root.child("unsubscribe")->child("from")->child(channel.first)->set_fn(
+				std::function<void(nsp)>(
+						bind(&dispatcher::board_unsubscribe,self,_1,channel.first)));
+	} // board_subscription services are not intended to remain static.
 	added_static_leaves = true;
 }
 
@@ -438,6 +475,7 @@ void dispatcher::add_dynamic_leaves() {
 	}
 
 }
+
 
 } //namespace
 
