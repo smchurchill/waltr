@@ -55,24 +55,10 @@ private:
 	list<ssp> serial_writing;
 	list<nsp> network;
 
-	sentence boards = {
-			"0of09",
-			"1of09",
-			"2of09",
-			"3of09",
-			"4of09",
-			"5of09",
-			"6of09",
-			"7of09"
-	};
-
 	map<string,set<nsp> > subscriptions = {
 			{"raw_waveforms",{}},
 			{"ascii_waveforms",{}},
-			{"protobuf_all",{}}
-	};
-
-	map<string,set<nsp> > board_subscriptions = {
+			{"protobuf_all",{}},
 			{"0of09",{}},
 			{"1of09",{}},
 			{"2of09",{}},
@@ -80,7 +66,9 @@ private:
 			{"4of09",{}},
 			{"5of09",{}},
 			{"6of09",{}},
-			{"7of09",{}}
+			{"7of09",{}},
+			{"8of09",{}},
+			{"9of09",{}}
 	};
 
 	deque<stringp> pbs_locations;
@@ -93,7 +81,7 @@ private:
 /* Method type: creation and destruction of sessions */
 public:
 	nsp make_ns (tcp::endpoint&);
-	nsp make_ns (address_v4, const int);
+	nsp make_fp_ns (tcp::endpoint&);
 	nsp make_ns (tcp::socket&);
 	void remove_ns (nsp);
 

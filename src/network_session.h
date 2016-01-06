@@ -61,11 +61,9 @@ private:
 	tcp::endpoint endpoint_;
 	tcp::acceptor acceptor_;
 	tcp::socket socket_;
-	string name_;
 
 	const long BUFFER_LENGTH = 8192;
 	bBuff request = bBuff (BUFFER_LENGTH);
-
 
 	void do_connect();
 	void do_accept();
@@ -75,8 +73,7 @@ private:
 	void handle_connect(boost::system::error_code);
 	sentence buffer_to_sentence(int len);
 
-	string get_name() { return name_; }
-	string get_type() { return string("network"); }
+public:
 };
 
 } // dew namespace

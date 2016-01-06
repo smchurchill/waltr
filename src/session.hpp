@@ -123,11 +123,6 @@ nsp dispatcher::make_ns (tcp::endpoint& ep_in) {
 	return pt->get_ns();
 }
 
-nsp dispatcher::make_ns (address_v4 addr_in, const int port_in) {
-	tcp::endpoint end (addr_in, port_in);
-	return make_ns(end);
-}
-
 nsp dispatcher::make_ns (tcp::socket& sock_in) {
 	auto pt = make_shared<ns>(context_struct(context_, shared_from_this()), sock_in);
 	pt->start_read();
@@ -245,7 +240,7 @@ void dispatcher::forward(shared_ptr<string> message) {
 		for(auto subscriber : subscriptions["protobuf_all"])
 				subscriber->do_write(message);
 
-		for(auto subscriber : board_subscriptions[fpm->name()])
+		for(auto subscriber : subscriptions[fpm->name()])
 				subscriber->do_write(message);
 
 		if(local_logging_enabled){
@@ -303,7 +298,8 @@ void dispatcher::subscribe(nsp sub, string channel) {
 	if(sub_set->second.find(sub) == sub_set->second.end()) {
 		sub_set->second.emplace(sub);
 	} else
-		sub->do_write(make_shared<string>("You are already subscribed to "+channel+"\n"));
+		if(0)
+			sub->do_write(make_shared<string>("You are already subscribed to "+channel+"\n"));
 }
 
 void dispatcher::unsubscribe(nsp sub, string channel) {
@@ -311,29 +307,12 @@ void dispatcher::unsubscribe(nsp sub, string channel) {
 	auto locator = sub_set->second.find(sub);
 	if(locator != sub_set->second.end()) {
 		sub_set->second.erase(locator);
-		sub->do_write(make_shared<string>("Unsubscribed from "+channel+"\n"));
+		if(0)
+			sub->do_write(make_shared<string>("Unsubscribed from "+channel+"\n"));
 	} else
-		sub->do_write(make_shared<string>("You are not subscribed to "+channel+"\n"));
+		if(0)
+			sub->do_write(make_shared<string>("You are not subscribed to "+channel+"\n"));
 }
-
-void dispatcher::board_subscribe(nsp sub, string channel) {
-	auto sub_set = board_subscriptions.find(channel);
-	if(sub_set->second.find(sub) == sub_set->second.end()) {
-		sub_set->second.emplace(sub);
-	} else
-		sub->do_write(make_shared<string>("You are already subscribed to "+channel+"\n"));
-}
-
-void dispatcher::board_unsubscribe(nsp sub, string channel) {
-	auto sub_set = board_subscriptions.find(channel);
-	auto locator = sub_set->second.find(sub);
-	if(locator != sub_set->second.end()) {
-		sub_set->second.erase(locator);
-		sub->do_write(make_shared<string>("Unsubscribed from "+channel+"\n"));
-	} else
-		sub->do_write(make_shared<string>("You are not subscribed to "+channel+"\n"));
-}
-
 
 void dispatcher::ports_for_zabbix(nsp in) {
 	string json ("{\"data\":[");
@@ -424,19 +403,6 @@ void dispatcher::add_static_leaves() {
 	root.child("unsubscribe")->child("to")->spawn(
 				"board", make_shared<node>());
 
-	for(auto channel : board_subscriptions) {
-		root.child("subscribe")->child("to")->child("board")->spawn(
-				channel.first, make_shared<node>());
-		root.child("unsubscribe")->child("from")->child("board")->spawn(
-				channel.first, make_shared<node>());
-
-		root.child("subscribe")->child("to")->child(channel.first)->set_fn(
-				std::function<void(nsp)>(
-								bind(&dispatcher::board_subscribe,self,_1,channel.first)));
-		root.child("unsubscribe")->child("from")->child(channel.first)->set_fn(
-				std::function<void(nsp)>(
-						bind(&dispatcher::board_unsubscribe,self,_1,channel.first)));
-	} // board_subscription services are not intended to remain static.
 	added_static_leaves = true;
 }
 

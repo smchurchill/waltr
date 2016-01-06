@@ -208,5 +208,29 @@ void graceful_exit(const boost::system::error_code& error, int signal_number)
 
 }; // namespace dew
 
+/* January 5, 2016
+ *
+ * Takes an ip4_addr:port_number string as input and returns an endpoint.
+ */
+using ::boost::asio::ip::tcp;
+using ::std::string;
+
+tcp::endpoint stoe (string str) {
+	string ip;
+	short port;
+	auto pos = str.find(':');
+	if(pos == string::npos) {
+		ip = str;
+		port = 2023;
+	} else { // pos < npos...
+		assert(pos < string::npos);
+		ip = str.substr(0, pos);
+		port = std::stoi(str.substr(pos+1, string::npos));
+	}
+	tcp::endpoint endpoint (address_v4::from_string(ip), port);
+	return endpoint;
+}
+
+
 
 #endif /* UTILS_H_ */

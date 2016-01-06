@@ -83,9 +83,6 @@ ns::network_session(
 		acceptor_(*context_.service, ep_in),
 		socket_(*context_.service)
 {
-		stringstream ss;
-		ss << endpoint_;
-		name_ = ss.str();
 }
 
 ns::network_session(
@@ -96,9 +93,6 @@ ns::network_session(
 		acceptor_(*context_.service),
 		socket_(move(sock_in))
 {
-		stringstream ss;
-		ss << socket_.remote_endpoint();
-		name_ = ss.str();
 }
 
 shared_ptr<network_session> ns::get_ns() {
