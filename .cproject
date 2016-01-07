@@ -57,8 +57,8 @@
 								</option>
 								<option id="gnu.cpp.link.option.userobjs.853840998" name="Other objects" superClass="gnu.cpp.link.option.userobjs" valueType="userObjs">
 									<listOptionValue builtIn="false" value="/boost/stage/lib/libboost_chrono.a"/>
-									<listOptionValue builtIn="false" value="/boost/stage/lib/libboost_system.a"/>
 									<listOptionValue builtIn="false" value="/boost/stage/lib/libboost_filesystem.a"/>
+									<listOptionValue builtIn="false" value="/boost/stage/lib/libboost_system.a"/>
 									<listOptionValue builtIn="false" value="/boost/stage/lib/libboost_program_options.a"/>
 								</option>
 								<option id="gnu.cpp.link.option.paths.1452675446" name="Library search path (-L)" superClass="gnu.cpp.link.option.paths" valueType="libPaths">
@@ -135,6 +135,7 @@
 								</option>
 								<option id="gnu.cpp.link.option.userobjs.299137122" name="Other objects" superClass="gnu.cpp.link.option.userobjs" valueType="userObjs">
 									<listOptionValue builtIn="false" value="/boost/stage/lib/libboost_chrono.a"/>
+									<listOptionValue builtIn="false" value="/boost/stage/lib/libboost_filesystem.a"/>
 									<listOptionValue builtIn="false" value="/boost/stage/lib/libboost_system.a"/>
 									<listOptionValue builtIn="false" value="/boost/stage/lib/libboost_program_options.a"/>
 								</option>

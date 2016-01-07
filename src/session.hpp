@@ -150,7 +150,8 @@ string maintainer::logfile(string channel) {
 			<< system_clock::now();
 	path p (ss.str());
 	if(!::boost::filesystem::exists(p))
-		assert(::boost::filesystem::create_directories(p));
+		if(!::boost::filesystem::create_directories(p))
+			assert(false);
 
 	ss << "/"
 			<< ::boost::chrono::time_fmt(::boost::chrono::timezone::local, "%H")
