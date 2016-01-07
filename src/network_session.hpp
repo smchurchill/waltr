@@ -31,7 +31,6 @@
 #include "utils.h"
 
 #include "network_session.h"
-#include "network_help.h"
 #include "session.h"
 
 
@@ -68,30 +67,20 @@ using ::std::enable_shared_from_this;
 
 ns::network_session(context_struct context_in) :
 		context_(context_in),
-		endpoint_(),
-		acceptor_(*context_.service),
+		dewd_(),
 		socket_(*context_.service)
 {
 }
 
 ns::network_session(
 		context_struct context_in,
-		tcp::endpoint const& ep_in
+		tcp::endpoint const& ep_in,
+		string channel_in
 ) :
 		context_(context_in),
-		endpoint_(ep_in),
-		acceptor_(*context_.service, ep_in),
-		socket_(*context_.service)
-{
-}
-
-ns::network_session(
-		context_struct context_in,
-		tcp::socket& sock_in
-) :
-		context_(context_in),
-		acceptor_(*context_.service),
-		socket_(move(sock_in))
+		dewd_(ep_in),
+		socket_(*context_.service),
+		channel_(channel_in)
 {
 }
 
@@ -109,46 +98,41 @@ void ns::do_write(stringp message) {
 	}
 }
 
-void ns::do_connect() {
-	auto self (shared_from_this());
-	socket_.async_connect(endpoint_, bind(&ns::handle_connect, self, _1));
+void ns::do_write(string& message) {
+	auto messagep = make_shared<string>(message);
+	do_write(messagep);
 }
 
-void ns::do_accept() {
+
+void ns::do_connect() {
 	auto self (shared_from_this());
-	acceptor_.async_accept(socket_,
-			[this,self](error_code ec)
-			{
-				if(!ec) {
-					context_.dispatch->make_ns(socket_);
-				}
-				start_accept();
-			});
+	socket_.async_connect(dewd_, bind(&ns::handle_connect, self, _1));
+	do_read();
 }
 
 void ns::do_read() {
 	auto self (shared_from_this());
-	socket_.async_read_some(boost::asio::buffer(request),bind(
-			&ns::handle_read,self,_1,_2));
+	auto buffer = make_shared<bBuff> (BUFFER_LENGTH);
+	auto Buffer = boost::asio::buffer(*buffer);
+	auto handler = bind(&ns::handle_read, self, _1, _2, buffer);
+	socket_.async_read_some(Buffer, handler);
 }
 
 void ns::handle_read(
-		boost::system::error_code ec, size_t in_length) {
+		boost::system::error_code ec, size_t in_length, bBuffp buffer) {
 	if(ec){
+		dprint(ec);
 		context_.dispatch->remove_ns(shared_from_this());
 		return;
 	} else {
-	auto self (shared_from_this());
-
-	/* Cut out edge cases */
-	if (in_length >= BUFFER_LENGTH) {
-		string exceeds ("Request exceeds length.\r\n");
-		do_write(make_shared<string>(exceeds));
-	} else {
-		sentence command = buffer_to_sentence(in_length);
-		context_.dispatch->execute_network_command(command, self);
-	}
-	do_read();
+		do_read();
+		auto self (shared_from_this());
+		if(!buffer->empty()) {
+			if(the_deque.empty())
+				front_last = steady_clock::now();
+			copy(buffer->begin(),buffer->begin()+in_length, back_inserter(the_deque));
+		}
+		set_a_check();
 	}
 }
 
@@ -161,21 +145,72 @@ void ns::handle_write(
 void ns::handle_connect(boost::system::error_code ec) {
 	if(ec) {
 		//oh no!
+	} else {
+		auto sub_cmd = make_shared<string>("subscribe to "+channel_);
+		do_write(sub_cmd);
 	}
-	return;
 }
 
-sentence ns::buffer_to_sentence(int len) {
-	stringstream ss;
-	for(auto c : make_iterator_range(request.begin(),request.begin()+len))
-	ss << c;
-	sentence s;
-	string in;
-	while(ss >> in)
-		s.push_back(in);
+/* This whole section has pretty similar logic to the checking in
+ * the dewd's serial_session class.
+ */
 
-	return s;
+void ns::set_a_check() {
+	auto self (shared_from_this());
+	context_.service->post(boost::bind(&ns::check_the_deque,self));
 }
+
+void ns::check_the_deque() {
+	auto self (shared_from_this());
+	if(the_deque.size()<7)
+		return;
+
+	if(the_deque[0] != 0xff || the_deque[1]!=0xfe) {
+		scrub(the_deque.begin()+2);
+		set_a_check();
+		return;
+	}
+
+	pBuff end = {0xfe, 0xff};
+	pBuff::iterator match_point =
+			search(the_deque.begin()+2, the_deque.end(), end.begin(), end.end());
+
+	if(match_point == the_deque.end()) {
+		if(the_deque.size()>MAX_FRAME_LENGTH) {
+			scrub(the_deque.begin()+1);
+			set_a_check();
+			return;
+		} else if (steady_clock::now() - front_last > milliseconds(100)) {
+			scrub(the_deque.begin()+1);
+			set_a_check();
+			return;
+		}
+	} else { /* We have a message.  Remember: ff, fe, msg, crc, fe, ff */
+			pBuff to_send;
+			assert(match_point+2 <= the_deque.end());
+			copy(the_deque.begin()+2,match_point,back_inserter(to_send));
+			scrub(match_point+2);
+			if(crc8(make_iterator_range(to_send.begin(),to_send.end()))
+					!= to_send.back()) {// uh oh!  crc doesn't match!
+				assert(false);
+			} else {
+				auto str_to_send = make_shared<string>(to_send.begin(),to_send.end()-1);
+				context_.dispatch->delivery(str_to_send);
+			}
+
+			/* Loop checks until to_parse has no more messages waiting for us. */
+			set_a_check();
+	}
+}
+
+int ns::scrub(pBuff::iterator iter) {
+	pBuff::iterator oter = find(iter,the_deque.end(),0xff);
+	int bytes = oter - the_deque.begin();
+	the_deque.erase(the_deque.begin(), oter);
+	front_last = steady_clock::now();
+	return bytes;
+}
+
 
 } // dew namespace
 

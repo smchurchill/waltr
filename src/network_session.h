@@ -29,16 +29,12 @@ using ::std::enable_shared_from_this;
 
 class network_session : public enable_shared_from_this<network_session> {
 public:
-	network_session(context_struct context_in);
+	network_session(context_struct);
 
 	network_session(
-			context_struct context_in,
-			tcp::endpoint const& ep_in
-	);
-
-	network_session(
-			context_struct context_in,
-			tcp::socket& sock_in
+			context_struct,
+			tcp::endpoint const&,
+			string
 	);
 
 	~network_session() {};
@@ -46,9 +42,8 @@ public:
 	shared_ptr<network_session> get_ns();
 
 	void start_connect() { do_connect(); }
-	void start_accept() { if(acceptor_.is_open()) do_accept(); }
-	void start_read() { if(socket_.is_open()) do_read(); }
 	void do_write(stringp);
+	void do_write(string&);
 
 	void cancel_socket() { if(socket_.is_open()) socket_.cancel(); }
 
@@ -58,20 +53,24 @@ public:
  */
 private:
 	context_struct context_;
-	tcp::endpoint endpoint_;
-	tcp::acceptor acceptor_;
+	tcp::endpoint dewd_;
 	tcp::socket socket_;
+	string channel_;
 
+	const size_t MAX_FRAME_LENGTH = 4096;
 	const long BUFFER_LENGTH = 8192;
-	bBuff request = bBuff (BUFFER_LENGTH);
+	pBuff the_deque = pBuff (4*BUFFER_LENGTH);
+	time_point<steady_clock> front_last = steady_clock::now();
 
 	void do_connect();
-	void do_accept();
 	void do_read();
-	void handle_read(boost::system::error_code, size_t);
+	void handle_read(boost::system::error_code, size_t, bBuffp);
 	void handle_write(boost::system::error_code, size_t, bBuffp);
 	void handle_connect(boost::system::error_code);
-	sentence buffer_to_sentence(int len);
+
+	void set_a_check();
+	void check_the_deque();
+	int scrub(pBuff::iterator);
 
 public:
 };
