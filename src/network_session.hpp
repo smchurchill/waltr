@@ -121,7 +121,7 @@ void ns::do_read() {
 void ns::handle_read(
 		boost::system::error_code ec, size_t in_length, bBuffp buffer) {
 	if(ec){
-		dprint(ec);
+		assert(false);
 		context_.dispatch->remove_ns(shared_from_this());
 		return;
 	} else {
@@ -144,6 +144,7 @@ void ns::handle_write(
 
 void ns::handle_connect(boost::system::error_code ec) {
 	if(ec) {
+		assert(false);
 		//oh no!
 	} else {
 		auto sub_cmd = make_shared<string>("subscribe to "+channel_);
@@ -190,7 +191,7 @@ void ns::check_the_deque() {
 			assert(match_point+2 <= the_deque.end());
 			copy(the_deque.begin()+2,match_point,back_inserter(to_send));
 			scrub(match_point+2);
-			if(crc8(make_iterator_range(to_send.begin(),to_send.end()))
+			if(crc8(make_iterator_range(to_send.begin(),to_send.end()-1))
 					!= to_send.back()) {// uh oh!  crc doesn't match!
 				assert(false);
 			} else {
