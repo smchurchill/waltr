@@ -27,14 +27,13 @@
 #include <boost/bind.hpp>
 
 #include <boost/chrono.hpp>
-#include <boost/chrono/time_point.hpp>
+#include <boost/chrono/chrono_io.hpp>
 
 #include <boost/program_options.hpp>
 #include <boost/range/iterator_range.hpp>
 
-#include <boost/bimap.hpp>
-#include <boost/bimap/unordered_multiset_of.hpp>
-
+#include <boost/filesystem.hpp>
+#include <stdio.h>
 
 #include "structs.h"
 #include "types.h"
@@ -47,8 +46,12 @@ namespace dew {
 
 using ::boost::asio::io_service;
 using ::boost::chrono::steady_clock;
+using ::boost::chrono::system_clock;
+using ::boost::chrono::time_fmt;
+using	::boost::chrono::timezone;
 using ::boost::make_iterator_range;
 using ::boost::bind;
+using ::boost::filesystem::path;
 
 using ::std::endl;
 
@@ -131,9 +134,30 @@ void maintainer::remove_ns (nsp to_remove) {
 void maintainer::delivery(stringp message) {
 	auto fpm = make_shared<flopointpb::FloPointMessage>();
 	bool parse_successful = fpm->ParseFromString(*message);
-	if(parse_successful)
-		dprint(fpm->name());
+	if(parse_successful) {
+		string logfile_ (logfile(fpm->name()));
+		FILE * log = fopen(logfile_.c_str(),"a");
+		std::fwrite(message->c_str(), sizeof(u8), message->length(), log);
+		fclose(log);
+	}
 }
+
+string maintainer::logfile(string channel) {
+	stringstream ss;
+	ss << logdir_ << channel << "/"
+			<< ::boost::chrono::time_fmt(
+					::boost::chrono::timezone::local, "%F")
+			<< system_clock::now();
+	path p (ss.str());
+	if(!::boost::filesystem::exists(p))
+		assert(::boost::filesystem::create_directories(p));
+
+	ss << "/"
+			<< ::boost::chrono::time_fmt(::boost::chrono::timezone::local, "%H")
+			<< system_clock::now();
+	return ss.str();
+}
+
 
 void maintainer::forward(stringp) {
 

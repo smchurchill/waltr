@@ -5,6 +5,7 @@
  */
 
 #define AJS_HACK
+#define BOOST_CHRONO_DONT_PROVIDES_DEPRECATED_IO_SINCE_V2_0_0
 
 #include <ctime>
 #include <iostream>

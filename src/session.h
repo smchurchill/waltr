@@ -61,6 +61,8 @@ public:
 	void delivery(stringp);
 
 private:
+	string logfile(string);
+
 	void forward(stringp);
 	void forward_handler(const error_code&,size_t, bBuffp, nsp);
 

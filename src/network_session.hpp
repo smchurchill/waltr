@@ -84,7 +84,7 @@ ns::network_session(
 {
 }
 
-shared_ptr<network_session> ns::get_ns() {
+nsp ns::get_ns() {
 	return shared_from_this();
 }
 
