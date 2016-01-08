@@ -65,6 +65,10 @@ int main(int argc, char** argv) {
 	static_assert(BOOST_VERSION >= 104900,
 			"asio waitable timer only supported in boost versions at least 1.49");
 
+	if(1){
+	dprint("Built using scons");
+	exit(0);
+	}
 	try {
 		string dewd;
 		vector<string> chan;
