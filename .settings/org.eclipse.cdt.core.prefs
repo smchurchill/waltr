@@ -1,4 +1,9 @@
 eclipse.preferences.version=1
+environment/project/cdt.managedbuild.config.gnu.cross.exe.release.987132771/LD_LIBRARY_PATH/delimiter=\:
+environment/project/cdt.managedbuild.config.gnu.cross.exe.release.987132771/LD_LIBRARY_PATH/operation=append
+environment/project/cdt.managedbuild.config.gnu.cross.exe.release.987132771/LD_LIBRARY_PATH/value=/home/schurchill/build/cross-freebsd/lib/
+environment/project/cdt.managedbuild.config.gnu.cross.exe.release.987132771/append=true
+environment/project/cdt.managedbuild.config.gnu.cross.exe.release.987132771/appendContributed=true
 org.eclipse.cdt.core.formatter.alignment_for_arguments_in_method_invocation=16
 org.eclipse.cdt.core.formatter.alignment_for_assignment=16
 org.eclipse.cdt.core.formatter.alignment_for_base_clause_in_type_declaration=80

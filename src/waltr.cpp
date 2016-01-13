@@ -4,20 +4,20 @@
  * logs pb messages in a raw format, and cleans up after itself.
  */
 
-#define AJS_HACK
 #define BOOST_CHRONO_DONT_PROVIDES_DEPRECATED_IO_SINCE_V2_0_0
+
 
 #include <ctime>
 #include <iostream>
 #include <fstream>
 #include <string>
+#include <sstream>
 #include <vector>
 #include <deque>
 #include <cstdio>
 #include <functional>
 #include <memory>
 
-#include <boost/version.hpp>
 #include <boost/asio.hpp>
 #include <boost/program_options.hpp>
 #include <boost/filesystem.hpp>
@@ -62,13 +62,7 @@ using ::std::shared_ptr;
 
 
 int main(int argc, char** argv) {
-	static_assert(BOOST_VERSION >= 104900,
-			"asio waitable timer only supported in boost versions at least 1.49");
 
-	if(1){
-	dprint("Built using scons");
-	exit(0);
-	}
 	try {
 		string dewd;
 		vector<string> chan;
