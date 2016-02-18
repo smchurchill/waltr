@@ -17,3 +17,15 @@ configure
 configure.ac~
 stamp-h1
 .gitignore~
+bootstrap.sh
+bootstrap.sh~
+compile
+config.guess
+config.h.in~
+config.sub
+depcomp
+install-sh
+missing
+src/autoscan.log
+src/configure.scan
+
