@@ -2,7 +2,6 @@
 /Release/
 /FreeBSD/
 .deps/
-COPYING
 Makefile
 Makefile.am~
 Makefile.in
