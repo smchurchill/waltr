@@ -1,2 +1,3 @@
-bin_PROGRAMS = waltr
-waltr_SOURCES = waltr.cpp flopointpb.pb.cc
+ACLOCAL_AMFLAGS = -I m4
+SUBDIRS = src fppb
+
