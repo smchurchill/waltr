@@ -27,4 +27,6 @@ install-sh
 missing
 src/autoscan.log
 src/configure.scan
+autoscan.log
+configure.scan
 
